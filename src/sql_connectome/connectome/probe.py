@@ -88,7 +88,7 @@ def probe_sql_dialects(sql: str, *, max_candidates: int = 8) -> dict[str, object
     text = sql.strip()
     if not text:
         raise SQLTextError("EMPTY_SQL")
-    if max_candidates < 1 or max_candidates > 28:
+    if max_candidates < 1 or max_candidates > len(SQLGLOT_DIALECTS):
         raise SQLTextError("INVALID_MAX_CANDIDATES")
 
     candidates: list[DialectCandidate] = []
