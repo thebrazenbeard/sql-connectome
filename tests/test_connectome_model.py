@@ -28,6 +28,8 @@ def test_native_capabilities_are_exact() -> None:
     assert plan.fidelity is TranslationFidelity.EXACT
     assert plan.missing_capabilities == frozenset()
     assert plan.rewrites == ()
+    assert plan.fidelity_scope == "CAPABILITY_PLAN"
+    assert plan.behavioral_equivalence == "NOT_ESTABLISHED"
 
 
 def test_qualify_can_be_constructively_rewritten_for_postgresql() -> None:
@@ -73,3 +75,12 @@ def test_dialect_inventory_is_deterministic() -> None:
     assert "postgresql" in ids
     assert "oracle" in ids
     assert "bigquery" in ids
+
+
+def test_source_capability_must_be_admitted() -> None:
+    with pytest.raises(ValueError, match="SOURCE_CAPABILITY_NOT_ADMITTED:apply"):
+        plan_translation(
+            "bigquery",
+            "postgresql",
+            {"relational_select", "apply"},
+        )
