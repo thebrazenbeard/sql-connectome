@@ -98,3 +98,35 @@ def test_connectome_bind_endpoint(monkeypatch) -> None:
     payload = response.json()
     assert payload["binding"]["status"] == "STATIC_BOUND"
     assert payload["binding"]["engine_validation"] == "NOT_RUN"
+
+
+def test_connectome_postgresql_qualification_endpoint(monkeypatch) -> None:
+    from sql_connectome import app as app_module
+
+    def fake_qualification(settings, sql, source_dialect, *, allow_lossy=False):
+        assert settings.api_token.get_secret_value() == "semantic-test-token"
+        assert sql == "SELECT 1"
+        assert source_dialect == "mysql"
+        assert allow_lossy is False
+        return {
+            "schema": "SQL_CONNECTOME_TRANSLATION_QUALIFICATION_V1",
+            "qualification": {"status": "PASS"},
+        }
+
+    monkeypatch.setattr(
+        app_module,
+        "qualify_translation_to_postgresql",
+        fake_qualification,
+    )
+    client, headers = _authenticated_client(monkeypatch)
+    response = client.post(
+        "/v1/connectome/qualify/postgresql",
+        headers=headers,
+        json={
+            "sql": "SELECT 1",
+            "source_dialect": "mysql",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["qualification"]["status"] == "PASS"

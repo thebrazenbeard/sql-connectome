@@ -24,12 +24,14 @@ from .db import (
 )
 from .models import (
     DialectProbeRequest,
+    PostgreSQLQualificationRequest,
     QueryRequest,
     SQLBindRequest,
     SQLParseRequest,
     SQLTranspileRequest,
     TranslationPlanRequest,
 )
+from .qualification import qualify_translation_to_postgresql
 from .sql_guard import SQLRejected
 
 app = FastAPI(title="SQL Connectome", version=__version__)
@@ -113,6 +115,26 @@ def post_connectome_transpile(request: SQLTranspileRequest) -> dict[str, object]
     except (KeyError, SQLTextError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+
+
+
+@app.post(
+    "/v1/connectome/qualify/postgresql",
+    dependencies=[Depends(require_bearer)],
+)
+def post_connectome_qualify_postgresql(
+    request: PostgreSQLQualificationRequest,
+    settings: SettingsDep,
+) -> dict[str, object]:
+    try:
+        return qualify_translation_to_postgresql(
+            settings,
+            request.sql,
+            request.source_dialect,
+            allow_lossy=request.allow_lossy,
+        )
+    except (KeyError, SQLTextError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post("/v1/connectome/validate/postgresql", dependencies=[Depends(require_bearer)])
