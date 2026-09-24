@@ -3,16 +3,12 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-import sqlglot
-from sqlglot import ErrorLevel
-from sqlglot.errors import ParseError
-
 from .registry import DEFAULT_DIALECTS
 from .text_pipeline import (
-    MAX_SQL_AST_NODES,
     SQLGLOT_DIALECTS,
     SQLTextError,
     _bounded_text,
+    _parse_expressions,
     parse_sql_text,
 )
 
@@ -100,17 +96,8 @@ def probe_sql_dialects(sql: str, *, max_candidates: int = 8) -> dict[str, object
 
     for dialect_id, parser_dialect in sorted(SQLGLOT_DIALECTS.items()):
         try:
-            expressions = [
-                expression
-                for expression in sqlglot.parse(
-                    text,
-                    read=parser_dialect,
-                    error_level=ErrorLevel.RAISE,
-                    max_nodes=MAX_SQL_AST_NODES,
-                )
-                if expression is not None
-            ]
-        except ParseError:
+            expressions = _parse_expressions(text, parser_dialect)
+        except SQLTextError:
             parser_failures += 1
             continue
 
