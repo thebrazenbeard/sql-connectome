@@ -23,8 +23,8 @@ from .db import (
 )
 from .models import (
     DialectProbeRequest,
-    SQLBindRequest,
     QueryRequest,
+    SQLBindRequest,
     SQLParseRequest,
     SQLTranspileRequest,
     TranslationPlanRequest,
