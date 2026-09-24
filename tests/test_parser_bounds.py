@@ -1,7 +1,6 @@
 import pytest
 
-from sql_connectome.connectome import SQLTextError, parse_sql_text
-from sql_connectome.connectome import text_pipeline
+from sql_connectome.connectome import SQLTextError, parse_sql_text, text_pipeline
 
 
 def test_semantic_parser_rejects_oversized_text(monkeypatch) -> None:
