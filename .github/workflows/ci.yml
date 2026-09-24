@@ -4,10 +4,19 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:17
@@ -27,13 +36,26 @@ jobs:
       SQL_CONNECTOME_API_TOKEN: ci-test-token
       SQL_CONNECTOME_READ_SCHEMAS: bt2,public,sql_connectome
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install -e '.[dev]'
-      - run: python scripts/apply_migrations.py
-      - run: python scripts/apply_migrations.py
-      - run: ruff check .
-      - run: pytest -q
+
+      - name: Install
+        run: pip install -e '.[dev]'
+
+      - name: Apply migrations
+        run: python scripts/apply_migrations.py
+
+      - name: Verify migration idempotency
+        run: python scripts/apply_migrations.py
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Test
+        run: pytest -q
