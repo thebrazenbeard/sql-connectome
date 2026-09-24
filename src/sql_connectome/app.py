@@ -10,6 +10,7 @@ from .connectome import (
     list_dialects,
     parse_sql_text,
     plan_translation,
+    probe_sql_dialects,
     transpile_sql_text,
 )
 from .db import (
@@ -19,7 +20,13 @@ from .db import (
     query_readonly,
     schema_inventory,
 )
-from .models import QueryRequest, SQLParseRequest, SQLTranspileRequest, TranslationPlanRequest
+from .models import (
+    DialectProbeRequest,
+    QueryRequest,
+    SQLParseRequest,
+    SQLTranspileRequest,
+    TranslationPlanRequest,
+)
 from .sql_guard import SQLRejected
 
 app = FastAPI(title="SQL Connectome", version=__version__)
@@ -56,6 +63,15 @@ def post_connectome_translation_plan(request: TranslationPlanRequest) -> dict[st
             request.required_capabilities,
         ).as_dict()
     except (KeyError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+
+@app.post("/v1/connectome/probe", dependencies=[Depends(require_bearer)])
+def post_connectome_probe(request: DialectProbeRequest) -> dict[str, object]:
+    try:
+        return probe_sql_dialects(request.sql, max_candidates=request.max_candidates)
+    except SQLTextError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 

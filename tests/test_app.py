@@ -66,3 +66,17 @@ def test_connectome_translation_plan_fails_closed(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert response.json()["fidelity"] == "UNREPRESENTABLE"
+
+
+def test_connectome_probe_endpoint(monkeypatch) -> None:
+    client, headers = _authenticated_client(monkeypatch)
+    response = client.post(
+        "/v1/connectome/probe",
+        headers=headers,
+        json={"sql": "SELECT TOP 5 * FROM users", "max_candidates": 3},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["identity_proof"] is False
+    assert payload["candidates"][0]["dialect_id"] == "tsql"

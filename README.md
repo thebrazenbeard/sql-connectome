@@ -46,7 +46,9 @@ The current semantic-core slice includes:
 - SQLGlot AST projection into the graph-shaped semantic IR;
 - strict transpilation gated by the connectome capability plan;
 - target-dialect reparse validation;
-- lossy-translation opt-in and unrepresentable-translation blocking.
+- lossy-translation opt-in and unrepresentable-translation blocking;
+- 28 SQL-family parser adapters/genomes with deliberately partial capability admission where needed;
+- heuristic dialect probing that returns ranked evidence and preserves ambiguity rather than claiming identity.
 
 Parsing and transpilation do **not** establish cross-engine behavioral equivalence. The API reports
 behavioral equivalence as `NOT_ESTABLISHED` until stronger schema/type/engine validation exists.

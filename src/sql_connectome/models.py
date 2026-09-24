@@ -24,3 +24,8 @@ class SQLTranspileRequest(BaseModel):
     source_dialect: str = Field(min_length=1, max_length=100)
     target_dialect: str = Field(min_length=1, max_length=100)
     allow_lossy: bool = False
+
+
+class DialectProbeRequest(BaseModel):
+    sql: str = Field(min_length=1, max_length=50000)
+    max_candidates: int = Field(default=8, ge=1, le=28)
