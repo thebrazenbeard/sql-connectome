@@ -4,6 +4,7 @@ from typing import Any
 
 import psycopg
 from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
 
 from .config import Settings
 from .db import connect
@@ -40,7 +41,7 @@ def _effect_receipt(
         )
         RETURNING receipt_id::text, created_at
         """,
-        (effect_kind, subject_digest, subject, result),
+        (effect_kind, subject_digest, Jsonb(subject), Jsonb(result)),
     ).fetchone()
     assert row is not None
     return {
@@ -80,7 +81,7 @@ def register_project(
                 ON CONFLICT (project_key) DO NOTHING
                 RETURNING project_id::text, project_key, display_name, lifecycle_state, metadata
                 """,
-                (project_key, display_name, metadata),
+                (project_key, display_name, Jsonb(metadata)),
             ).fetchone()
 
             if row is None:
@@ -212,8 +213,8 @@ def register_database_target(
                     database_name,
                     region,
                     lifecycle_state,
-                    capabilities,
-                    metadata,
+                    Jsonb(capabilities),
+                    Jsonb(metadata),
                 ),
             ).fetchone()
 
