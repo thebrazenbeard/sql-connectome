@@ -74,6 +74,21 @@ The first execution substrate remains the provider-neutral PostgreSQL control pl
 PostgreSQL is the first execution/governance adapter, not the definition or semantic ceiling of SQL
 Connectome.
 
+### Project/database control plane
+
+The first platform-lifecycle slice adds provider-neutral projects and database targets:
+
+- stable logical project identities;
+- primary/replica/analytics/archive target roles;
+- provider/region/resource metadata without storing credentials;
+- one-live-primary enforcement;
+- runtime-bound project inventory receipts;
+- append-only effect receipts;
+- operator-only project/target registration.
+
+Registration is deliberately separate from provider provisioning. See
+`docs/PROJECT_CONTROL_PLANE.md`.
+
 ## Local development
 
 ```bash
