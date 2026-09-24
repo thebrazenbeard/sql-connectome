@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: sql_connectome
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sql_connectome"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      SQL_CONNECTOME_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sql_connectome
+      SQL_CONNECTOME_API_TOKEN: ci-test-token
+      SQL_CONNECTOME_READ_SCHEMAS: bt2,public,sql_connectome
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e '.[dev]'
+      - run: python scripts/apply_migrations.py
+      - run: python scripts/apply_migrations.py
+      - run: ruff check .
+      - run: pytest -q
