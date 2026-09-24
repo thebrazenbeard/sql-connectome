@@ -12,3 +12,15 @@ class TranslationPlanRequest(BaseModel):
     source_dialect: str = Field(min_length=1, max_length=100)
     target_dialect: str = Field(min_length=1, max_length=100)
     required_capabilities: list[str] = Field(min_length=1, max_length=256)
+
+
+class SQLParseRequest(BaseModel):
+    sql: str = Field(min_length=1, max_length=50000)
+    dialect: str = Field(min_length=1, max_length=100)
+
+
+class SQLTranspileRequest(BaseModel):
+    sql: str = Field(min_length=1, max_length=50000)
+    source_dialect: str = Field(min_length=1, max_length=100)
+    target_dialect: str = Field(min_length=1, max_length=100)
+    allow_lossy: bool = False
