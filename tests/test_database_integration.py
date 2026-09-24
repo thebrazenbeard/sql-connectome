@@ -4,7 +4,13 @@ import psycopg
 import pytest
 
 from sql_connectome.config import Settings
-from sql_connectome.db import migration_status, platform_health, query_readonly, schema_inventory
+from sql_connectome.db import (
+    migration_status,
+    platform_health,
+    query_readonly,
+    schema_inventory,
+    validate_postgresql_readonly,
+)
 from sql_connectome.sql_guard import SQLRejected
 
 DSN = os.getenv("SQL_CONNECTOME_DATABASE_URL")
@@ -57,3 +63,35 @@ def test_readonly_transaction_blocks_write_cte() -> None:
             "SELECT count(*) FROM sql_connectome.platform_metadata"
         ).fetchone()[0]
     assert count == 1
+
+
+def test_postgres_engine_validation_passes_real_plan() -> None:
+    result = validate_postgresql_readonly(
+        settings(),
+        "SELECT version FROM sql_connectome.schema_migrations ORDER BY version",
+    )
+
+    assert result["validation"]["status"] == "PASS"
+    assert result["validation"]["query_executed"] is False
+    assert result["validation"]["read_only_transaction"] is True
+    assert result["plan"]
+    assert result["error"] is None
+
+
+def test_postgres_engine_validation_returns_binding_failure() -> None:
+    result = validate_postgresql_readonly(
+        settings(),
+        "SELECT definitely_missing FROM sql_connectome.schema_migrations",
+    )
+
+    assert result["validation"]["status"] == "FAIL"
+    assert result["plan"] is None
+    assert result["error"]["sqlstate"] == "42703"
+
+
+def test_postgres_engine_validation_rejects_non_select() -> None:
+    with pytest.raises(SQLRejected, match="ONLY_SELECT_ALLOWED"):
+        validate_postgresql_readonly(
+            settings(),
+            "UPDATE sql_connectome.platform_metadata SET platform_schema = 'bad'",
+        )
