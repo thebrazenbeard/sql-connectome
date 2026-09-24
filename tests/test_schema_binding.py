@@ -2,7 +2,6 @@ import pytest
 
 from sql_connectome.connectome import SQLTextError, bind_sql_text
 
-
 SCHEMA = {
     "users": {
         "id": "INT",
