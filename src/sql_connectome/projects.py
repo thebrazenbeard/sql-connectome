@@ -7,7 +7,7 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from .config import Settings
-from .db import connect
+from .db import _runtime_identity, connect
 from .receipts import canonical_digest, make_receipt
 
 
@@ -288,6 +288,7 @@ def register_database_target(
 
 def list_projects(settings: Settings) -> dict[str, Any]:
     with connect(settings) as conn:
+        identity = _runtime_identity(conn)
         rows = conn.execute(
             """
             SELECT
@@ -307,11 +308,13 @@ def list_projects(settings: Settings) -> dict[str, Any]:
         ).fetchall()
 
     subject = {
+        "runtime_identity_digest": identity["identity_digest"],
         "project_count": len(rows),
         "project_keys": [row["project_key"] for row in rows],
     }
     return {
         "schema": "SQL_CONNECTOME_PROJECT_LIST_V1",
+        "runtime": identity,
         "projects": rows,
         "count": len(rows),
         "receipt": make_receipt("PROJECT_LIST", subject),
@@ -320,6 +323,7 @@ def list_projects(settings: Settings) -> dict[str, Any]:
 
 def project_detail(settings: Settings, project_key: str) -> dict[str, Any]:
     with connect(settings) as conn:
+        identity = _runtime_identity(conn)
         project = conn.execute(
             """
             SELECT
@@ -370,6 +374,7 @@ def project_detail(settings: Settings, project_key: str) -> dict[str, Any]:
         ).fetchall()
 
     subject = {
+        "runtime_identity_digest": identity["identity_digest"],
         "project_id": project["project_id"],
         "project_key": project_key,
         "target_ids": [row["target_id"] for row in targets],
@@ -377,6 +382,7 @@ def project_detail(settings: Settings, project_key: str) -> dict[str, Any]:
     }
     return {
         "schema": "SQL_CONNECTOME_PROJECT_DETAIL_V1",
+        "runtime": identity,
         "project": project,
         "targets": targets,
         "receipt": make_receipt("PROJECT_DETAIL", subject),
