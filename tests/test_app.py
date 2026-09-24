@@ -98,3 +98,20 @@ def test_connectome_bind_endpoint(monkeypatch) -> None:
     payload = response.json()
     assert payload["binding"]["status"] == "STATIC_BOUND"
     assert payload["binding"]["engine_validation"] == "NOT_RUN"
+
+
+def test_connectome_postgresql_qualification_endpoint(monkeypatch) -> None:
+    client, headers = _authenticated_client(monkeypatch)
+    response = client.post(
+        "/v1/connectome/qualify/postgresql",
+        headers=headers,
+        json={
+            "sql": "SELECT 1",
+            "source_dialect": "mysql",
+        },
+    )
+
+    # The endpoint reaches the configured database, unlike static parse/bind routes.
+    # The test client uses an intentionally unreachable DSN, so connection failure
+    # is not converted into a false static PASS.
+    assert response.status_code >= 500
