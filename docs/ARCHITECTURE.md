@@ -40,7 +40,9 @@ The first executable substrate contains:
 4. **Read boundary** — single SELECT plus PostgreSQL READ ONLY transaction, timeout and row cap.
 5. **Currentness adapter** — Lantern cut/payload captured in one REPEATABLE READ READ ONLY snapshot.
 6. **Receipts** — canonical digests bind responses to runtime identity and exact subjects.
-7. **ChatGPT/MCP adapter** — future layer calling the control plane rather than provider APIs.
+7. **Recovery plane** — provider-independent pg_dump/pg_restore archives with manifest
+   cross-binding, blank-target restore, and post-restore qualification.
+8. **ChatGPT/MCP adapter** — future layer calling the control plane rather than provider APIs.
 
 The execution layer is intentionally separable from semantic reasoning. Understanding Oracle SQL,
 for example, does not require an Oracle execution credential, and having a PostgreSQL connection
