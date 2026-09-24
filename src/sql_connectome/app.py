@@ -7,6 +7,7 @@ from .auth import require_bearer
 from .config import Settings, get_settings
 from .connectome import (
     SQLTextError,
+    bind_sql_text,
     list_dialects,
     parse_sql_text,
     plan_translation,
@@ -23,6 +24,7 @@ from .db import (
 from .models import (
     DialectProbeRequest,
     QueryRequest,
+    SQLBindRequest,
     SQLParseRequest,
     SQLTranspileRequest,
     TranslationPlanRequest,
@@ -65,6 +67,21 @@ def post_connectome_translation_plan(request: TranslationPlanRequest) -> dict[st
     except (KeyError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+
+
+
+@app.post("/v1/connectome/bind", dependencies=[Depends(require_bearer)])
+def post_connectome_bind(request: SQLBindRequest) -> dict[str, object]:
+    try:
+        return bind_sql_text(
+            request.sql,
+            request.dialect,
+            request.schema_context,
+            database=request.database,
+            catalog=request.catalog,
+        )
+    except (KeyError, SQLTextError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post("/v1/connectome/probe", dependencies=[Depends(require_bearer)])

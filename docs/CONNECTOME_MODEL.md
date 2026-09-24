@@ -179,3 +179,25 @@ probabilities, and `identity_proof` is always false. Equal top scores remain exp
 Parser coverage is intentionally broader than semantic capability coverage. A dialect may therefore
 be a valid parse candidate while reporting `semantic_admission=PARTIAL`; that state is a prompt to
 extend the genome under evidence and tests, not permission to assume compatibility.
+
+
+## Schema and type binding
+
+Parsing establishes structure, not what an identifier resolves to. SQL Connectome therefore treats
+schema binding as a separate state.
+
+`bind_sql_text` accepts an explicit schema context and may:
+
+- qualify table and column references;
+- expand stars from known table columns;
+- annotate column and projection types;
+- return unresolved/unknown type counts;
+- bind the result to a canonical schema digest.
+
+The result is labeled `STATIC_BOUND`. It does not imply that the target engine has been contacted
+or that SQLGlot's qualification/type inference is infallible. Engine validation remains
+`NOT_RUN`, behavioral equivalence remains `NOT_ESTABLISHED`, and the authority ceiling is
+`STATIC_ANALYSIS_ONLY`.
+
+This separation allows future engine-backed prepare/EXPLAIN validation or differential execution to
+strengthen the evidence without retroactively redefining a parser/optimizer result as runtime truth.

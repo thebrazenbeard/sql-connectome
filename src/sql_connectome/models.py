@@ -29,3 +29,11 @@ class SQLTranspileRequest(BaseModel):
 class DialectProbeRequest(BaseModel):
     sql: str = Field(min_length=1, max_length=50000)
     max_candidates: int = Field(default=8, ge=1, le=28)
+
+
+class SQLBindRequest(BaseModel):
+    sql: str = Field(min_length=1, max_length=50000)
+    dialect: str = Field(min_length=1, max_length=100)
+    schema_context: dict[str, dict[str, str]]
+    database: str | None = Field(default=None, max_length=256)
+    catalog: str | None = Field(default=None, max_length=256)

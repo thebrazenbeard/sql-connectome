@@ -1,3 +1,4 @@
+from .binding import bind_sql_text
 from .ir import IREdge, IRNode, SQLSemanticIR, TranslationLoss
 from .model import (
     AppliedRewrite,
@@ -14,6 +15,7 @@ from .text_pipeline import SQLTextAnalysis, SQLTextError, parse_sql_text, transp
 
 __all__ = [
     "AppliedRewrite",
+    "bind_sql_text",
     "DEFAULT_DIALECTS",
     "DEFAULT_REWRITE_RULES",
     "DialectCandidate",
