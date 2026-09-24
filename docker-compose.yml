@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: sql_connectome
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sql_connectome"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "5432:5432"
+    volumes:
+      - sql_connectome_pgdata:/var/lib/postgresql/data
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SQL_CONNECTOME_DATABASE_URL: postgresql://postgres:postgres@db:5432/sql_connectome
+      SQL_CONNECTOME_API_TOKEN: ${SQL_CONNECTOME_API_TOKEN:-local-dev-token}
+      SQL_CONNECTOME_READ_SCHEMAS: bt2,public,sql_connectome
+    ports:
+      - "8080:8080"
+
+volumes:
+  sql_connectome_pgdata:
