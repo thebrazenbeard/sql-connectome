@@ -35,6 +35,7 @@ tools.
 
 - Use dialect probing when source dialect is uncertain.
 - Parse before making semantic claims about unfamiliar SQL.
+- Inspect expression contracts when function/operator/type semantics may differ across dialects.
 - Use translation planning before transpiling when capability differences matter.
 - Do not silently enable lossy translation.
 - Use PostgreSQL validation when engine/catalog acceptance matters without executing the query.
