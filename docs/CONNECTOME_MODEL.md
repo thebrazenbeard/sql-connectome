@@ -248,3 +248,43 @@ successful translation and target parse when the real target catalog cannot bind
 
 The qualification still reports `behavioral_equivalence=NOT_ESTABLISHED` and
 `query_executed=false`. Planning acceptance does not prove source/target result equality.
+
+
+## Expression-level semantic conformance
+
+Capability support is necessary but not sufficient for translation fidelity. Two dialects can both
+accept the same function or operator while assigning it different runtime meaning.
+
+SQL Connectome therefore evaluates expression families that are actually present in the source AST
+against semantic flags published by the pinned SQLGlot dialect implementation.
+
+The V1 expression-semantic layer inventories:
+
+- functions;
+- operators;
+- explicitly represented data types.
+
+It currently admits conditional semantic-risk rules for:
+
+- LEAST/GREATEST NULL handling;
+- integer/type-sensitive division behavior;
+- division-by-zero behavior;
+- CONCAT NULL handling;
+- CONCAT argument-type strictness;
+- positional index base offsets;
+- two-argument LOG argument order.
+
+A semantic risk does not claim that a result is definitely different for every input. It states the
+condition under which the source and target dialect behavior diverges. Because that condition may be
+satisfied at runtime, the translation receives a LOSSY semantic fidelity ceiling unless the caller
+explicitly opts in.
+
+This means a translation may simultaneously report:
+
+```text
+capability_fidelity = EXACT
+expression_semantic_fidelity = LOSSY
+combined_fidelity = LOSSY
+```
+
+That is intentional. Feature availability is not semantic equivalence.
