@@ -9,8 +9,6 @@ updates:
       time: "09:00"
       timezone: "America/Indiana/Indianapolis"
     open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
     commit-message:
       prefix: "deps"
 
@@ -22,9 +20,6 @@ updates:
       time: "09:15"
       timezone: "America/Indiana/Indianapolis"
     open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-      - "github-actions"
     commit-message:
       prefix: "ci"
 
@@ -36,8 +31,5 @@ updates:
       time: "09:30"
       timezone: "America/Indiana/Indianapolis"
     open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "docker"
     commit-message:
       prefix: "docker"
