@@ -92,14 +92,14 @@ Parser admission is a later layer.
 
 Translation is not boolean.
 
-- `EXACT`: the target natively supports all required semantics.
+- `EXACT`: the target natively supports all required admitted capabilities at the capability-planning layer.
 - `CONSTRUCTIVE`: missing syntax can be reconstructed from target capabilities without a known
   semantic loss at the capability-planning layer.
 - `LOSSY`: a rewrite exists but known semantics may not survive exactly.
 - `UNREPRESENTABLE`: at least one required capability has neither native support nor an admitted
   rewrite.
 
-The planner fails closed on unresolved capabilities.
+The planner fails closed on unresolved target capabilities and on capabilities not admitted by the declared source dialect. `EXACT` is not a claim of cross-engine behavioral equivalence; behavioral equivalence remains `NOT_ESTABLISHED` until binding, typing, target validation, and where needed differential execution prove it.
 
 Examples in the bootstrap rule set:
 
