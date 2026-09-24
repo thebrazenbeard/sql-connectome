@@ -21,7 +21,11 @@
 - schema inventory allowlist;
 - provider-neutral runtime identity digest;
 - no HTTP write endpoint;
-- PostgreSQL engine validation uses `EXPLAIN` without `ANALYZE` inside a READ ONLY transaction.
+- PostgreSQL engine validation uses `EXPLAIN` without `ANALYZE` inside a READ ONLY transaction;
+- backup archives are SHA-256 bound to canonical manifests;
+- restore requires explicit trusted-source acknowledgement and a blank target;
+- restore is single-transaction, exit-on-error, and never performs clean/drop behavior;
+- post-restore catalog and migration state are cross-bound to the backup manifest.
 
 ## Important residual risks
 
@@ -31,6 +35,10 @@ A static bearer token is acceptable only for the first private development slice
 
 postgres-meta, if later admitted, must remain behind the control plane. Its upstream project explicitly does not provide standalone security.
 
+A valid backup checksum establishes integrity, not trust. PostgreSQL restores may execute code
+contained in a dump, so untrusted archives remain unsafe even when their manifests verify. The V1
+restore CLI therefore requires an explicit trusted-source acknowledgement.
+
 ## Non-goals
 
 V1 does not claim:
@@ -39,4 +47,6 @@ V1 does not claim:
 - realtime delivery;
 - end-user auth;
 - provider high availability;
-- qualified disaster recovery until restore tests exist.
+- cryptographic signing/authentication of backup manifests;
+- automatic backup retention or remote object-storage lifecycle;
+- cluster-global role/tablespace recovery.
