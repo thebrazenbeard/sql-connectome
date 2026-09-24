@@ -1,26 +1,66 @@
 # SQL Connectome
 
-SQL Connectome is a provider-independent PostgreSQL platform and governed ChatGPT/MCP control surface.
+SQL Connectome is a semantic network for understanding, comparing, translating, validating,
+routing, and safely executing SQL-family languages without pretending that every dialect has the
+same grammar or semantics.
 
-The project is designed as a general-purpose platform: standard PostgreSQL remains the database engine while SQL Connectome provides the control plane, currentness and receipt semantics, recovery contract, and AI-facing interfaces.
+The project is built around three separations:
 
-It is deliberately **not** a PostgreSQL fork. PostgreSQL remains the database engine; SQL Connectome owns the control plane, currentness/receipt semantics, recovery contract, and AI-facing interface.
+- dialect syntax is not semantic identity;
+- translation is not proof of behavioral equivalence;
+- understanding or routing a query is not authority to execute its effects.
 
-## V1 slice
+## Architecture
 
-This branch establishes:
+The connectome models dialects as version-aware **dialect genomes** attached to a shared,
+graph-shaped semantic intermediate representation. Capabilities and rewrite rules connect those
+genomes while preserving whether a translation is:
 
-- a FastAPI control service with bearer authentication;
-- provider-neutral runtime identity;
+- `EXACT`;
+- `CONSTRUCTIVE`;
+- `LOSSY`;
+- `UNREPRESENTABLE`.
+
+The semantic core is intentionally open-ended. New SQL engines and dialects attach by contributing
+a genome, capabilities, semantic bindings, and rewrite/validation knowledge rather than forcing
+every language into one monolithic grammar.
+
+See `docs/CONNECTOME_MODEL.md` for the semantic model.
+
+## Current executable slices
+
+### Semantic connectome
+
+The current semantic-core slice includes:
+
+- versionable dialect-genome structures;
+- semantic dimensions spanning relational, nested, document, graph, vector, geospatial, temporal,
+  streaming, analytical, transactional, procedural, administrative, and federated SQL;
+- a graph-shaped universal SQL semantic IR envelope;
+- a deterministic capability/rewrite planner;
+- explicit translation-fidelity and semantic-loss states;
+- bootstrap genomes for PostgreSQL, DuckDB, SQLite, MySQL, BigQuery GoogleSQL, Snowflake,
+  Microsoft T-SQL, Oracle SQL, and Trino;
+- authenticated dialect inventory and translation-plan APIs.
+
+This is a capability-planning layer. It does **not** yet claim full text parsing, SQL generation,
+or cross-engine behavioral equivalence.
+
+### PostgreSQL execution/governance substrate
+
+The first execution substrate remains the provider-neutral PostgreSQL control plane:
+
+- FastAPI control service with bearer authentication;
+- runtime identity and canonical receipts;
 - bounded read-only SQL execution inside PostgreSQL read-only transactions;
 - schema inventory;
-- a Lantern current-cut adapter using one `REPEATABLE READ READ ONLY` transaction;
-- canonical migration ledger and effect-receipt storage;
-- provider-independent migration tooling;
+- Lantern current-cut adapter using one `REPEATABLE READ READ ONLY` transaction;
+- checksum-bound migration ledger;
 - local PostgreSQL Docker development;
-- unit/integration CI against PostgreSQL 17.
+- integration CI against PostgreSQL 17.
 
-Protected database writes are intentionally absent from the first API slice.
+PostgreSQL is the first execution/governance adapter, not the definition or semantic ceiling of SQL
+Connectome.
 
 ## Local development
 
@@ -45,4 +85,9 @@ ruff check .
 
 ## Authority boundary
 
-SQL Connectome source, an installed plugin, or a successful database read does not grant write authority. Provider provisioning, credential changes, migrations against durable environments, restore, destructive operations, plugin installation, and protected writes are separate effects and require explicit authority plus verification.
+Source code, an installed adapter, a valid translation plan, successful validation, or a successful
+database read does not grant write authority.
+
+Provider provisioning, credential changes, durable migrations, restore, destructive operations,
+plugin installation, and protected writes remain separate effects requiring explicit authority and
+post-effect verification.
