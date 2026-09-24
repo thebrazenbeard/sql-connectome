@@ -6,6 +6,7 @@ from typing import Any
 
 import sqlglot
 from sqlglot import ErrorLevel, exp
+from sqlglot.dialects import Dialect
 from sqlglot.errors import ParseError, UnsupportedError
 
 from .ir import IREdge, IRNode, SQLSemanticIR
@@ -15,6 +16,7 @@ from .registry import DEFAULT_DIALECTS, resolve_dialect
 
 MAX_SQL_TEXT_CHARS = 50_000
 MAX_SQL_AST_NODES = 10_000
+MAX_SQL_TOKENS = 20_000
 
 SQLGLOT_DIALECTS: dict[str, str] = {
     "athena": "athena",
@@ -93,15 +95,18 @@ def _bounded_text(sql: str) -> str:
 
 
 def _parse_expressions(text: str, parser_dialect: str) -> list[exp.Expression]:
+    dialect = Dialect.get_or_raise(parser_dialect)
+    tokens = dialect.tokenize(text)
+    if len(tokens) > MAX_SQL_TOKENS:
+        raise SQLTextError("SQL_TOKEN_LIMIT_EXCEEDED")
+
+    parser = dialect.parser(error_level=ErrorLevel.RAISE)
+    parser.max_nodes = MAX_SQL_AST_NODES
+
     try:
         return [
             expression
-            for expression in sqlglot.parse(
-                text,
-                read=parser_dialect,
-                error_level=ErrorLevel.RAISE,
-                max_nodes=MAX_SQL_AST_NODES,
-            )
+            for expression in parser.parse(tokens, text)
             if expression is not None
         ]
     except ParseError as exc:
