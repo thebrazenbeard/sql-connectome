@@ -90,6 +90,8 @@ class TranslationPlan:
     unresolved_capabilities: frozenset[CapabilityId]
     rewrites: tuple[AppliedRewrite, ...]
     fidelity: TranslationFidelity
+    fidelity_scope: str = "CAPABILITY_PLAN"
+    behavioral_equivalence: str = "NOT_ESTABLISHED"
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -109,4 +111,6 @@ class TranslationPlan:
                 for rewrite in self.rewrites
             ],
             "fidelity": self.fidelity.value,
+            "fidelity_scope": self.fidelity_scope,
+            "behavioral_equivalence": self.behavioral_equivalence,
         }
