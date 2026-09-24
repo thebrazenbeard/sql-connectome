@@ -130,3 +130,21 @@ def test_connectome_postgresql_qualification_endpoint(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert response.json()["qualification"]["status"] == "PASS"
+
+
+def test_connectome_contracts_endpoint(monkeypatch) -> None:
+    client, headers = _authenticated_client(monkeypatch)
+    response = client.post(
+        "/v1/connectome/contracts",
+        headers=headers,
+        json={
+            "sql": "SELECT LENGTH(name) FROM users",
+            "dialect": "postgresql",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["schema"] == "SQL_CONNECTOME_EXPRESSION_CONTRACTS_V1"
+    names = {row["name"] for row in payload["expression_contracts"]}
+    assert "LENGTH" in names

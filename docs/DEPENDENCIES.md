@@ -57,3 +57,15 @@ Upstream references:
 
 These flags are version-bound by the SQLGlot dependency pin. A future SQLGlot upgrade must rerun the
 semantic divergence suite before the dependency range is moved.
+
+
+### Expression metadata and coercions
+
+SQL Connectome's expression-contract API reads the pinned SQLGlot dialect
+`EXPRESSION_METADATA` and `COERCES_TO` structures. It intentionally serializes only stable,
+descriptive evidence such as fixed return types, presence of an annotator, argument shape, and
+coercion edges. Internal Python callables are never exposed as durable contract data.
+
+Upstream reference:
+
+- https://sqlglot.com/sqlglot/typing.html

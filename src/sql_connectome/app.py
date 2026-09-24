@@ -8,6 +8,7 @@ from .config import Settings, get_settings
 from .connectome import (
     SQLTextError,
     bind_sql_text,
+    inspect_sql_contracts,
     list_dialects,
     parse_sql_text,
     plan_translation,
@@ -71,6 +72,15 @@ def post_connectome_translation_plan(request: TranslationPlanRequest) -> dict[st
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+
+
+
+@app.post("/v1/connectome/contracts", dependencies=[Depends(require_bearer)])
+def post_connectome_contracts(request: SQLParseRequest) -> dict[str, object]:
+    try:
+        return inspect_sql_contracts(request.sql, request.dialect)
+    except (KeyError, SQLTextError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post("/v1/connectome/bind", dependencies=[Depends(require_bearer)])
