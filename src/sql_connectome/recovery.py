@@ -66,7 +66,7 @@ def _run_postgres_tool(binary: str, args: list[str], dsn: str) -> subprocess.Com
         env["PGPASSWORD"] = password
 
     result = subprocess.run(
-        [binary, *args, "--dbname", sanitized],
+        [binary, "--dbname", sanitized, *args],
         check=False,
         capture_output=True,
         text=True,
@@ -253,7 +253,7 @@ def _validate_manifest_dict(manifest: dict[str, Any]) -> None:
 
 
 def create_backup(
-    settings: Settings,
+    database_url: str,
     archive_path: Path,
     *,
     pg_dump_bin: str = "pg_dump",
