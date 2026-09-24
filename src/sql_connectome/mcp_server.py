@@ -170,7 +170,10 @@ def build_mcp_server(
         database: str | None = None,
         catalog: str | None = None,
     ) -> dict[str, Any]:
-        """Bind identifiers/types against caller-supplied schema context without engine execution."""
+        """Bind identifiers/types against caller-supplied schema context.
+
+        This performs static binding only and does not execute against an engine.
+        """
         statement = _bounded_sql(sql)
         try:
             return bind_sql_text(
