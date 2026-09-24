@@ -142,6 +142,7 @@ def _flag_risk(
     flag: str,
     condition: str,
     description: str,
+    none_is_unknown: bool = True,
 ) -> SemanticRisk | None:
     source_flags = source_profile["flags"]
     target_flags = target_profile["flags"]
@@ -152,6 +153,8 @@ def _flag_risk(
     target_value = target_flags.get(flag)
 
     if source_value == target_value:
+        return None
+    if none_is_unknown and (source_value is None or target_value is None):
         return None
 
     return SemanticRisk(
@@ -275,8 +278,10 @@ def assess_expression_semantics(
             flag="log_base_first",
             condition="LOG is called with a base and a value.",
             description=(
-                "Source and target dialects disagree on argument order for two-argument LOG."
+                "Source and target dialects disagree on argument order or support "
+                "for two-argument LOG."
             ),
+            none_is_unknown=False,
         )
         if risk:
             risks.append(risk)
