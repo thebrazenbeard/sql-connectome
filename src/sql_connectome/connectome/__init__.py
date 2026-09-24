@@ -17,7 +17,13 @@ from .semantics import (
     combined_fidelity,
     dialect_semantic_profile,
 )
-from .text_pipeline import SQLTextAnalysis, SQLTextError, parse_sql_text, transpile_sql_text
+from .text_pipeline import (
+    SQLTextAnalysis,
+    SQLTextError,
+    inspect_sql_contracts,
+    parse_sql_text,
+    transpile_sql_text,
+)
 
 __all__ = [
     "AppliedRewrite",
@@ -40,6 +46,7 @@ __all__ = [
     "assess_expression_semantics",
     "combined_fidelity",
     "dialect_semantic_profile",
+    "inspect_sql_contracts",
     "list_dialects",
     "parse_sql_text",
     "plan_translation",
