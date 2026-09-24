@@ -2,16 +2,21 @@ from __future__ import annotations
 
 from typing import Any
 
-import sqlglot
-from sqlglot import ErrorLevel, exp
-from sqlglot.errors import OptimizeError, ParseError
+from sqlglot import exp
+from sqlglot.errors import OptimizeError
 from sqlglot.optimizer.annotate_types import annotate_types
 from sqlglot.optimizer.qualify import qualify
 
 from sql_connectome.receipts import canonical_digest
 
 from .registry import resolve_dialect
-from .text_pipeline import SQLGLOT_DIALECTS, SQLTextError, parse_sql_text
+from .text_pipeline import (
+    SQLGLOT_DIALECTS,
+    SQLTextError,
+    _bounded_text,
+    _parse_single_expression,
+    parse_sql_text,
+)
 
 
 def _adapter_for(dialect: str) -> tuple[str, str]:
@@ -37,9 +42,7 @@ def bind_sql_text(
     database: str | None = None,
     catalog: str | None = None,
 ) -> dict[str, object]:
-    text = sql.strip()
-    if not text:
-        raise SQLTextError("EMPTY_SQL")
+    text = _bounded_text(sql)
     if not schema:
         raise SQLTextError("EMPTY_SCHEMA_CONTEXT")
 
@@ -49,12 +52,8 @@ def bind_sql_text(
     if "relational_select" not in source_analysis.ir.required_capabilities:
         raise SQLTextError("BINDING_ONLY_RELATIONAL_QUERY_SUPPORTED")
 
+    expression = _parse_single_expression(text, adapter)
     try:
-        expression = sqlglot.parse_one(
-            text,
-            read=adapter,
-            error_level=ErrorLevel.RAISE,
-        )
         qualified = qualify(
             expression,
             dialect=adapter,
@@ -71,7 +70,7 @@ def bind_sql_text(
             schema=schema,
             dialect=adapter,
         )
-    except (ParseError, OptimizeError) as exc:
+    except OptimizeError as exc:
         raise SQLTextError(f"STATIC_BIND_ERROR:{exc}") from exc
 
     columns: list[dict[str, Any]] = []

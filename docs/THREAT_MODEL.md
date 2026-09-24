@@ -17,6 +17,7 @@
 - database executes reads in a READ ONLY transaction;
 - bounded statement timeout;
 - bounded result row count;
+- SQL text is capped at 50,000 characters and SQLGlot parsing at 10,000 AST nodes;
 - schema inventory allowlist;
 - provider-neutral runtime identity digest;
 - no HTTP write endpoint;

@@ -6,12 +6,17 @@ from typing import Any
 
 import sqlglot
 from sqlglot import ErrorLevel, exp
+from sqlglot.dialects import Dialect
 from sqlglot.errors import ParseError, UnsupportedError
 
 from .ir import IREdge, IRNode, SQLSemanticIR
 from .model import SemanticDimension, TranslationFidelity
 from .planner import plan_translation
 from .registry import DEFAULT_DIALECTS, resolve_dialect
+
+MAX_SQL_TEXT_CHARS = 50_000
+MAX_SQL_AST_NODES = 10_000
+MAX_SQL_TOKENS = 20_000
 
 SQLGLOT_DIALECTS: dict[str, str] = {
     "athena": "athena",
@@ -78,6 +83,41 @@ _SIDE_EFFECT_OPERATIONS = {
 
 class SQLTextError(ValueError):
     pass
+
+
+def _bounded_text(sql: str) -> str:
+    text = sql.strip()
+    if not text:
+        raise SQLTextError("EMPTY_SQL")
+    if len(text) > MAX_SQL_TEXT_CHARS:
+        raise SQLTextError("SQL_TEXT_TOO_LARGE")
+    return text
+
+
+def _parse_expressions(text: str, parser_dialect: str) -> list[exp.Expression]:
+    dialect = Dialect.get_or_raise(parser_dialect)
+    tokens = dialect.tokenize(text)
+    if len(tokens) > MAX_SQL_TOKENS:
+        raise SQLTextError("SQL_TOKEN_LIMIT_EXCEEDED")
+
+    parser = dialect.parser(error_level=ErrorLevel.RAISE)
+    parser.max_nodes = MAX_SQL_AST_NODES
+
+    try:
+        return [
+            expression
+            for expression in parser.parse(tokens, text)
+            if expression is not None
+        ]
+    except ParseError as exc:
+        raise SQLTextError(f"PARSE_ERROR:{exc}") from exc
+
+
+def _parse_single_expression(text: str, parser_dialect: str) -> exp.Expression:
+    parsed = _parse_expressions(text, parser_dialect)
+    if len(parsed) != 1:
+        raise SQLTextError("SINGLE_STATEMENT_REQUIRED")
+    return parsed[0]
 
 
 @dataclass(frozen=True, slots=True)
@@ -269,30 +309,11 @@ def _ir_as_dict(ir: SQLSemanticIR) -> dict[str, object]:
 
 
 def parse_sql_text(sql: str, dialect: str) -> SQLTextAnalysis:
-    text = sql.strip()
-    if not text:
-        raise SQLTextError("EMPTY_SQL")
+    text = _bounded_text(sql)
 
     dialect_id, parser_dialect = _dialect_adapter(dialect)
     genome = DEFAULT_DIALECTS[dialect_id]
-
-    try:
-        parsed = [
-            expression
-            for expression in sqlglot.parse(
-                text,
-                read=parser_dialect,
-                error_level=ErrorLevel.RAISE,
-            )
-            if expression is not None
-        ]
-    except ParseError as exc:
-        raise SQLTextError(f"PARSE_ERROR:{exc}") from exc
-
-    if len(parsed) != 1:
-        raise SQLTextError("SINGLE_STATEMENT_REQUIRED")
-
-    expression = parsed[0]
+    expression = _parse_single_expression(text, parser_dialect)
     capabilities = _extract_capabilities(expression, text)
 
     # This validates that every capability we claim to have observed is admitted
@@ -354,25 +375,21 @@ def transpile_sql_text(
     if plan.fidelity is TranslationFidelity.LOSSY and not allow_lossy:
         raise SQLTextError("LOSSY_TRANSLATION_REQUIRES_OPT_IN")
 
+    text = _bounded_text(sql)
+    expression = _parse_single_expression(text, source_adapter)
     try:
-        generated = sqlglot.transpile(
-            sql,
-            read=source_adapter,
-            write=target_adapter,
-            error_level=ErrorLevel.RAISE,
+        generated = expression.sql(
+            dialect=target_adapter,
             unsupported_level=ErrorLevel.RAISE,
         )
-    except (ParseError, UnsupportedError) as exc:
+    except UnsupportedError as exc:
         raise SQLTextError(f"TRANSPILER_REJECTED:{exc}") from exc
 
-    if len(generated) != 1:
-        raise SQLTextError("TRANSPILER_STATEMENT_COUNT_MISMATCH")
-
-    target = parse_sql_text(generated[0], target_id)
+    target = parse_sql_text(generated, target_id)
 
     return {
         "source": source.as_dict(),
-        "target_sql": generated[0],
+        "target_sql": generated,
         "target_parse": target.as_dict(),
         "plan": plan.as_dict(),
         "validation": {

@@ -28,7 +28,7 @@ class SQLTranspileRequest(BaseModel):
 
 class DialectProbeRequest(BaseModel):
     sql: str = Field(min_length=1, max_length=50000)
-    max_candidates: int = Field(default=8, ge=1, le=28)
+    max_candidates: int = Field(default=8, ge=1)
 
 
 class SQLBindRequest(BaseModel):
