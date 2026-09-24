@@ -9,6 +9,7 @@ from sqlglot import ErrorLevel, exp
 from sqlglot.dialects import Dialect
 from sqlglot.errors import ParseError, UnsupportedError
 
+from .contracts import expression_contracts
 from .ir import IREdge, IRNode, SQLSemanticIR
 from .model import SemanticDimension, TranslationFidelity
 from .planner import plan_translation
@@ -349,6 +350,18 @@ def parse_sql_text(sql: str, dialect: str) -> SQLTextAnalysis:
         normalized_sql=expression.sql(dialect=parser_dialect),
         parser_dialect=parser_dialect,
         parser_version=sqlglot.__version__,
+    )
+
+
+
+def inspect_sql_contracts(sql: str, dialect: str) -> dict[str, object]:
+    text = _bounded_text(sql)
+    dialect_id, parser_dialect = _dialect_adapter(dialect)
+    expression = _parse_single_expression(text, parser_dialect)
+    return expression_contracts(
+        expression,
+        dialect_id=dialect_id,
+        parser_dialect=parser_dialect,
     )
 
 

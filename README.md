@@ -52,7 +52,8 @@ The current semantic-core slice includes:
 - schema-aware static binding with identifier qualification, star expansion, and type annotation;
 - real PostgreSQL target validation through read-only, non-ANALYZE JSON EXPLAIN;
 - end-to-end foreign-dialect → PostgreSQL translation qualification with one provenance receipt;
-- expression-level function/operator/type inventories and dialect-semantic risk ceilings.
+- expression-level function/operator/type inventories and dialect-semantic risk ceilings;
+- query-scoped expression contracts exposing argument shape, type rules, and dialect coercions.
 
 Parsing and transpilation do **not** establish cross-engine behavioral equivalence. The API reports
 behavioral equivalence as `NOT_ESTABLISHED` until stronger schema/type/engine validation exists.

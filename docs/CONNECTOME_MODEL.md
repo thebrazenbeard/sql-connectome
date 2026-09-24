@@ -288,3 +288,24 @@ combined_fidelity = LOSSY
 ```
 
 That is intentional. Feature availability is not semantic equivalence.
+
+
+## Query-scoped expression contracts
+
+SQL Connectome can now inspect the expression classes actually present in a query and expose their
+dialect-bound structural/type contracts without serializing SQLGlot's internal callables.
+
+For each distinct expression class present, the contract surface records:
+
+- semantic kind: function, operator, type, or other expression;
+- normalized expression/function name;
+- required and optional child arguments;
+- whether the expression accepts a variable-length argument list;
+- whether SQLGlot models its type as a fixed return type, inferred by an annotator, or unspecified;
+- the fixed return type when one is declared;
+- whether dialect expression metadata exists;
+- occurrence count in the current query.
+
+The same response exposes the dialect's declared type-coercion graph. This remains dependency
+evidence from the pinned SQLGlot version, not independent engine proof. Runtime binding and
+target-engine validation remain separate states.
