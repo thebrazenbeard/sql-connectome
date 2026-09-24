@@ -82,7 +82,7 @@ translation planning/transpilation, PostgreSQL validation/qualification, schema/
 bounded read-only queries, migration-state inspection, and Lantern current-cut reads.
 
 No protected write tool is exposed. Network deployment fails closed unless MCP resource-server
-authentication is configured. See `docs/MCP_CHATGPT.md`.
+authentication is configured. See `docs/MCP_CHATGPT.md` and `docs/HOSTING.md`.
 
 ## Local development
 
