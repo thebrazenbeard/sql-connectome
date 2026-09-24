@@ -11,7 +11,13 @@ from sqlglot.optimizer.qualify import qualify
 from sql_connectome.receipts import canonical_digest
 
 from .registry import resolve_dialect
-from .text_pipeline import SQLGLOT_DIALECTS, SQLTextError, parse_sql_text
+from .text_pipeline import (
+    MAX_SQL_AST_NODES,
+    SQLGLOT_DIALECTS,
+    SQLTextError,
+    _bounded_text,
+    parse_sql_text,
+)
 
 
 def _adapter_for(dialect: str) -> tuple[str, str]:
@@ -37,9 +43,7 @@ def bind_sql_text(
     database: str | None = None,
     catalog: str | None = None,
 ) -> dict[str, object]:
-    text = sql.strip()
-    if not text:
-        raise SQLTextError("EMPTY_SQL")
+    text = _bounded_text(sql)
     if not schema:
         raise SQLTextError("EMPTY_SCHEMA_CONTEXT")
 
@@ -54,6 +58,7 @@ def bind_sql_text(
             text,
             read=adapter,
             error_level=ErrorLevel.RAISE,
+            max_nodes=MAX_SQL_AST_NODES,
         )
         qualified = qualify(
             expression,
