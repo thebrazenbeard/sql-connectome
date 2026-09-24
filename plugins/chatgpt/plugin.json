@@ -1,0 +1,31 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "sql-connectome",
+  "version": "0.1.0",
+  "description": "Use SQL Connectome for governed SQL understanding, translation, validation, and read-only execution.",
+  "repository": "https://github.com/thebrazenbeard/sql-connectome",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "SQL Connectome",
+        "shortDescription": "Governed multi-dialect SQL intelligence",
+        "longDescription": "Guides ChatGPT when using a connected SQL Connectome MCP resource for dialect analysis, semantic parsing, translation planning, guarded transpilation, PostgreSQL validation, and bounded read-only execution while preserving provenance and authority boundaries.",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Identify and compare SQL dialects",
+          "Parse SQL into semantic IR",
+          "Plan and qualify dialect translations",
+          "Validate PostgreSQL without executing queries",
+          "Run bounded read-only PostgreSQL queries",
+          "Inspect runtime and migration state"
+        ],
+        "defaultPrompt": [
+          "Analyze this SQL and tell me which dialects it most likely belongs to.",
+          "Translate this query to PostgreSQL and preserve any semantic-loss warnings.",
+          "Validate this PostgreSQL query without executing it.",
+          "Inspect the connected database schema before writing a query."
+        ]
+      }
+    }
+  }
+}
