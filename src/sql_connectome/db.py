@@ -150,7 +150,10 @@ def query_readonly(
     }
 
 
-def lantern_current_cut(\n    settings: Settings,\n    project_scope: str = "PROJECT_LANTERN",\n) -> dict[str, Any]:
+def lantern_current_cut(
+    settings: Settings,
+    project_scope: str = "PROJECT_LANTERN",
+) -> dict[str, Any]:
     try:
         with connect(settings) as conn:
             with conn.transaction():
