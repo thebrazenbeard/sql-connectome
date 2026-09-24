@@ -82,22 +82,40 @@ def test_project_and_target_registration_roundtrip() -> None:
 def test_project_key_conflict_fails_closed() -> None:
     assert DSN
 
+    register_project(
+        DSN,
+        project_key="conflict-project",
+        display_name="Original Name",
+    )
     with pytest.raises(ProjectRegistryError, match="PROJECT_KEY_CONFLICT"):
         register_project(
             DSN,
-            project_key="integration-project",
+            project_key="conflict-project",
             display_name="Different Name",
-            metadata={"purpose": "qualification"},
         )
 
 
 def test_second_live_primary_is_rejected() -> None:
     assert DSN
 
+    register_project(
+        DSN,
+        project_key="primary-project",
+        display_name="Primary Project",
+    )
+    register_database_target(
+        DSN,
+        project_key="primary-project",
+        target_key="first-primary",
+        provider_kind="external-postgresql",
+        database_name="first",
+        target_role="PRIMARY",
+    )
+
     with pytest.raises(psycopg.errors.UniqueViolation):
         register_database_target(
             DSN,
-            project_key="integration-project",
+            project_key="primary-project",
             target_key="other-primary",
             provider_kind="other-provider",
             database_name="other",
@@ -108,16 +126,12 @@ def test_second_live_primary_is_rejected() -> None:
 def test_effect_receipts_are_append_only() -> None:
     assert DSN
 
-    with psycopg.connect(DSN) as conn:
-        receipt_id = conn.execute(
-            """
-            SELECT receipt_id
-            FROM sql_connectome.effect_receipts
-            WHERE effect_kind = 'PROJECT_REGISTER'
-            ORDER BY created_at
-            LIMIT 1
-            """
-        ).fetchone()[0]
+    registered = register_project(
+        DSN,
+        project_key="receipt-project",
+        display_name="Receipt Project",
+    )
+    receipt_id = registered["receipt"]["receipt_id"]
 
     with psycopg.connect(DSN) as conn:
         with pytest.raises(psycopg.errors.RaiseException, match="ARE_APPEND_ONLY"):
