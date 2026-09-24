@@ -26,6 +26,9 @@ jobs:
       SQL_CONNECTOME_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sql_connectome
       SQL_CONNECTOME_API_TOKEN: ci-test-token
       SQL_CONNECTOME_READ_SCHEMAS: bt2,public,sql_connectome
+      SQL_CONNECTOME_RECOVERY_TARGET_URL: postgresql://postgres:postgres@localhost:5432/sql_connectome_restore
+      SQL_CONNECTOME_PG_DUMP_BIN: .github/bin/pg_dump17
+      SQL_CONNECTOME_PG_RESTORE_BIN: .github/bin/pg_restore17
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -35,5 +38,17 @@ jobs:
       - run: pip install -e '.[dev]'
       - run: python scripts/apply_migrations.py
       - run: python scripts/apply_migrations.py
+      - name: Prepare PostgreSQL 17 recovery qualification
+        run: |
+          chmod +x .github/bin/pg_dump17 .github/bin/pg_restore17
+          python - <<'PY'
+          import psycopg
+
+          with psycopg.connect(
+              "postgresql://postgres:postgres@localhost:5432/postgres",
+              autocommit=True,
+          ) as conn:
+              conn.execute("CREATE DATABASE sql_connectome_restore")
+          PY
       - run: ruff check .
       - run: pytest -q
