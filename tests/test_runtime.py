@@ -8,7 +8,9 @@ import pytest
 from sql_connectome.runtime import RuntimeConfigurationError, configure_database_environment
 
 
-def test_database_environment_passthrough_without_project_ca(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_database_environment_passthrough_without_project_ca(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("PROJECT_CA_CERT", raising=False)
     monkeypatch.delenv("SQL_CONNECTOME_DATABASE_URL", raising=False)
     monkeypatch.setenv(
