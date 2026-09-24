@@ -8,7 +8,7 @@ lifecycle without making any cloud provider part of SQL semantics.
 A **project** is a durable logical container. A **database target** is one concrete engine/provider
 binding associated with that project.
 
-The control plane stores no database passwords, access tokens, private keys, or connection URIs.
+V1 defines no credential fields. Database passwords, access tokens, private keys, and connection URIs must remain outside the control-plane data model; only non-secret references belong in its metadata.
 
 ## Data model
 
