@@ -1,6 +1,6 @@
 import pytest
 
-from sql_connectome.connectome import IREdge, IRNode, SQLSemanticIR, SemanticDimension
+from sql_connectome.connectome import IREdge, IRNode, SemanticDimension, SQLSemanticIR
 
 
 def test_semantic_ir_accepts_typed_graph() -> None:
