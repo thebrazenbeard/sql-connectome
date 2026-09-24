@@ -72,6 +72,16 @@ The first execution substrate remains the provider-neutral PostgreSQL control pl
 PostgreSQL is the first execution/governance adapter, not the definition or semantic ceiling of SQL
 Connectome.
 
+### MCP / ChatGPT surface
+
+The source-controlled MCP v2 server exposes the semantic plane and governed PostgreSQL read
+substrate over Streamable HTTP. Its current tool surface includes dialect probing/parsing,
+translation planning/transpilation, PostgreSQL validation/qualification, schema/runtime inspection,
+bounded read-only queries, migration-state inspection, and Lantern current-cut reads.
+
+No protected write tool is exposed. Network deployment fails closed unless MCP resource-server
+authentication is configured. See `docs/MCP_CHATGPT.md`.
+
 ## Local development
 
 ```bash
@@ -84,6 +94,12 @@ export SQL_CONNECTOME_DATABASE_URL='postgresql://postgres:postgres@localhost:543
 export SQL_CONNECTOME_API_TOKEN='local-dev-token'
 python scripts/apply_migrations.py
 uvicorn sql_connectome.app:app --reload
+```
+
+The authenticated MCP server is a separate entrypoint:
+
+```bash
+sql-connectome-mcp
 ```
 
 Run tests:
