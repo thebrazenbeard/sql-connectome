@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sql-connectome"
 version = "0.1.0"
-description = "Provider-independent PostgreSQL control plane and ChatGPT/MCP surface"
+description = "Multi-dialect SQL semantic connectome with governed execution surfaces"
 requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.115,<1",
@@ -13,6 +13,7 @@ dependencies = [
   "psycopg[binary,pool]>=3.2,<4",
   "pydantic-settings>=2.6,<3",
   "sqlparse>=0.5,<1",
+  "sqlglot>=30.19,<30.20",
 ]
 
 [project.optional-dependencies]
