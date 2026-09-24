@@ -1,5 +1,7 @@
 # SQL Connectome
 
-SQL Connectome is the provider-independent PostgreSQL platform and ChatGPT/MCP control surface for Patrick's systems.
+SQL Connectome is a provider-independent PostgreSQL platform and governed ChatGPT/MCP control surface.
 
-This bootstrap commit exists only to establish the canonical repository branch. Active implementation proceeds through reviewed branches and pull requests.
+The project is designed as a general-purpose platform: standard PostgreSQL remains the database engine while SQL Connectome provides the control plane, currentness and receipt semantics, recovery contract, and AI-facing interfaces.
+
+Active implementation proceeds through reviewed branches and pull requests.
