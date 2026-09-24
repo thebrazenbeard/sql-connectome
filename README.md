@@ -80,7 +80,7 @@ The first platform-lifecycle slice adds provider-neutral projects and database t
 
 - stable logical project identities;
 - primary/replica/analytics/archive target roles;
-- provider/region/resource metadata without storing credentials;
+- provider/region/resource metadata with credentials kept outside the control-plane schema;
 - one-live-primary enforcement;
 - runtime-bound project inventory receipts;
 - append-only effect receipts;
