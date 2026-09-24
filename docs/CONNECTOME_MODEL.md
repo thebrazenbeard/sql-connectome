@@ -201,3 +201,24 @@ or that SQLGlot's qualification/type inference is infallible. Engine validation 
 
 This separation allows future engine-backed prepare/EXPLAIN validation or differential execution to
 strengthen the evidence without retroactively redefining a parser/optimizer result as runtime truth.
+
+
+## Target-engine validation
+
+Static parsing and schema binding can now be strengthened for the PostgreSQL execution substrate by
+asking the connected engine to plan a guarded SELECT with `EXPLAIN (FORMAT JSON)`.
+
+The PostgreSQL V1 validator:
+
+- accepts only the existing single-SELECT read shape;
+- opens a PostgreSQL READ ONLY transaction;
+- applies the configured statement timeout;
+- uses EXPLAIN without ANALYZE, so the query plan is requested but the query result is not executed;
+- records PASS or FAIL against the exact runtime identity and SQL digest;
+- preserves PostgreSQL SQLSTATE on planning/binding failures;
+- emits a canonical validation receipt.
+
+A PASS means the connected PostgreSQL runtime accepted and planned that statement under the current
+catalog/session context. It is stronger evidence than target-parser acceptance, but it still does
+not prove result equivalence with another engine, performance characteristics, or successful query
+execution.

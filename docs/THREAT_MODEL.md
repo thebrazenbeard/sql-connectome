@@ -19,11 +19,12 @@
 - bounded result row count;
 - schema inventory allowlist;
 - provider-neutral runtime identity digest;
-- no HTTP write endpoint.
+- no HTTP write endpoint;
+- PostgreSQL engine validation uses `EXPLAIN` without `ANALYZE` inside a READ ONLY transaction.
 
 ## Important residual risks
 
-A SQL SELECT can invoke database functions. Therefore durable deployments MUST use a dedicated database login whose PostgreSQL privileges are themselves read-only and whose executable-function reachability is reviewed. Application parsing is defense in depth, not the final write boundary.
+A SQL SELECT can invoke database functions. Planning may also evaluate some expressions, so `EXPLAIN` is not treated as a zero-risk sandbox. Therefore durable deployments MUST use a dedicated database login whose PostgreSQL privileges are themselves read-only and whose executable-function/extension reachability is reviewed. Application parsing and non-ANALYZE EXPLAIN are defense in depth, not the final write boundary.
 
 A static bearer token is acceptable only for the first private development slice. The ChatGPT-facing deployment should use a scoped machine identity/OAuth-style boundary with rotation and revocation.
 

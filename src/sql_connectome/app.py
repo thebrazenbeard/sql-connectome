@@ -20,6 +20,7 @@ from .db import (
     platform_health,
     query_readonly,
     schema_inventory,
+    validate_postgresql_readonly,
 )
 from .models import (
     DialectProbeRequest,
@@ -110,6 +111,20 @@ def post_connectome_transpile(request: SQLTranspileRequest) -> dict[str, object]
             allow_lossy=request.allow_lossy,
         )
     except (KeyError, SQLTextError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+
+@app.post("/v1/connectome/validate/postgresql", dependencies=[Depends(require_bearer)])
+def post_connectome_validate_postgresql(
+    request: QueryRequest,
+    settings: SettingsDep,
+) -> dict[str, object]:
+    try:
+        semantic = parse_sql_text(request.sql, "postgresql")
+        engine = validate_postgresql_readonly(settings, request.sql, request.params)
+        return {**engine, "semantic": semantic.as_dict()}
+    except (SQLRejected, SQLTextError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
