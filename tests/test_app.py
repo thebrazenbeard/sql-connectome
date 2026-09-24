@@ -148,3 +148,41 @@ def test_connectome_contracts_endpoint(monkeypatch) -> None:
     assert payload["schema"] == "SQL_CONNECTOME_EXPRESSION_CONTRACTS_V1"
     names = {row["name"] for row in payload["expression_contracts"]}
     assert "LENGTH" in names
+
+
+def test_project_list_endpoint(monkeypatch) -> None:
+    from sql_connectome import app as app_module
+
+    def fake_list_projects(settings):
+        assert settings.api_token.get_secret_value() == "semantic-test-token"
+        return {
+            "schema": "SQL_CONNECTOME_PROJECT_LIST_V1",
+            "projects": [{"project_key": "example"}],
+            "count": 1,
+        }
+
+    monkeypatch.setattr(app_module, "list_projects", fake_list_projects)
+    client, headers = _authenticated_client(monkeypatch)
+
+    response = client.get("/v1/projects", headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()["projects"][0]["project_key"] == "example"
+
+
+def test_project_detail_endpoint_maps_missing_to_404(monkeypatch) -> None:
+    from sql_connectome import app as app_module
+    from sql_connectome.projects import ProjectRegistryError
+
+    def fake_project_detail(settings, project_key):
+        assert settings.api_token.get_secret_value() == "semantic-test-token"
+        assert project_key == "missing"
+        raise ProjectRegistryError("PROJECT_NOT_FOUND")
+
+    monkeypatch.setattr(app_module, "project_detail", fake_project_detail)
+    client, headers = _authenticated_client(monkeypatch)
+
+    response = client.get("/v1/projects/missing", headers=headers)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "PROJECT_NOT_FOUND"
