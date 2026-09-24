@@ -13,6 +13,7 @@ from .ir import IREdge, IRNode, SQLSemanticIR
 from .model import SemanticDimension, TranslationFidelity
 from .planner import plan_translation
 from .registry import DEFAULT_DIALECTS, resolve_dialect
+from .semantics import assess_expression_semantics, combined_fidelity
 
 MAX_SQL_TEXT_CHARS = 50_000
 MAX_SQL_AST_NODES = 10_000
@@ -372,11 +373,20 @@ def transpile_sql_text(
         unresolved = ",".join(sorted(plan.unresolved_capabilities))
         raise SQLTextError(f"UNREPRESENTABLE_TRANSLATION:{unresolved}")
 
-    if plan.fidelity is TranslationFidelity.LOSSY and not allow_lossy:
-        raise SQLTextError("LOSSY_TRANSLATION_REQUIRES_OPT_IN")
-
     text = _bounded_text(sql)
     expression = _parse_single_expression(text, source_adapter)
+    expression_semantics = assess_expression_semantics(
+        expression,
+        source_dialect=source_id,
+        target_dialect=target_id,
+        source_parser_dialect=source_adapter,
+        target_parser_dialect=target_adapter,
+    )
+    overall_fidelity = combined_fidelity(plan.fidelity, expression_semantics)
+
+    if overall_fidelity is TranslationFidelity.LOSSY and not allow_lossy:
+        raise SQLTextError("LOSSY_TRANSLATION_REQUIRES_OPT_IN")
+
     try:
         generated = expression.sql(
             dialect=target_adapter,
@@ -392,6 +402,8 @@ def transpile_sql_text(
         "target_sql": generated,
         "target_parse": target.as_dict(),
         "plan": plan.as_dict(),
+        "expression_semantics": expression_semantics,
+        "combined_fidelity": overall_fidelity.value,
         "validation": {
             "source_parse": "PASS",
             "target_parse": "PASS",
