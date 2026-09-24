@@ -11,6 +11,12 @@ from .model import (
 from .planner import list_dialects, plan_translation
 from .probe import DialectCandidate, probe_sql_dialects
 from .registry import DEFAULT_DIALECTS, DEFAULT_REWRITE_RULES, resolve_dialect
+from .semantics import (
+    SemanticRisk,
+    assess_expression_semantics,
+    combined_fidelity,
+    dialect_semantic_profile,
+)
 from .text_pipeline import SQLTextAnalysis, SQLTextError, parse_sql_text, transpile_sql_text
 
 __all__ = [
@@ -23,6 +29,7 @@ __all__ = [
     "IREdge",
     "IRNode",
     "RewriteRule",
+    "SemanticRisk",
     "SQLSemanticIR",
     "SQLTextAnalysis",
     "SQLTextError",
@@ -30,6 +37,9 @@ __all__ = [
     "TranslationFidelity",
     "TranslationLoss",
     "TranslationPlan",
+    "assess_expression_semantics",
+    "combined_fidelity",
+    "dialect_semantic_profile",
     "list_dialects",
     "parse_sql_text",
     "plan_translation",
