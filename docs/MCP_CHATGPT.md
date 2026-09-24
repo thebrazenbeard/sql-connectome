@@ -92,3 +92,15 @@ tool discovery and calls rather than calling Python functions directly.
 CI also exercises one database-backed MCP call against PostgreSQL 17. HTTP/OAuth deployment
 qualification remains a separate state until a concrete HTTPS deployment and authorization server
 are bound and tested.
+
+## Hosting
+
+The source container supports both REST and MCP processes. For MCP hosting set
+`SQL_CONNECTOME_PROCESS=mcp`; the container entrypoint maps the platform `PORT` to the MCP
+listener and binds it to `0.0.0.0`.
+
+Managed PostgreSQL hosts may inject a database URI plus a base64 project CA. SQL Connectome
+normalizes that input into certificate-verifying `verify-full` TLS before creating database
+connections. See `HOSTING.md`.
+
+A deployable container is not the same as a deployed or qualified endpoint.
