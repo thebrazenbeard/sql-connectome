@@ -222,3 +222,29 @@ A PASS means the connected PostgreSQL runtime accepted and planned that statemen
 catalog/session context. It is stronger evidence than target-parser acceptance, but it still does
 not prove result equivalence with another engine, performance characteristics, or successful query
 execution.
+
+
+## End-to-end PostgreSQL translation qualification
+
+The PostgreSQL qualification pipeline composes previously separate evidence states without
+collapsing them.
+
+For a declared source dialect it performs:
+
+```text
+source SQL
+  -> strict bounded source parse
+  -> source capability admission
+  -> translation fidelity plan
+  -> strict PostgreSQL generation
+  -> strict PostgreSQL target parse
+  -> live PostgreSQL read-only EXPLAIN
+  -> qualification receipt
+```
+
+A qualification `PASS` means the exact generated PostgreSQL was accepted and planned by the exact
+connected PostgreSQL runtime recorded in the receipt. A `FAIL` may therefore coexist with a
+successful translation and target parse when the real target catalog cannot bind the generated SQL.
+
+The qualification still reports `behavioral_equivalence=NOT_ESTABLISHED` and
+`query_executed=false`. Planning acceptance does not prove source/target result equality.
