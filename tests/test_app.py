@@ -80,3 +80,21 @@ def test_connectome_probe_endpoint(monkeypatch) -> None:
     payload = response.json()
     assert payload["identity_proof"] is False
     assert payload["candidates"][0]["dialect_id"] == "tsql"
+
+
+def test_connectome_bind_endpoint(monkeypatch) -> None:
+    client, headers = _authenticated_client(monkeypatch)
+    response = client.post(
+        "/v1/connectome/bind",
+        headers=headers,
+        json={
+            "sql": "SELECT id FROM users",
+            "dialect": "postgresql",
+            "schema_context": {"users": {"id": "INT"}},
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["binding"]["status"] == "STATIC_BOUND"
+    assert payload["binding"]["engine_validation"] == "NOT_RUN"
