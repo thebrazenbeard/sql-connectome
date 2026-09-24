@@ -158,3 +158,24 @@ unrecognized constructs remain explicit unknowns.
 
 The system should prefer partial, provenance-bearing understanding over falsely forcing an unknown
 dialect into the nearest known family.
+
+
+## Dialect probing
+
+When the source dialect is unknown, SQL Connectome can probe all currently registered parser
+adapters. The probe is deliberately evidentiary rather than identificatory.
+
+Each candidate is informed by:
+
+- whether the dialect parser accepts exactly one statement under strict parse errors;
+- whether the current dialect genome admits the semantic capabilities observed by the text layer;
+- narrowly scoped dialect markers such as T-SQL `TOP/APPLY`, Snowflake `VARIANT`,
+  Oracle `CONNECT BY`, ClickHouse `ENGINE`, or Redshift distribution keys.
+
+The probe returns a score and the evidence that produced it. It does not return invented
+probabilities, and `identity_proof` is always false. Equal top scores remain explicitly
+`ambiguous`.
+
+Parser coverage is intentionally broader than semantic capability coverage. A dialect may therefore
+be a valid parse candidate while reporting `semantic_admission=PARTIAL`; that state is a prompt to
+extend the genome under evidence and tests, not permission to assume compatibility.
