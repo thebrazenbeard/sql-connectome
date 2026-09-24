@@ -25,3 +25,15 @@ SQLGlot does **not** define SQL Connectome's truth model. In particular:
 
 If SQLGlot is replaced or supplemented, the replacement must preserve these boundaries and pass the
 same connectome contracts.
+
+
+### Parser resource bounds
+
+SQLGlot's parser defaults to an unlimited AST-node count. SQL Connectome overrides that default with
+a 10,000-node ceiling and independently caps accepted SQL text at 50,000 characters. These are
+defense-in-depth limits against pathological parser/memory workloads; they are not semantic limits
+of SQL itself.
+
+Dialect probing applies the same AST ceiling to every candidate parser. Adding a new dialect adapter
+does not require changing a duplicated API maximum: the runtime registry remains the dialect-count
+source of truth.
