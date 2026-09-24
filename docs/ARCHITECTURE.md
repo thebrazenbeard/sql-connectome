@@ -41,6 +41,7 @@ The first executable substrate contains:
 5. **Currentness adapter** — Lantern cut/payload captured in one REPEATABLE READ READ ONLY snapshot.
 6. **Receipts** — canonical digests bind responses to runtime identity and exact subjects.
 7. **ChatGPT/MCP adapter** — future layer calling the control plane rather than provider APIs.
+8. **Project control plane** — provider-neutral logical projects and concrete database-target bindings with append-only effect receipts.
 
 The execution layer is intentionally separable from semantic reasoning. Understanding Oracle SQL,
 for example, does not require an Oracle execution credential, and having a PostgreSQL connection
@@ -58,8 +59,9 @@ These surfaces report admitted capability knowledge only. They do not generate t
 ## Optional components
 
 PostgREST and postgres-meta are composable candidates, not mandatory runtime dependencies.
-Realtime, Auth, storage, GraphQL, cloud-scale pooling, foreign-engine adapters, and parser engines
-are admitted only when a consumer demonstrates the need.
+Provider provisioning, Realtime, Auth, storage, GraphQL, cloud-scale pooling, foreign-engine adapters,
+and parser engines are admitted only when a consumer demonstrates the need. Project/target
+registration now exists, but registration is not treated as provider provisioning.
 
 ## Provider rule
 
