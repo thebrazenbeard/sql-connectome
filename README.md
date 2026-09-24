@@ -49,7 +49,8 @@ The current semantic-core slice includes:
 - lossy-translation opt-in and unrepresentable-translation blocking;
 - 28 SQL-family parser adapters/genomes with deliberately partial capability admission where needed;
 - heuristic dialect probing that returns ranked evidence and preserves ambiguity rather than claiming identity;
-- schema-aware static binding with identifier qualification, star expansion, and type annotation.
+- schema-aware static binding with identifier qualification, star expansion, and type annotation;
+- real PostgreSQL target validation through read-only, non-ANALYZE JSON EXPLAIN.
 
 Parsing and transpilation do **not** establish cross-engine behavioral equivalence. The API reports
 behavioral equivalence as `NOT_ESTABLISHED` until stronger schema/type/engine validation exists.
