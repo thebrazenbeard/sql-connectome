@@ -150,6 +150,64 @@ def query_readonly(
     }
 
 
+def validate_postgresql_readonly(
+    settings: Settings,
+    sql: str,
+    params: list[Any] | dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    statement = validate_readonly_sql(sql)
+
+    with connect(settings) as conn:
+        identity = _runtime_identity(conn)
+        plan: Any | None = None
+        error: dict[str, Any] | None = None
+
+        try:
+            with conn.transaction():
+                conn.execute("SET TRANSACTION READ ONLY")
+                conn.execute(
+                    "SELECT set_config('statement_timeout', %s, true)",
+                    (str(settings.statement_timeout_ms),),
+                )
+                cursor = conn.execute(
+                    f"EXPLAIN (FORMAT JSON, VERBOSE TRUE, COSTS FALSE) {statement}",
+                    params or (),
+                )
+                row = cursor.fetchone()
+                if row is None:
+                    raise ValueError("EXPLAIN_RETURNED_NO_RESULT")
+                plan = next(iter(row.values()))
+                status = "PASS"
+        except psycopg.Error as exc:
+            status = "FAIL"
+            error = {
+                "sqlstate": exc.sqlstate,
+                "message": str(exc).splitlines()[0],
+            }
+
+    subject = {
+        "runtime_identity_digest": identity["identity_digest"],
+        "sql_digest": canonical_digest(statement),
+        "status": status,
+        "sqlstate": error["sqlstate"] if error else None,
+    }
+    return {
+        "schema": "SQL_CONNECTOME_POSTGRES_ENGINE_VALIDATION_V1",
+        "runtime": identity,
+        "validation": {
+            "status": status,
+            "engine": "postgresql",
+            "mode": "EXPLAIN_FORMAT_JSON",
+            "query_executed": False,
+            "read_only_transaction": True,
+            "behavioral_equivalence": "NOT_ESTABLISHED",
+        },
+        "plan": plan,
+        "error": error,
+        "receipt": make_receipt("POSTGRES_ENGINE_VALIDATION", subject),
+    }
+
+
 def lantern_current_cut(
     settings: Settings,
     project_scope: str = "PROJECT_LANTERN",
