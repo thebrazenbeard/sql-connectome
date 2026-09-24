@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import Depends, FastAPI, HTTPException
 
 from . import __version__
@@ -14,6 +16,7 @@ from .models import QueryRequest
 from .sql_guard import SQLRejected
 
 app = FastAPI(title="SQL Connectome", version=__version__)
+SettingsDep = Annotated[Settings, Depends(get_settings)]
 
 
 @app.get("/healthz")
@@ -22,20 +25,17 @@ def healthz() -> dict[str, str]:
 
 
 @app.get("/v1/platform/health", dependencies=[Depends(require_bearer)])
-def get_platform_health(settings: Settings = Depends(get_settings)) -> dict:
+def get_platform_health(settings: SettingsDep) -> dict:
     return platform_health(settings)
 
 
 @app.get("/v1/schema", dependencies=[Depends(require_bearer)])
-def get_schema(settings: Settings = Depends(get_settings)) -> dict:
+def get_schema(settings: SettingsDep) -> dict:
     return schema_inventory(settings)
 
 
 @app.post("/v1/query-readonly", dependencies=[Depends(require_bearer)])
-def post_query_readonly(
-    request: QueryRequest,
-    settings: Settings = Depends(get_settings),
-) -> dict:
+def post_query_readonly(request: QueryRequest, settings: SettingsDep) -> dict:
     try:
         return query_readonly(settings, request.sql, request.params)
     except SQLRejected as exc:
@@ -44,8 +44,8 @@ def post_query_readonly(
 
 @app.get("/v1/lantern/current-cut", dependencies=[Depends(require_bearer)])
 def get_lantern_current_cut(
+    settings: SettingsDep,
     project_scope: str = "PROJECT_LANTERN",
-    settings: Settings = Depends(get_settings),
 ) -> dict:
     try:
         return lantern_current_cut(settings, project_scope)
@@ -58,5 +58,5 @@ def get_lantern_current_cut(
 
 
 @app.get("/v1/migrations/status", dependencies=[Depends(require_bearer)])
-def get_migration_status(settings: Settings = Depends(get_settings)) -> dict:
+def get_migration_status(settings: SettingsDep) -> dict:
     return migration_status(settings)
