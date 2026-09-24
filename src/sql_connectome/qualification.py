@@ -27,6 +27,8 @@ def qualify_translation_to_postgresql(
     engine_status = str(engine["validation"]["status"])
     status = "PASS" if engine_status == "PASS" else "FAIL"
     plan = translation["plan"]
+    combined_fidelity = str(translation["combined_fidelity"])
+    expression_semantics = translation["expression_semantics"]
     target_runtime = engine["runtime"]
 
     subject = {
@@ -34,8 +36,10 @@ def qualify_translation_to_postgresql(
         "target_dialect": "postgresql",
         "source_sql_digest": canonical_digest(sql.strip()),
         "target_sql_digest": canonical_digest(target_sql),
-        "translation_fidelity": plan["fidelity"],
-        "translation_fidelity_scope": plan["fidelity_scope"],
+        "capability_fidelity": plan["fidelity"],
+        "translation_fidelity": combined_fidelity,
+        "translation_fidelity_scope": "CAPABILITY_AND_EXPRESSION_SEMANTICS",
+        "expression_semantic_risk_count": expression_semantics["risk_count"],
         "target_runtime_identity_digest": target_runtime["identity_digest"],
         "engine_validation_status": engine_status,
     }
@@ -46,8 +50,10 @@ def qualify_translation_to_postgresql(
             "status": status,
             "source_dialect": source_dialect,
             "target_dialect": "postgresql",
-            "translation_fidelity": plan["fidelity"],
-            "translation_fidelity_scope": plan["fidelity_scope"],
+            "capability_fidelity": plan["fidelity"],
+            "translation_fidelity": combined_fidelity,
+            "translation_fidelity_scope": "CAPABILITY_AND_EXPRESSION_SEMANTICS",
+            "expression_semantic_risk_count": expression_semantics["risk_count"],
             "behavioral_equivalence": "NOT_ESTABLISHED",
             "query_executed": False,
             "authority": "VALIDATION_ONLY",
