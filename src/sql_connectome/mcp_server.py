@@ -13,6 +13,7 @@ from .config import Settings, get_settings
 from .connectome import (
     SQLTextError,
     bind_sql_text,
+    inspect_sql_contracts,
     list_dialects,
     parse_sql_text,
     plan_translation,
@@ -159,6 +160,15 @@ def build_mcp_server(
         statement = _bounded_sql(sql)
         try:
             return parse_sql_text(statement, dialect).as_dict()
+        except (KeyError, SQLTextError) as exc:
+            raise _tool_error(exc) from exc
+
+    @mcp.tool()
+    def expression_contracts(sql: str, dialect: str) -> dict[str, Any]:
+        """Inspect expression/function/operator/type contracts for a declared dialect."""
+        statement = _bounded_sql(sql)
+        try:
+            return inspect_sql_contracts(statement, dialect)
         except (KeyError, SQLTextError) as exc:
             raise _tool_error(exc) from exc
 
