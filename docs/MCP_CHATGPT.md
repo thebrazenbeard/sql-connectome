@@ -21,7 +21,7 @@ The current MCP tool set exposes:
 
 - runtime health and schema inventory;
 - dialect inventory and evidence-based dialect probing;
-- semantic parsing and schema binding;
+- semantic parsing, expression-contract inspection, and schema binding;
 - translation planning and guarded transpilation;
 - PostgreSQL read-only EXPLAIN validation;
 - end-to-end translation-to-PostgreSQL qualification;
