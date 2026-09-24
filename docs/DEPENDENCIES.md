@@ -41,3 +41,19 @@ SQLGlot dialect constructor accepts the generic `max_nodes` keyword even though 
 supports the guard. Adding a new dialect adapter
 does not require changing a duplicated API maximum: the runtime registry remains the dialect-count
 source of truth.
+
+
+### Dialect semantic flags
+
+The expression-conformance layer currently treats the pinned SQLGlot dialect flags as dependency
+evidence, not as SQL Connectome authority. The relevant upstream flags include NULL ordering,
+typed/safe division, CONCAT NULL handling, LEAST/GREATEST NULL handling, index offsets, string
+concat strictness, user-defined-type support, and two-argument LOG ordering.
+
+Upstream references:
+
+- https://sqlglot.com/sqlglot/dialects.html
+- https://github.com/tobymao/sqlglot/blob/main/sqlglot/dialects/dialect.py
+
+These flags are version-bound by the SQLGlot dependency pin. A future SQLGlot upgrade must rerun the
+semantic divergence suite before the dependency range is moved.
