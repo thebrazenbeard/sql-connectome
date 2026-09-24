@@ -2,6 +2,8 @@
 
 SQL Connectome is a provider-independent PostgreSQL platform and governed ChatGPT/MCP control surface.
 
+The project is designed as a general-purpose platform: standard PostgreSQL remains the database engine while SQL Connectome provides the control plane, currentness and receipt semantics, recovery contract, and AI-facing interfaces.
+
 It is deliberately **not** a PostgreSQL fork. PostgreSQL remains the database engine; SQL Connectome owns the control plane, currentness/receipt semantics, recovery contract, and AI-facing interface.
 
 ## V1 slice
