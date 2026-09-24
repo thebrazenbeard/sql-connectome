@@ -66,3 +66,21 @@ def test_target_engine_failure_keeps_translation_and_fails_qualification() -> No
     assert result["translation"]["validation"]["target_parse"] == "PASS"
     assert result["engine_validation"]["validation"]["status"] == "FAIL"
     assert result["engine_validation"]["error"]["sqlstate"] == "42703"
+
+
+def test_expression_semantic_risk_caps_real_postgresql_qualification() -> None:
+    result = qualify_translation_to_postgresql(
+        settings(),
+        "SELECT LEAST(1, NULL, 2)",
+        "mysql",
+        allow_lossy=True,
+    )
+
+    assert result["qualification"]["status"] == "PASS"
+    assert result["qualification"]["capability_fidelity"] == "EXACT"
+    assert result["qualification"]["translation_fidelity"] == "LOSSY"
+    assert result["qualification"]["translation_fidelity_scope"] == (
+        "CAPABILITY_AND_EXPRESSION_SEMANTICS"
+    )
+    assert result["qualification"]["expression_semantic_risk_count"] == 1
+    assert result["engine_validation"]["validation"]["status"] == "PASS"
