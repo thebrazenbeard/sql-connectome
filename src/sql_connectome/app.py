@@ -49,7 +49,7 @@ def post_connectome_translation_plan(request: TranslationPlanRequest) -> dict[st
             request.target_dialect,
             request.required_capabilities,
         ).as_dict()
-    except KeyError as exc:
+    except (KeyError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
