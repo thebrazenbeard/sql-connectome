@@ -34,6 +34,11 @@ def plan_translation(
             raise KeyError(f"UNKNOWN_DIALECT:{exc.args[0]}") from exc
 
     required = frozenset(required_capabilities)
+    unadmitted_source = sorted(capability for capability in required if not source.supports(capability))
+    if unadmitted_source:
+        joined = ",".join(unadmitted_source)
+        raise ValueError(f"SOURCE_CAPABILITY_NOT_ADMITTED:{joined}")
+
     native = frozenset(capability for capability in required if target.supports(capability))
     missing = frozenset(required - native)
 
@@ -86,7 +91,9 @@ def list_dialects() -> list[dict[str, object]]:
             "version_selector": genome.version_selector,
             "aliases": sorted(genome.aliases),
             "capabilities": sorted(genome.capabilities),
-            "semantic_dimensions": sorted(dimension.value for dimension in genome.semantic_dimensions),
+            "semantic_dimensions": sorted(
+                dimension.value for dimension in genome.semantic_dimensions
+            ),
             "notes": list(genome.notes),
         }
         for genome in sorted(DEFAULT_DIALECTS.values(), key=lambda item: item.dialect_id)
