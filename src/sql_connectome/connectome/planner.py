@@ -34,7 +34,9 @@ def plan_translation(
             raise KeyError(f"UNKNOWN_DIALECT:{exc.args[0]}") from exc
 
     required = frozenset(required_capabilities)
-    unadmitted_source = sorted(capability for capability in required if not source.supports(capability))
+    unadmitted_source = sorted(
+        capability for capability in required if not source.supports(capability)
+    )
     if unadmitted_source:
         joined = ",".join(unadmitted_source)
         raise ValueError(f"SOURCE_CAPABILITY_NOT_ADMITTED:{joined}")
