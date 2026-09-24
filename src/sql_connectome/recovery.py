@@ -14,7 +14,6 @@ import psycopg
 from psycopg.conninfo import conninfo_to_dict, make_conninfo
 from psycopg.rows import dict_row
 
-from .config import Settings
 from .db import _runtime_identity
 from .receipts import canonical_digest, canonical_json, make_receipt
 
@@ -275,7 +274,7 @@ def create_backup(
 
     try:
         with psycopg.connect(
-            settings.database_url,
+            database_url,
             autocommit=False,
             row_factory=dict_row,
             application_name="sql-connectome-backup",
@@ -303,7 +302,7 @@ def create_backup(
                         f"--lock-wait-timeout={lock_wait_timeout}",
                         f"--file={temp_archive}",
                     ],
-                    settings.database_url,
+                    database_url,
                 )
 
         if not temp_archive.exists() or temp_archive.stat().st_size == 0:
