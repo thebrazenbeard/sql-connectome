@@ -5,6 +5,7 @@ import pytest
 
 from sql_connectome.config import Settings
 from sql_connectome.db import migration_status, platform_health, query_readonly, schema_inventory
+from sql_connectome.sql_guard import SQLRejected
 
 DSN = os.getenv("SQL_CONNECTOME_DATABASE_URL")
 
@@ -48,7 +49,7 @@ def test_readonly_transaction_blocks_write_cte() -> None:
         ") SELECT * FROM doomed"
     )
 
-    with pytest.raises(Exception):
+    with pytest.raises((psycopg.errors.ReadOnlySqlTransaction, SQLRejected)):
         query_readonly(s, smuggled)
 
     with psycopg.connect(s.database_url) as conn:
