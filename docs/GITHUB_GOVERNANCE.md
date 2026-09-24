@@ -29,11 +29,16 @@ The intended administrative configuration for `main` is:
 - require `CI / test`, `Dependency Review / dependency-review`,
   `CodeQL / Analyze Python`, and `Conformance Snapshot / snapshot` once each check has reported
   successfully at least once;
+- require the pull-request branch to be up to date with `main` before merge so required checks bind
+  to the current base rather than a stale merge candidate;
 - block force pushes;
 - block branch deletion;
 - require conversation resolution before merge;
 - do not require human approval while the repository has a single maintainer;
+- use CODEOWNERS for review routing, not as a substitute for exact-head checks;
 - do not enable automatic merge by default;
+- do not configure routine ruleset bypass actors; any future bypass must be explicitly justified as a
+  recovery mechanism rather than a normal merge path;
 - require full-length commit SHAs for Actions when the repository setting is available;
 - set default `GITHUB_TOKEN` permissions to read-only;
 - enable Dependabot alerts and security updates;

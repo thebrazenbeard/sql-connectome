@@ -1,0 +1,52 @@
+name: General reproducible bug
+description: Report a defect that is not better covered by the dialect, semantic-divergence, or engine-validation forms.
+title: "[Bug] "
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Problem
+      description: Describe the observed behavior and why it is incorrect.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: Include the smallest commands, SQL, API request, or repository steps that reproduce the defect.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: subject
+    attributes:
+      label: Exact subject
+      description: Include commit SHA, SQL Connectome version, dialect/engine version, and relevant runtime identity where available.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Include logs, SQLSTATE/error class, receipts, or screenshots with secrets removed.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Safety and claim boundaries
+      options:
+        - label: I have removed credentials, tokens, connection strings, and other secrets.
+          required: true
+        - label: I am not treating parser acceptance as proof of engine execution or behavioral equivalence.
+          required: true
