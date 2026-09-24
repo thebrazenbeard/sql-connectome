@@ -13,6 +13,7 @@ EXPECTED_TOOLS = {
     "sql_dialects",
     "probe_sql_dialect",
     "parse_sql",
+    "expression_contracts",
     "bind_sql",
     "translation_plan",
     "transpile_sql",
@@ -62,6 +63,13 @@ def test_semantic_mcp_tool_roundtrip() -> None:
             )
             assert result.is_error is False
             assert result.structured_content is not None
+
+            contracts = await client.call_tool(
+                "expression_contracts",
+                {"sql": "SELECT COALESCE(NULL, 1)", "dialect": "postgresql"},
+            )
+            assert contracts.is_error is False
+            assert contracts.structured_content is not None
 
     asyncio.run(scenario())
 
