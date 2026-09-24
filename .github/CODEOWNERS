@@ -1,0 +1,11 @@
+# Single-maintainer default ownership.
+# This routes review requests; it does not replace required checks or exact-head qualification.
+* @thebrazenbeard
+
+# Security- and governance-sensitive surfaces are listed explicitly for future refinement.
+.github/ @thebrazenbeard
+SECURITY.md @thebrazenbeard
+docs/GITHUB_GOVERNANCE.md @thebrazenbeard
+src/sql_connectome/ @thebrazenbeard
+migrations/ @thebrazenbeard
+pyproject.toml @thebrazenbeard
