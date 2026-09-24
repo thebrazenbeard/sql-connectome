@@ -69,3 +69,31 @@ coercion edges. Internal Python callables are never exposed as durable contract 
 Upstream reference:
 
 - https://sqlglot.com/sqlglot/typing.html
+
+
+## Model Context Protocol Python SDK
+
+SQL Connectome uses the official Model Context Protocol Python SDK for its ChatGPT/MCP interface.
+
+Current source range:
+
+`mcp>=2,<3`
+
+The V2 line is used because it implements the current 2026 MCP transport model while retaining
+compatibility with earlier MCP protocol revisions. SQL Connectome uses the high-level
+`MCPServer` API and Streamable HTTP transport.
+
+The SDK is a transport/interface dependency. It does **not** define SQL Connectome semantics,
+translation fidelity, database authority, or provenance.
+
+Dependency admission rules:
+
+- MCP tools call the same internal semantic/control functions used by the REST surface;
+- MCP transport success does not upgrade semantic or behavioral-equivalence claims;
+- an MCP connection or plugin installation does not grant database-write authority;
+- network serving fails closed unless resource-server authentication is configured;
+- MCP upgrades must preserve the exact tool inventory and in-process client qualification tests.
+
+Upstream reference:
+
+- https://github.com/modelcontextprotocol/python-sdk
