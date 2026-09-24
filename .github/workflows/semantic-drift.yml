@@ -1,0 +1,77 @@
+name: Semantic Drift
+
+on:
+  schedule:
+    - cron: "17 10 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  newest-allowed-dependencies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: sql_connectome
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sql_connectome"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+
+    env:
+      SQL_CONNECTOME_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sql_connectome
+      SQL_CONNECTOME_API_TOKEN: semantic-drift-token
+      SQL_CONNECTOME_READ_SCHEMAS: bt2,public,sql_connectome
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install newest allowed dependency versions
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade --upgrade-strategy eager -e '.[dev]'
+
+      - name: Capture resolved dependency set
+        run: |
+          mkdir -p artifacts
+          pip freeze --all | sort > artifacts/pip-freeze.txt
+
+      - name: Apply migrations
+        run: python scripts/apply_migrations.py
+
+      - name: Verify migration idempotency
+        run: python scripts/apply_migrations.py
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Test newest allowed dependency set
+        run: pytest -q
+
+      - name: Generate semantic conformance snapshot
+        run: python scripts/generate_conformance_snapshot.py artifacts/conformance-snapshot.json
+
+      - name: Upload drift evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: semantic-drift-${{ github.sha }}
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 30
