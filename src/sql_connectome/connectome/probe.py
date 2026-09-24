@@ -8,7 +8,13 @@ from sqlglot import ErrorLevel
 from sqlglot.errors import ParseError
 
 from .registry import DEFAULT_DIALECTS
-from .text_pipeline import SQLGLOT_DIALECTS, SQLTextError, parse_sql_text
+from .text_pipeline import (
+    MAX_SQL_AST_NODES,
+    SQLGLOT_DIALECTS,
+    SQLTextError,
+    _bounded_text,
+    parse_sql_text,
+)
 
 _MARKERS: tuple[tuple[str, dict[str, int], str], ...] = (
     (r"\bSELECT\s+TOP\b", {"tsql": 5}, "SELECT TOP"),
@@ -85,9 +91,7 @@ def _marker_evidence(sql: str, dialect_id: str) -> tuple[int, list[str]]:
 
 
 def probe_sql_dialects(sql: str, *, max_candidates: int = 8) -> dict[str, object]:
-    text = sql.strip()
-    if not text:
-        raise SQLTextError("EMPTY_SQL")
+    text = _bounded_text(sql)
     if max_candidates < 1 or max_candidates > len(SQLGLOT_DIALECTS):
         raise SQLTextError("INVALID_MAX_CANDIDATES")
 
@@ -102,6 +106,7 @@ def probe_sql_dialects(sql: str, *, max_candidates: int = 8) -> dict[str, object
                     text,
                     read=parser_dialect,
                     error_level=ErrorLevel.RAISE,
+                    max_nodes=MAX_SQL_AST_NODES,
                 )
                 if expression is not None
             ]
