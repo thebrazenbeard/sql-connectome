@@ -1,3 +1,4 @@
+from .ir import IREdge, IRNode, SQLSemanticIR, TranslationLoss
 from .model import (
     AppliedRewrite,
     DialectGenome,
@@ -14,9 +15,13 @@ __all__ = [
     "DEFAULT_DIALECTS",
     "DEFAULT_REWRITE_RULES",
     "DialectGenome",
+    "IREdge",
+    "IRNode",
     "RewriteRule",
+    "SQLSemanticIR",
     "SemanticDimension",
     "TranslationFidelity",
+    "TranslationLoss",
     "TranslationPlan",
     "list_dialects",
     "plan_translation",
