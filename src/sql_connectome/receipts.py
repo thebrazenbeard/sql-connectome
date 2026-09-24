@@ -14,7 +14,12 @@ def canonical_digest(value: Any) -> str:
     return hashlib.sha256(canonical_json(value).encode("utf-8")).hexdigest()
 
 
-def make_receipt(kind: str, subject: dict[str, Any], *, issued_at: str | None = None) -> dict[str, Any]:
+def make_receipt(
+    kind: str,
+    subject: dict[str, Any],
+    *,
+    issued_at: str | None = None,
+) -> dict[str, Any]:
     timestamp = issued_at or datetime.now(UTC).isoformat()
     body = {
         "schema": "SQL_CONNECTOME_RECEIPT_V1",
