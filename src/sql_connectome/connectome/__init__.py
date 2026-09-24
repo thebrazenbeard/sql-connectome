@@ -9,6 +9,7 @@ from .model import (
 )
 from .planner import list_dialects, plan_translation
 from .registry import DEFAULT_DIALECTS, DEFAULT_REWRITE_RULES, resolve_dialect
+from .text_pipeline import SQLTextAnalysis, SQLTextError, parse_sql_text, transpile_sql_text
 
 __all__ = [
     "AppliedRewrite",
@@ -19,11 +20,15 @@ __all__ = [
     "IRNode",
     "RewriteRule",
     "SQLSemanticIR",
+    "SQLTextAnalysis",
+    "SQLTextError",
     "SemanticDimension",
     "TranslationFidelity",
     "TranslationLoss",
     "TranslationPlan",
     "list_dialects",
+    "parse_sql_text",
     "plan_translation",
     "resolve_dialect",
+    "transpile_sql_text",
 ]

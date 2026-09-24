@@ -5,7 +5,13 @@ from fastapi import Depends, FastAPI, HTTPException
 from . import __version__
 from .auth import require_bearer
 from .config import Settings, get_settings
-from .connectome import list_dialects, plan_translation
+from .connectome import (
+    SQLTextError,
+    list_dialects,
+    parse_sql_text,
+    plan_translation,
+    transpile_sql_text,
+)
 from .db import (
     lantern_current_cut,
     migration_status,
@@ -13,7 +19,7 @@ from .db import (
     query_readonly,
     schema_inventory,
 )
-from .models import QueryRequest, TranslationPlanRequest
+from .models import QueryRequest, SQLParseRequest, SQLTranspileRequest, TranslationPlanRequest
 from .sql_guard import SQLRejected
 
 app = FastAPI(title="SQL Connectome", version=__version__)
@@ -50,6 +56,27 @@ def post_connectome_translation_plan(request: TranslationPlanRequest) -> dict[st
             request.required_capabilities,
         ).as_dict()
     except (KeyError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/v1/connectome/parse", dependencies=[Depends(require_bearer)])
+def post_connectome_parse(request: SQLParseRequest) -> dict[str, object]:
+    try:
+        return parse_sql_text(request.sql, request.dialect).as_dict()
+    except (KeyError, SQLTextError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/v1/connectome/transpile", dependencies=[Depends(require_bearer)])
+def post_connectome_transpile(request: SQLTranspileRequest) -> dict[str, object]:
+    try:
+        return transpile_sql_text(
+            request.sql,
+            request.source_dialect,
+            request.target_dialect,
+            allow_lossy=request.allow_lossy,
+        )
+    except (KeyError, SQLTextError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 

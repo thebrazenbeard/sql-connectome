@@ -144,8 +144,11 @@ SQL text
   -> normalized result + provenance
 ```
 
-The current branch stops at capability planning and semantic IR structure. It does not yet claim
-text parsing, SQL generation, or cross-engine behavioral equivalence.
+The current implementation now includes a SQLGlot-backed text adapter that parses declared source
+dialects into the semantic IR, performs planner-gated transpilation, and reparses generated target
+SQL. SQLGlot remains a peripheral parser/transpiler rather than semantic authority. Successful
+source parse, generation, and target reparse still do not establish cross-engine behavioral
+equivalence.
 
 ## Unknown dialects
 
