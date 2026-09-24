@@ -275,6 +275,45 @@ DEFAULT_DIALECTS: dict[str, DialectGenome] = {
     ),
 }
 
+# SQLGlot-backed parser coverage can be broader than our admitted semantic capability coverage.
+# These genomes intentionally begin with only relational SELECT semantics. Dialect-specific
+# capabilities are added separately as evidence and tests justify them.
+_BASELINE_SQLGLOT_DIALECTS: dict[str, tuple[str, str, set[str]]] = {
+    "athena": ("presto-family", "Amazon Athena SQL", set()),
+    "clickhouse": ("clickhouse", "ClickHouse SQL", set()),
+    "databricks": ("spark-family", "Databricks SQL", set()),
+    "doris": ("mysql-family", "Apache Doris SQL", set()),
+    "dremio": ("dremio", "Dremio SQL", set()),
+    "drill": ("drill", "Apache Drill SQL", set()),
+    "druid": ("druid", "Apache Druid SQL", set()),
+    "dune": ("dune", "DuneSQL", set()),
+    "exasol": ("exasol", "Exasol SQL", set()),
+    "fabric": ("transact-sql", "Microsoft Fabric SQL", set()),
+    "hive": ("hive", "Apache HiveQL", {"hiveql"}),
+    "materialize": ("postgres-family", "Materialize SQL", set()),
+    "presto": ("presto", "Presto SQL", set()),
+    "redshift": ("postgres-family", "Amazon Redshift SQL", set()),
+    "risingwave": ("postgres-family", "RisingWave SQL", set()),
+    "singlestore": ("mysql-family", "SingleStore SQL", {"memsql"}),
+    "spark": ("spark-family", "Apache Spark SQL", {"sparksql"}),
+    "starrocks": ("mysql-family", "StarRocks SQL", set()),
+    "teradata": ("teradata", "Teradata SQL", set()),
+}
+
+for _dialect_id, (_family, _engine, _aliases) in _BASELINE_SQLGLOT_DIALECTS.items():
+    DEFAULT_DIALECTS[_dialect_id] = _genome(
+        _dialect_id,
+        _family,
+        _engine,
+        "current",
+        {"relational_select"},
+        {SemanticDimension.RELATIONAL},
+        _aliases,
+        notes=(
+            "Bootstrap SQLGlot parser coverage; dialect-specific capability coverage is partial.",
+        ),
+    )
+
 
 DEFAULT_REWRITE_RULES: tuple[RewriteRule, ...] = (
     RewriteRule(
