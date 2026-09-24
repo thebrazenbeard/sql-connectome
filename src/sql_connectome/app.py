@@ -24,8 +24,8 @@ from .db import (
 )
 from .models import (
     DialectProbeRequest,
-    QueryRequest,
     PostgreSQLQualificationRequest,
+    QueryRequest,
     SQLBindRequest,
     SQLParseRequest,
     SQLTranspileRequest,
