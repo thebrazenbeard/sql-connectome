@@ -5,10 +5,13 @@ from fastapi import Depends, Header, HTTPException, status
 
 from .config import Settings, get_settings
 
+SettingsDep = Annotated[Settings, Depends(get_settings)]
+AuthorizationHeader = Annotated[str | None, Header()]
+
 
 def require_bearer(
-    authorization: Annotated[str | None, Header()] = None,
-    settings: Settings = Depends(get_settings),
+    settings: SettingsDep,
+    authorization: AuthorizationHeader = None,
 ) -> None:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="BEARER_REQUIRED")
