@@ -19,7 +19,25 @@ concurrency:
 jobs:
   snapshot:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: sql_connectome
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sql_connectome"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      SQL_CONNECTOME_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sql_connectome
+      SQL_CONNECTOME_API_TOKEN: conformance-test-token
+      SQL_CONNECTOME_READ_SCHEMAS: bt2,public,sql_connectome
 
     steps:
       - name: Check out source
@@ -34,13 +52,23 @@ jobs:
       - name: Install
         run: pip install -e '.[dev]'
 
+      - name: Apply migrations
+        run: python scripts/apply_migrations.py
+
       - name: Generate conformance snapshot
         run: python scripts/generate_conformance_snapshot.py artifacts/conformance-snapshot.json
+
+      - name: Generate differential conformance
+        run: >-
+          python scripts/generate_differential_conformance.py
+          artifacts/differential-conformance.json
 
       - name: Upload conformance snapshot
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: sql-connectome-conformance-${{ github.sha }}
-          path: artifacts/conformance-snapshot.json
+          path: |
+            artifacts/conformance-snapshot.json
+            artifacts/differential-conformance.json
           if-no-files-found: error
           retention-days: 30

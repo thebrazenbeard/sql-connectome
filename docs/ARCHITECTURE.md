@@ -25,6 +25,8 @@ The semantic plane owns:
 7. **Parser/generator adapters** — components that map text into/out of semantic IR.
 8. **Validation adapters** — static binding plus target-engine qualification paths. PostgreSQL performs read-only, non-ANALYZE `EXPLAIN` validation; DuckDB performs hardened in-memory `EXPLAIN` validation with external access and extension autoload/install disabled; SQLite performs in-memory `EXPLAIN QUERY PLAN` validation under query-only mode and a compile-time SELECT/READ/function authorizer.
 
+9. **Differential conformance** — bounded source-controlled probes compare normalized values and type families across qualified engine runtimes without upgrading fixture evidence into general behavioral equivalence.
+
 The semantic plane follows:
 
 `UNDERSTAND != TRANSLATE != VALIDATE != EXECUTE != AUTHORIZE`

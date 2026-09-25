@@ -56,6 +56,7 @@ The current semantic-core slice includes:
 - end-to-end foreign-dialect → PostgreSQL translation qualification with one provenance receipt;
 - expression-level function/operator/type inventories and dialect-semantic risk ceilings;
 - canonical type families plus dialect coercion graphs with explicit type-projection fidelity;
+- bounded differential conformance probes across DuckDB, SQLite, and PostgreSQL with fixture-scoped agreement/divergence evidence;
 - query-scoped expression contracts exposing argument shape, type rules, and dialect coercions.
 
 Parsing and transpilation do **not** establish cross-engine behavioral equivalence. The API reports
@@ -80,6 +81,8 @@ PostgreSQL is the first execution/governance adapter, not the definition or sema
 Connectome.
 
 Recovery is intentionally provider-independent. See `docs/RECOVERY.md`.
+
+Differential engine evidence is fixture-bounded and does not establish universal behavioral equivalence. See `docs/DIFFERENTIAL_CONFORMANCE.md`.
 
 ### MCP / ChatGPT surface
 

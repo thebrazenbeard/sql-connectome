@@ -350,3 +350,27 @@ serialized.
 
 The dedicated type graph is dependency evidence. It does not establish engine acceptance or
 cross-engine behavioral equivalence.
+
+
+## Differential conformance evidence
+
+SQL Connectome now implements the first bounded differential-execution evidence layer anticipated by
+the mature runtime path.
+
+The V1 harness runs fixed literal/read-only probes against hardened DuckDB and SQLite plus PostgreSQL
+when a configured runtime is available. It normalizes observed rows and compares value projections
+separately from runtime type-family projections.
+
+This evidence is intentionally fixture-scoped:
+
+- `AGREE` means the participating engines agreed on one exact probe under exact runtime versions;
+- `DIVERGE` means at least two successful engines produced different normalized observations;
+- engine errors remain evidence rather than being coerced into a value result.
+
+Neither agreement nor successful execution changes the project-wide claim ceiling:
+
+`behavioral_equivalence = NOT_ESTABLISHED`
+
+The default probe corpus is source-controlled and snapshot-qualified. Custom internal probe sets are
+allowed but carry a weaker provenance label. No arbitrary differential-execution API or MCP tool is
+introduced by V1.
