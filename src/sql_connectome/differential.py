@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import math
 import sqlite3
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime, time
 from decimal import Decimal
-from typing import Any, Iterable
+from typing import Any
 
 import duckdb
 import psycopg
