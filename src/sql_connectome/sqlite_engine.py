@@ -59,6 +59,10 @@ def _install_schema(
             for column_name, type_name in sorted(columns.items())
         )
         try:
+            # The table/column identifiers are SQLite-quoted above and every type is
+            # SQLGlot-parsed/regenerated with statement/comment delimiters rejected.
+            # This is an intentional ephemeral-schema DDL sink, not caller SQL execution.
+            # codeql[py/sql-injection]
             conn.execute(
                 f"CREATE TABLE {_quote_identifier(table_name)} ({definitions})"
             )
@@ -151,6 +155,11 @@ def validate_sqlite_readonly(
         conn.set_authorizer(_select_authorizer)
 
         try:
+            # The caller SQL is intentionally the validation subject. validate_readonly_sql
+            # admits one top-level SELECT only; query_only blocks mutations; the compile-time
+            # authorizer denies every action except SELECT/READ/functions/recursive SELECT and
+            # explicitly denies load_extension. The database is fresh and in-memory.
+            # codeql[py/sql-injection]
             cursor = conn.execute(f"EXPLAIN QUERY PLAN {statement}", params or ())
             plan = [list(row) for row in cursor.fetchall()]
             status = "PASS"
