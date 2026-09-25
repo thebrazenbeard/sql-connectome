@@ -32,11 +32,13 @@ from .models import (
     SQLBindRequest,
     SQLParseRequest,
     SQLTranspileRequest,
+    SQLiteValidationRequest,
     TranslationPlanRequest,
 )
 from .projects import ProjectRegistryError, list_projects, project_detail
 from .qualification import qualify_translation_to_postgresql
 from .sql_guard import SQLRejected
+from .sqlite_engine import validate_sqlite_readonly
 
 app = FastAPI(title="SQL Connectome", version=__version__)
 SettingsDep = Annotated[Settings, Depends(get_settings)]
@@ -157,6 +159,22 @@ def post_connectome_validate_duckdb(
     try:
         semantic = parse_sql_text(request.sql, "duckdb")
         engine = validate_duckdb_readonly(
+            request.sql,
+            schema_context=request.schema_context,
+            params=request.params,
+        )
+        return {**engine, "semantic": semantic.as_dict()}
+    except (SQLRejected, SQLTextError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/v1/connectome/validate/sqlite", dependencies=[Depends(require_bearer)])
+def post_connectome_validate_sqlite(
+    request: SQLiteValidationRequest,
+) -> dict[str, object]:
+    try:
+        semantic = parse_sql_text(request.sql, "sqlite")
+        engine = validate_sqlite_readonly(
             request.sql,
             schema_context=request.schema_context,
             params=request.params,
