@@ -77,11 +77,9 @@ def test_differential_conformance_rejects_empty_corpus() -> None:
         run_differential_conformance(probes=())
 
 
-
 def test_differential_conformance_rejects_duplicate_probe_ids() -> None:
     with pytest.raises(ValueError, match="DIFFERENTIAL_PROBE_ID_DUPLICATE"):
         run_differential_conformance(probes=(ADDITION, ADDITION))
-
 
 
 def test_default_corpus_is_source_controlled_and_bounded() -> None:
