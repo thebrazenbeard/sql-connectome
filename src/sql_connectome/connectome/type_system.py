@@ -425,6 +425,15 @@ def assess_type_semantics(
         if risk.fidelity.severity > ceiling.severity:
             ceiling = risk.fidelity
 
+    source_graph = dialect_type_graph(
+        dialect_id=source_dialect,
+        parser_dialect=source_parser_dialect,
+    )
+    target_graph = dialect_type_graph(
+        dialect_id=target_dialect,
+        parser_dialect=target_parser_dialect,
+    )
+
     return {
         "schema": "SQL_CONNECTOME_TYPE_SEMANTICS_V1",
         "source_dialect": source_dialect,
@@ -434,15 +443,11 @@ def assess_type_semantics(
         "risks": [risk.as_dict() for risk in risks],
         "risk_count": len(risks),
         "fidelity_ceiling": ceiling.value,
-        "implicit_coercion_evidence": {
-            "source": dialect_type_graph(
-                dialect_id=source_dialect,
-                parser_dialect=source_parser_dialect,
-            ),
-            "target": dialect_type_graph(
-                dialect_id=target_dialect,
-                parser_dialect=target_parser_dialect,
-            ),
+        "coercion_graph_evidence": {
+            "source_edge_count": len(source_graph["implicit_coercions"]),
+            "target_edge_count": len(target_graph["implicit_coercions"]),
+            "evidence_basis": "SQLGLOT_COERCES_TO",
+            "evidence_ceiling": "DEPENDENCY_METADATA",
         },
         "behavioral_equivalence": "NOT_ESTABLISHED",
     }
