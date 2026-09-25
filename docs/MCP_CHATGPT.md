@@ -20,7 +20,7 @@ Connecting or installing the MCP surface does not grant protected database-write
 The current MCP tool set exposes:
 
 - runtime health and schema inventory;
-- dialect inventory and evidence-based dialect probing;
+- dialect inventory, bounded dialect comparison, and evidence-based dialect probing;
 - semantic parsing, expression-contract inspection, canonical type/coercion graph inspection, and schema binding;
 - translation planning and guarded transpilation;
 - PostgreSQL read-only EXPLAIN validation;
@@ -89,7 +89,9 @@ semantic plane + governed PostgreSQL read substrate
 ## Qualification
 
 The MCP slice is qualified in-process with the official MCP client so tests exercise real MCP
-tool discovery and calls rather than calling Python functions directly.
+tool discovery and calls rather than calling Python functions directly. The comparison tool reports
+catalog-bound capability/dimension differences plus pinned dependency metadata and deliberately
+returns no compatibility score or behavioral-equivalence claim.
 
 CI also exercises one database-backed MCP call against PostgreSQL 17 plus embedded DuckDB and SQLite validation calls through the official MCP client. HTTP/OAuth deployment
 qualification remains a separate state until a concrete HTTPS deployment and authorization server
