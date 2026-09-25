@@ -3,9 +3,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from .registry import DEFAULT_DIALECTS
+from .catalog import DEFAULT_CATALOG, ConnectomeCatalog
 from .text_pipeline import (
-    SQLGLOT_DIALECTS,
     SQLTextError,
     _bounded_text,
     _parse_expressions,
@@ -86,15 +85,20 @@ def _marker_evidence(sql: str, dialect_id: str) -> tuple[int, list[str]]:
     return score, evidence
 
 
-def probe_sql_dialects(sql: str, *, max_candidates: int = 8) -> dict[str, object]:
+def probe_sql_dialects(
+    sql: str,
+    *,
+    max_candidates: int = 8,
+    catalog: ConnectomeCatalog = DEFAULT_CATALOG,
+) -> dict[str, object]:
     text = _bounded_text(sql)
-    if max_candidates < 1 or max_candidates > len(SQLGLOT_DIALECTS):
+    if max_candidates < 1 or max_candidates > len(catalog.parser_adapters):
         raise SQLTextError("INVALID_MAX_CANDIDATES")
 
     candidates: list[DialectCandidate] = []
     parser_failures = 0
 
-    for dialect_id, parser_dialect in sorted(SQLGLOT_DIALECTS.items()):
+    for dialect_id, parser_dialect in sorted(catalog.parser_adapters.items()):
         try:
             expressions = _parse_expressions(text, parser_dialect)
         except SQLTextError:
@@ -109,7 +113,7 @@ def probe_sql_dialects(sql: str, *, max_candidates: int = 8) -> dict[str, object
         evidence.insert(0, "strict parse:+1")
 
         try:
-            parse_sql_text(text, dialect_id)
+            parse_sql_text(text, dialect_id, catalog=catalog)
             semantic_admission = "ADMITTED"
             score += 1
             evidence.append("current semantic genome admits observed capabilities:+1")
@@ -119,7 +123,7 @@ def probe_sql_dialects(sql: str, *, max_candidates: int = 8) -> dict[str, object
             else:
                 semantic_admission = "NOT_ADMITTED"
 
-        genome = DEFAULT_DIALECTS[dialect_id]
+        genome = catalog.dialects[dialect_id]
         candidates.append(
             DialectCandidate(
                 dialect_id=dialect_id,
