@@ -24,6 +24,9 @@ def test_conformance_snapshot_generator(tmp_path) -> None:
     assert snapshot["source_commit"] == "test-commit"
     assert snapshot["dialect_count"] >= 28
     assert snapshot["parser_adapter_count"] >= 28
+    assert snapshot["catalog"]["admission"] == "SOURCE_CONTROLLED_DEFAULT"
+    assert snapshot["catalog"]["automatic_plugin_discovery"] is False
+    assert len(snapshot["catalog"]["digest"]) == 64
     assert len(snapshot["snapshot_digest"]) == 64
 
     dialect_ids = {row["dialect_id"] for row in snapshot["dialects"]}
