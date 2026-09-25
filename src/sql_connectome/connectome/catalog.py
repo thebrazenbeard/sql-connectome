@@ -91,6 +91,26 @@ class ConnectomeCatalog:
             if not adapter.strip():
                 raise ValueError(f"CATALOG_EMPTY_PARSER_ADAPTER:{dialect_id}")
 
+    def admit_dialect(
+        self,
+        genome: DialectGenome,
+        *,
+        parser_adapter: str,
+    ) -> ConnectomeCatalog:
+        dialects = dict(self.dialects)
+        if genome.dialect_id in dialects:
+            raise ValueError(f"CATALOG_DIALECT_ALREADY_ADMITTED:{genome.dialect_id}")
+        dialects[genome.dialect_id] = genome
+
+        parser_adapters = dict(self.parser_adapters)
+        parser_adapters[genome.dialect_id] = parser_adapter
+
+        return ConnectomeCatalog(
+            dialects=dialects,
+            parser_adapters=parser_adapters,
+            rewrite_rules=self.rewrite_rules,
+        )
+
     def resolve(self, dialect_id_or_alias: str) -> DialectGenome:
         key = dialect_id_or_alias.strip().lower()
         if key in self.dialects:
