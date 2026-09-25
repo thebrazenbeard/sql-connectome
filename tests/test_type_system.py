@@ -52,6 +52,8 @@ def test_variant_to_json_is_independently_type_lossy() -> None:
 
     assert result["fidelity_components"]["types"] == "LOSSY"
     assert result["combined_fidelity"] == "LOSSY"
+    assert "VARIANT" not in result["target_sql"].upper()
+    assert "JSON" in result["target_sql"].upper()
     risks = result["type_semantics"]["risks"]
     assert {risk["code"] for risk in risks} == {"VARIANT_TO_JSON_REPRESENTATION"}
     assert risks[0]["source_family"] == "VARIANT"
