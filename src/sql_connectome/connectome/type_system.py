@@ -449,3 +449,36 @@ def assess_type_semantics(
         },
         "behavioral_equivalence": "NOT_ESTABLISHED",
     }
+
+
+
+def rewrite_type_representations(
+    expression: exp.Expression,
+    *,
+    target_dialect: str,
+    target_parser_dialect: str,
+) -> exp.Expression:
+    target_genome = DEFAULT_DIALECTS[target_dialect]
+
+    def rewrite(node: exp.Expression) -> exp.Expression:
+        if not isinstance(node, exp.DataType):
+            return node
+
+        family = canonical_type_family(node.this)
+        if (
+            family is CanonicalTypeFamily.VARIANT
+            and "variant" not in target_genome.capabilities
+            and "json" in target_genome.capabilities
+        ):
+            return exp.DataType.build("JSON", dialect=target_parser_dialect)
+
+        if (
+            family is CanonicalTypeFamily.STRUCT
+            and "structs" not in target_genome.capabilities
+            and "json" in target_genome.capabilities
+        ):
+            return exp.DataType.build("JSON", dialect=target_parser_dialect)
+
+        return node
+
+    return expression.transform(rewrite, copy=True)
