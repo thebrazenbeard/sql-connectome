@@ -1,4 +1,5 @@
 import pytest
+
 from sql_connectome.differential import DifferentialProbe, run_differential_conformance
 
 
