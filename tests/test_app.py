@@ -204,4 +204,4 @@ def test_connectome_duckdb_validation_endpoint(monkeypatch) -> None:
     assert payload["validation"]["status"] == "PASS"
     assert payload["validation"]["engine"] == "duckdb"
     assert payload["validation"]["query_executed"] is False
-    assert payload["semantic"]["dialect_id"] == "duckdb"
+    assert payload["semantic"]["ir"]["source_dialect"] == "duckdb"
