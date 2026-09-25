@@ -86,7 +86,13 @@ def _set_limits(conn: sqlite3.Connection) -> dict[str, int]:
     return applied
 
 
-def _select_authorizer(action: int, _arg1: str | None, _arg2: str | None, _db: str | None, _trigger: str | None) -> int:
+def _select_authorizer(
+    action: int,
+    _arg1: str | None,
+    _arg2: str | None,
+    _db: str | None,
+    _trigger: str | None,
+) -> int:
     allowed = {
         sqlite3.SQLITE_SELECT,
         sqlite3.SQLITE_READ,
