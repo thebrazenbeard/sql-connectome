@@ -31,6 +31,7 @@ from .db import (
 from .duckdb_engine import validate_duckdb_readonly
 from .qualification import qualify_translation_to_postgresql
 from .sql_guard import SQLRejected
+from .sqlite_engine import validate_sqlite_readonly
 
 MAX_SQL_LENGTH = 50_000
 MAX_CAPABILITIES = 256
@@ -245,6 +246,25 @@ def build_mcp_server(
         try:
             semantic = parse_sql_text(statement, "duckdb")
             engine = validate_duckdb_readonly(
+                statement,
+                schema_context=schema_context,
+                params=params,
+            )
+            return {**engine, "semantic": semantic.as_dict()}
+        except (SQLRejected, SQLTextError, ValueError) as exc:
+            raise _tool_error(exc) from exc
+
+    @mcp.tool()
+    def validate_sqlite(
+        sql: str,
+        schema_context: dict[str, dict[str, str]] | None = None,
+        params: list[Any] | dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Ask hardened in-memory SQLite to plan one SELECT without executing it."""
+        statement = _bounded_sql(sql)
+        try:
+            semantic = parse_sql_text(statement, "sqlite")
+            engine = validate_sqlite_readonly(
                 statement,
                 schema_context=schema_context,
                 params=params,
