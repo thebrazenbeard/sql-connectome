@@ -9,6 +9,7 @@ from sql_connectome.mcp_server import StaticTokenVerifier, build_mcp_server
 
 EXPECTED_TOOLS = {
     "platform_status",
+    "compare_sql_dialects",
     "schema_catalog",
     "sql_dialects",
     "probe_sql_dialect",
@@ -60,6 +61,13 @@ def test_semantic_mcp_tool_roundtrip() -> None:
     async def scenario() -> None:
         server = build_mcp_server(make_settings(), require_auth=False)
         async with Client(server) as client:
+            comparison = await client.call_tool(
+                "compare_sql_dialects",
+                {"source_dialect": "postgresql", "target_dialect": "sqlite"},
+            )
+            assert comparison.is_error is False
+            assert comparison.structured_content is not None
+
             result = await client.call_tool(
                 "parse_sql",
                 {"sql": "SELECT 1 AS one", "dialect": "postgresql"},
