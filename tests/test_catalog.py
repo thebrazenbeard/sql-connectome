@@ -180,3 +180,26 @@ def test_custom_catalog_can_drive_static_binding() -> None:
 
     assert bound["dialect"] == "pgish"
     assert bound["source"]["ir"]["source_dialect"] == "pgish"
+
+
+def test_catalog_digest_binds_admission_state_deterministically() -> None:
+    genome = _genome("pgish", aliases=frozenset({"pgx"}))
+    first = ConnectomeCatalog(
+        dialects={"pgish": genome},
+        parser_adapters={"pgish": "postgres"},
+        rewrite_rules=(),
+    )
+    equivalent = ConnectomeCatalog(
+        dialects={"pgish": genome},
+        parser_adapters={"pgish": "postgres"},
+        rewrite_rules=(),
+    )
+    extended = first.admit_dialect(
+        _genome("sqliteish"),
+        parser_adapter="sqlite",
+    )
+
+    assert first.digest == equivalent.digest
+    assert first.digest != extended.digest
+    assert first.manifest()["schema"] == "SQL_CONNECTOME_CATALOG_V1"
+    assert first.manifest()["dialects"][0]["dialect_id"] == "pgish"
