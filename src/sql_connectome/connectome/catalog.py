@@ -57,6 +57,23 @@ class ConnectomeCatalog:
             MappingProxyType(dict(self.parser_adapters)),
         )
         object.__setattr__(self, "rewrite_rules", tuple(self.rewrite_rules))
+        self._validate_aliases()
+
+    def _validate_aliases(self) -> None:
+        claims = {dialect_id: dialect_id for dialect_id in self.dialects}
+
+        for dialect_id, genome in self.dialects.items():
+            if genome.dialect_id != dialect_id:
+                raise ValueError(
+                    f"CATALOG_DIALECT_KEY_MISMATCH:{dialect_id}:{genome.dialect_id}"
+                )
+
+            for alias in genome.aliases:
+                normalized = alias.strip().lower()
+                owner = claims.get(normalized)
+                if owner is not None and owner != dialect_id:
+                    raise ValueError(f"CATALOG_ALIAS_COLLISION:{normalized}")
+                claims[normalized] = dialect_id
 
     def resolve(self, dialect_id_or_alias: str) -> DialectGenome:
         key = dialect_id_or_alias.strip().lower()
