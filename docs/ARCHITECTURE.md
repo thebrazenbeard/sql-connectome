@@ -57,6 +57,7 @@ does not make PostgreSQL the meaning of a foreign dialect.
 The semantic slice exposes:
 
 - `GET /v1/connectome/dialects`
+- `GET /v1/connectome/type-graph?dialect=...`
 - `POST /v1/connectome/translation-plan`
 
 These surfaces report admitted capability knowledge only. They do not generate target SQL.
