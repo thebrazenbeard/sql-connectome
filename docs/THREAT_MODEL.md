@@ -24,6 +24,7 @@
 - PostgreSQL engine validation uses `EXPLAIN` without `ANALYZE` inside a READ ONLY transaction;
 - DuckDB engine validation uses a fresh in-memory database, plain `EXPLAIN`, disabled external access, disabled community/unsigned/auto-installed/auto-loaded extensions, one thread, a 256 MB memory limit, and locked configuration;
 - SQLite engine validation uses a fresh in-memory database, `EXPLAIN QUERY PLAN`, `query_only=ON`, `trusted_schema=OFF`, disabled extension loading, compile-time SELECT/READ/function authorization, and explicit SQLite resource limits;
+- Differential conformance probes are bounded, source-controlled by default, reuse the hardened embedded sessions, use the existing PostgreSQL read-only execution path, and are not exposed as a REST or MCP execution surface;
 - backup archives are SHA-256 bound to canonical manifests;
 - restore requires explicit trusted-source acknowledgement and a blank target;
 - restore is single-transaction, exit-on-error, and never performs clean/drop behavior;
