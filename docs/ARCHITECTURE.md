@@ -40,7 +40,12 @@ The first executable substrate contains:
 4. **Read boundary** — single SELECT plus PostgreSQL READ ONLY transaction, timeout and row cap.
 5. **Currentness adapter** — Lantern cut/payload captured in one REPEATABLE READ READ ONLY snapshot.
 6. **Receipts** — canonical digests bind responses to runtime identity and exact subjects.
-7. **ChatGPT/MCP adapter** — future layer calling the control plane rather than provider APIs.
+7. **Recovery plane** — provider-independent pg_dump/pg_restore archives with manifest
+   cross-binding, blank-target restore, and post-restore qualification.
+8. **ChatGPT/MCP adapter** — current MCP v2/Streamable HTTP layer exposing semantic and governed
+   read tools without adding write authority.
+9. **Project control plane** — provider-neutral logical projects and concrete database-target
+   bindings with append-only effect receipts.
 
 The execution layer is intentionally separable from semantic reasoning. Understanding Oracle SQL,
 for example, does not require an Oracle execution credential, and having a PostgreSQL connection
@@ -55,11 +60,16 @@ The semantic slice exposes:
 
 These surfaces report admitted capability knowledge only. They do not generate target SQL.
 
+The MCP surface composes the same internal functions rather than proxying the REST API. That keeps
+semantic, execution, receipt, and authority behavior identical across interfaces while avoiding an
+extra HTTP hop. See `MCP_CHATGPT.md`.
+
 ## Optional components
 
 PostgREST and postgres-meta are composable candidates, not mandatory runtime dependencies.
-Realtime, Auth, storage, GraphQL, cloud-scale pooling, foreign-engine adapters, and parser engines
-are admitted only when a consumer demonstrates the need.
+Provider provisioning, Realtime, Auth, storage, GraphQL, cloud-scale pooling, foreign-engine adapters,
+and parser engines are admitted only when a consumer demonstrates the need. Project/target
+registration now exists, but registration is not treated as provider provisioning.
 
 ## Provider rule
 

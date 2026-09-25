@@ -15,7 +15,11 @@ dependencies = [
   "sqlparse>=0.5,<1",
   "sqlglot>=30.19,<30.20",
   "duckdb>=1.5.5,<1.6",
+  "mcp>=2,<3",
 ]
+
+[project.scripts]
+sql-connectome-mcp = "sql_connectome.mcp_server:main"
 
 [project.optional-dependencies]
 dev = [

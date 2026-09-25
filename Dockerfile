@@ -5,5 +5,8 @@ COPY pyproject.toml README.md ./
 COPY src ./src
 RUN pip install --no-cache-dir .
 
-EXPOSE 8080
-CMD ["uvicorn", "sql_connectome.app:app", "--host", "0.0.0.0", "--port", "8080"]
+ENV SQL_CONNECTOME_PROCESS=rest
+
+EXPOSE 8080 8001
+
+CMD ["python", "-m", "sql_connectome.entrypoint"]

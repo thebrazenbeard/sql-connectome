@@ -1,0 +1,51 @@
+name: Translation semantic divergence
+description: Report SQL that parses/translates but changes meaning across dialects.
+title: "[Semantics] "
+body:
+  - type: input
+    id: source
+    attributes:
+      label: Source dialect
+      placeholder: "Example: MySQL 8.x"
+    validations:
+      required: true
+
+  - type: input
+    id: target
+    attributes:
+      label: Target dialect
+      placeholder: "Example: PostgreSQL 17"
+    validations:
+      required: true
+
+  - type: textarea
+    id: sql
+    attributes:
+      label: Source SQL
+      render: sql
+    validations:
+      required: true
+
+  - type: textarea
+    id: difference
+    attributes:
+      label: Semantic difference
+      description: Describe the source result/behavior and the target result/behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: conditions
+    attributes:
+      label: Divergence condition
+      description: State the input/type/NULL/session condition under which behavior diverges.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Include official documentation or reproducible engine evidence.
+    validations:
+      required: true

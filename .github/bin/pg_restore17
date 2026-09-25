@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+exec docker run --rm --network host \
+  -e PGPASSWORD="${PGPASSWORD:-}" \
+  -v "$PWD:$PWD" \
+  -v /tmp:/tmp \
+  -w "$PWD" \
+  postgres:17 pg_restore "$@"

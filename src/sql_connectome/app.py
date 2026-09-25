@@ -32,6 +32,7 @@ from .models import (
     SQLTranspileRequest,
     TranslationPlanRequest,
 )
+from .projects import ProjectRegistryError, list_projects, project_detail
 from .qualification import qualify_translation_to_postgresql
 from .sql_guard import SQLRejected
 
@@ -181,6 +182,21 @@ def get_lantern_current_cut(
         raise
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@app.get("/v1/projects", dependencies=[Depends(require_bearer)])
+def get_projects(settings: SettingsDep) -> dict:
+    return list_projects(settings)
+
+
+@app.get("/v1/projects/{project_key}", dependencies=[Depends(require_bearer)])
+def get_project(project_key: str, settings: SettingsDep) -> dict:
+    try:
+        return project_detail(settings, project_key)
+    except ProjectRegistryError as exc:
+        if str(exc) == "PROJECT_NOT_FOUND":
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise
 
 
 @app.get("/v1/migrations/status", dependencies=[Depends(require_bearer)])
