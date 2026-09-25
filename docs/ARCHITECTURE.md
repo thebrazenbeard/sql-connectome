@@ -42,7 +42,8 @@ The first executable substrate contains:
 6. **Receipts** — canonical digests bind responses to runtime identity and exact subjects.
 7. **Recovery plane** — provider-independent pg_dump/pg_restore archives with manifest
    cross-binding, blank-target restore, and post-restore qualification.
-8. **ChatGPT/MCP adapter** — future layer calling the control plane rather than provider APIs.
+8. **ChatGPT/MCP adapter** — current MCP v2/Streamable HTTP layer exposing semantic and governed
+   read tools without adding write authority.
 
 The execution layer is intentionally separable from semantic reasoning. Understanding Oracle SQL,
 for example, does not require an Oracle execution credential, and having a PostgreSQL connection
@@ -56,6 +57,10 @@ The semantic slice exposes:
 - `POST /v1/connectome/translation-plan`
 
 These surfaces report admitted capability knowledge only. They do not generate target SQL.
+
+The MCP surface composes the same internal functions rather than proxying the REST API. That keeps
+semantic, execution, receipt, and authority behavior identical across interfaces while avoiding an
+extra HTTP hop. See `MCP_CHATGPT.md`.
 
 ## Optional components
 
