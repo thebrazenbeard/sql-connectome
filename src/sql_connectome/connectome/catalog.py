@@ -4,6 +4,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 
+from sql_connectome.receipts import canonical_digest
+
 from .model import DialectGenome, RewriteRule
 from .registry import DEFAULT_DIALECTS, DEFAULT_REWRITE_RULES
 
@@ -89,6 +91,54 @@ class ConnectomeCatalog:
                 raise ValueError(f"CATALOG_ORPHAN_PARSER_ADAPTER:{dialect_id}")
             if not adapter.strip():
                 raise ValueError(f"CATALOG_EMPTY_PARSER_ADAPTER:{dialect_id}")
+
+    def manifest(self) -> dict[str, object]:
+        dialects = [
+            {
+                "dialect_id": genome.dialect_id,
+                "family": genome.family,
+                "engine": genome.engine,
+                "version_selector": genome.version_selector,
+                "aliases": sorted(alias.strip().lower() for alias in genome.aliases),
+                "capabilities": sorted(genome.capabilities),
+                "semantic_dimensions": sorted(
+                    dimension.value for dimension in genome.semantic_dimensions
+                ),
+                "notes": list(genome.notes),
+            }
+            for genome in sorted(
+                self.dialects.values(),
+                key=lambda item: item.dialect_id,
+            )
+        ]
+        rewrite_rules = [
+            {
+                "name": rule.name,
+                "source_capability": rule.source_capability,
+                "target_capabilities": sorted(rule.target_capabilities),
+                "target_dialects": sorted(rule.target_dialects),
+                "fidelity": rule.fidelity.value,
+                "description": rule.description,
+            }
+            for rule in sorted(
+                self.rewrite_rules,
+                key=lambda item: (
+                    item.source_capability,
+                    item.fidelity.severity,
+                    item.name,
+                ),
+            )
+        ]
+        return {
+            "schema": "SQL_CONNECTOME_CATALOG_V1",
+            "dialects": dialects,
+            "parser_adapters": dict(sorted(self.parser_adapters.items())),
+            "rewrite_rules": rewrite_rules,
+        }
+
+    @property
+    def digest(self) -> str:
+        return canonical_digest(self.manifest())
 
     def admit_dialect(
         self,
