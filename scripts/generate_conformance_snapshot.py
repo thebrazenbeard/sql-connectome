@@ -62,12 +62,6 @@ def build_snapshot() -> dict[str, object]:
         )
 
     rewrites = _rewrite_rows()
-    catalog_subject = {
-        "dialects": dialect_inventory,
-        "parser_adapters": dict(sorted(DEFAULT_CATALOG.parser_adapters.items())),
-        "rewrite_rules": rewrites,
-    }
-
     payload: dict[str, object] = {
         "schema": "SQL_CONNECTOME_CONFORMANCE_SNAPSHOT_V1",
         "source_commit": os.getenv("GITHUB_SHA"),
@@ -77,7 +71,7 @@ def build_snapshot() -> dict[str, object]:
         "catalog": {
             "admission": "SOURCE_CONTROLLED_DEFAULT",
             "automatic_plugin_discovery": False,
-            "digest": canonical_digest(catalog_subject),
+            "digest": DEFAULT_CATALOG.digest,
         },
         "dialects": dialects,
         "rewrite_rules": rewrites,
