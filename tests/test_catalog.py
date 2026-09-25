@@ -8,6 +8,7 @@ from sql_connectome.connectome import (
     SemanticDimension,
     SQLTextError,
     TranslationFidelity,
+    bind_sql_text,
     inspect_sql_contracts,
     inspect_type_system,
     list_dialects,
@@ -160,3 +161,22 @@ def test_catalog_without_parser_adapter_fails_closed() -> None:
 
     with pytest.raises(SQLTextError, match="PARSER_ADAPTER_NOT_CONFIGURED:pgish"):
         parse_sql_text("SELECT 1", "pgish", catalog=catalog)
+
+
+def test_custom_catalog_can_drive_static_binding() -> None:
+    genome = _genome("pgish", aliases=frozenset({"pgx"}))
+    connectome_catalog = ConnectomeCatalog(
+        dialects={"pgish": genome},
+        parser_adapters={"pgish": "postgres"},
+        rewrite_rules=(),
+    )
+
+    bound = bind_sql_text(
+        "SELECT id FROM users",
+        "pgx",
+        {"users": {"id": "INT"}},
+        connectome_catalog=connectome_catalog,
+    )
+
+    assert bound["dialect"] == "pgish"
+    assert bound["source"]["ir"]["source_dialect"] == "pgish"
