@@ -97,3 +97,30 @@ Dependency admission rules:
 Upstream reference:
 
 - https://github.com/modelcontextprotocol/python-sdk
+
+
+## DuckDB
+
+SQL Connectome uses the embedded DuckDB Python package as its first non-PostgreSQL target-engine
+validator.
+
+Current source range:
+
+`duckdb>=1.5.5,<1.6`
+
+The validator creates a fresh in-memory database for each call, installs only caller-supplied schema
+shapes, locks configuration, and runs plain `EXPLAIN` rather than `EXPLAIN ANALYZE`. DuckDB's
+documentation states that plain `EXPLAIN` produces the query plan without executing the query.
+
+The embedded validator disables external access, community extensions, unsigned extensions,
+automatic known-extension installation, and automatic known-extension loading. It also constrains
+the runtime to one thread and a 256 MB memory limit before configuration is locked.
+
+Dependency evidence does not establish cross-engine behavioral equivalence. A PASS means the exact
+DuckDB runtime accepted and planned the SQL against the supplied in-memory catalog.
+
+Upstream references:
+
+- https://duckdb.org/docs/current/guides/meta/explain
+- https://duckdb.org/docs/current/operations_manual/securing_duckdb/overview
+- https://duckdb.org/docs/current/operations_manual/securing_duckdb/securing_extensions
