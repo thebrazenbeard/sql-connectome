@@ -7,7 +7,6 @@ from types import MappingProxyType
 from .model import DialectGenome, RewriteRule
 from .registry import DEFAULT_DIALECTS, DEFAULT_REWRITE_RULES
 
-
 _DEFAULT_PARSER_ADAPTERS = {
     "athena": "athena",
     "bigquery": "bigquery",
