@@ -43,3 +43,9 @@ class PostgreSQLQualificationRequest(BaseModel):
     sql: str = Field(min_length=1, max_length=50000)
     source_dialect: str = Field(min_length=1, max_length=100)
     allow_lossy: bool = False
+
+
+class DuckDBValidationRequest(BaseModel):
+    sql: str = Field(min_length=1, max_length=50000)
+    schema_context: dict[str, dict[str, str]] = Field(default_factory=dict)
+    params: list[Any] | dict[str, Any] | None = None

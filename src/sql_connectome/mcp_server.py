@@ -28,6 +28,7 @@ from .db import (
     schema_inventory,
     validate_postgresql_readonly,
 )
+from .duckdb_engine import validate_duckdb_readonly
 from .qualification import qualify_translation_to_postgresql
 from .sql_guard import SQLRejected
 
@@ -231,6 +232,25 @@ def build_mcp_server(
                 allow_lossy=allow_lossy,
             )
         except (KeyError, SQLTextError) as exc:
+            raise _tool_error(exc) from exc
+
+    @mcp.tool()
+    def validate_duckdb(
+        sql: str,
+        schema_context: dict[str, dict[str, str]] | None = None,
+        params: list[Any] | dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Ask hardened in-memory DuckDB to EXPLAIN one SELECT without executing it."""
+        statement = _bounded_sql(sql)
+        try:
+            semantic = parse_sql_text(statement, "duckdb")
+            engine = validate_duckdb_readonly(
+                statement,
+                schema_context=schema_context,
+                params=params,
+            )
+            return {**engine, "semantic": semantic.as_dict()}
+        except (SQLRejected, SQLTextError, ValueError) as exc:
             raise _tool_error(exc) from exc
 
     @mcp.tool()

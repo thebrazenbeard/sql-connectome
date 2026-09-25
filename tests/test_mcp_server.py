@@ -17,6 +17,7 @@ EXPECTED_TOOLS = {
     "bind_sql",
     "translation_plan",
     "transpile_sql",
+    "validate_duckdb",
     "validate_postgresql",
     "qualify_postgresql_translation",
     "query_postgresql_readonly",
@@ -70,6 +71,16 @@ def test_semantic_mcp_tool_roundtrip() -> None:
             )
             assert contracts.is_error is False
             assert contracts.structured_content is not None
+
+            duckdb_validation = await client.call_tool(
+                "validate_duckdb",
+                {
+                    "sql": "SELECT id FROM users",
+                    "schema_context": {"users": {"id": "INTEGER"}},
+                },
+            )
+            assert duckdb_validation.is_error is False
+            assert duckdb_validation.structured_content is not None
 
     asyncio.run(scenario())
 

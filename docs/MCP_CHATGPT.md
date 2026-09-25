@@ -24,6 +24,7 @@ The current MCP tool set exposes:
 - semantic parsing, expression-contract inspection, and schema binding;
 - translation planning and guarded transpilation;
 - PostgreSQL read-only EXPLAIN validation;
+- hardened in-memory DuckDB EXPLAIN validation against caller-supplied schema context;
 - end-to-end translation-to-PostgreSQL qualification;
 - bounded PostgreSQL SELECT execution;
 - migration-state inspection;
@@ -89,7 +90,7 @@ semantic plane + governed PostgreSQL read substrate
 The MCP slice is qualified in-process with the official MCP client so tests exercise real MCP
 tool discovery and calls rather than calling Python functions directly.
 
-CI also exercises one database-backed MCP call against PostgreSQL 17. HTTP/OAuth deployment
+CI also exercises one database-backed MCP call against PostgreSQL 17 and one embedded DuckDB validation call through the official MCP client. HTTP/OAuth deployment
 qualification remains a separate state until a concrete HTTPS deployment and authorization server
 are bound and tested.
 

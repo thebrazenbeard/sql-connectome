@@ -186,3 +186,22 @@ def test_project_detail_endpoint_maps_missing_to_404(monkeypatch) -> None:
 
     assert response.status_code == 404
     assert response.json()["detail"] == "PROJECT_NOT_FOUND"
+
+
+def test_connectome_duckdb_validation_endpoint(monkeypatch) -> None:
+    client, headers = _authenticated_client(monkeypatch)
+    response = client.post(
+        "/v1/connectome/validate/duckdb",
+        headers=headers,
+        json={
+            "sql": "SELECT id FROM users",
+            "schema_context": {"users": {"id": "INTEGER"}},
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["validation"]["status"] == "PASS"
+    assert payload["validation"]["engine"] == "duckdb"
+    assert payload["validation"]["query_executed"] is False
+    assert payload["semantic"]["ir"]["source_dialect"] == "duckdb"

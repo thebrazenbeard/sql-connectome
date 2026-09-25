@@ -51,6 +51,7 @@ The current semantic-core slice includes:
 - heuristic dialect probing that returns ranked evidence and preserves ambiguity rather than claiming identity;
 - schema-aware static binding with identifier qualification, star expansion, and type annotation;
 - real PostgreSQL target validation through read-only, non-ANALYZE JSON EXPLAIN;
+- hardened in-memory DuckDB target validation through non-executing EXPLAIN with external access disabled;
 - end-to-end foreign-dialect → PostgreSQL translation qualification with one provenance receipt;
 - expression-level function/operator/type inventories and dialect-semantic risk ceilings;
 - query-scoped expression contracts exposing argument shape, type rules, and dialect coercions.

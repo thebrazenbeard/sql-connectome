@@ -26,6 +26,7 @@ Preserve this separation:
 - Translation fidelity is not behavioral equivalence.
 - Target parser acceptance is not target-engine validation.
 - PostgreSQL EXPLAIN validation is not query execution.
+- DuckDB EXPLAIN validation is not query execution or cross-engine behavioral equivalence.
 - Read authority is not write authority.
 
 Carry forward fidelity, semantic-loss, currentness, provenance, and authority fields returned by the
@@ -38,7 +39,8 @@ tools.
 - Inspect expression contracts when function/operator/type semantics may differ across dialects.
 - Use translation planning before transpiling when capability differences matter.
 - Do not silently enable lossy translation.
-- Use PostgreSQL validation when engine/catalog acceptance matters without executing the query.
+- Use PostgreSQL validation when connected PostgreSQL engine/catalog acceptance matters without executing the query.
+- Use DuckDB validation for embedded target-engine planning against caller-supplied schema context without external access.
 - Use bounded read-only execution only when the user needs actual result rows.
 - Inspect schema/runtime state when a query depends on the connected database layout.
 
