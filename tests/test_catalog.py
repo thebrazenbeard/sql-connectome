@@ -66,3 +66,22 @@ def test_custom_catalog_can_drive_parser_admission() -> None:
 
     assert parsed.ir.source_dialect == "pgish"
     assert parsed.parser_dialect == "postgres"
+
+
+def test_catalog_admission_returns_new_catalog_without_mutating_source() -> None:
+    base = ConnectomeCatalog(dialects={}, parser_adapters={}, rewrite_rules=())
+    genome = DialectGenome(
+        dialect_id="pgish",
+        family="postgres-family",
+        engine="PG-ish test dialect",
+        version_selector="test",
+        capabilities=frozenset({"relational_select"}),
+        semantic_dimensions=frozenset({SemanticDimension.RELATIONAL}),
+        aliases=frozenset({"pgx"}),
+    )
+
+    extended = base.admit_dialect(genome, parser_adapter="postgres")
+
+    assert "pgish" not in base.dialects
+    assert extended.resolve("pgx") is genome
+    assert extended.parser_adapter("pgish") == "postgres"
