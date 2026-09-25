@@ -9,9 +9,8 @@ from sqlglot.optimizer.qualify import qualify
 
 from sql_connectome.receipts import canonical_digest
 
-from .registry import resolve_dialect
+from .catalog import DEFAULT_CATALOG, ConnectomeCatalog
 from .text_pipeline import (
-    SQLGLOT_DIALECTS,
     SQLTextError,
     _bounded_text,
     _parse_single_expression,
@@ -19,11 +18,16 @@ from .text_pipeline import (
 )
 
 
-def _adapter_for(dialect: str) -> tuple[str, str]:
-    genome = resolve_dialect(dialect)
-    adapter = SQLGLOT_DIALECTS.get(genome.dialect_id)
-    if not adapter:
-        raise SQLTextError(f"PARSER_ADAPTER_NOT_CONFIGURED:{genome.dialect_id}")
+def _adapter_for(
+    dialect: str,
+    *,
+    connectome_catalog: ConnectomeCatalog = DEFAULT_CATALOG,
+) -> tuple[str, str]:
+    try:
+        genome = connectome_catalog.resolve(dialect)
+        adapter = connectome_catalog.parser_adapter(genome.dialect_id)
+    except KeyError as exc:
+        raise SQLTextError(str(exc).strip("'")) from exc
     return genome.dialect_id, adapter
 
 
@@ -41,13 +45,21 @@ def bind_sql_text(
     *,
     database: str | None = None,
     catalog: str | None = None,
+    connectome_catalog: ConnectomeCatalog = DEFAULT_CATALOG,
 ) -> dict[str, object]:
     text = _bounded_text(sql)
     if not schema:
         raise SQLTextError("EMPTY_SCHEMA_CONTEXT")
 
-    dialect_id, adapter = _adapter_for(dialect)
-    source_analysis = parse_sql_text(text, dialect_id)
+    dialect_id, adapter = _adapter_for(
+        dialect,
+        connectome_catalog=connectome_catalog,
+    )
+    source_analysis = parse_sql_text(
+        text,
+        dialect_id,
+        catalog=connectome_catalog,
+    )
 
     if "relational_select" not in source_analysis.ir.required_capabilities:
         raise SQLTextError("BINDING_ONLY_RELATIONAL_QUERY_SUPPORTED")
