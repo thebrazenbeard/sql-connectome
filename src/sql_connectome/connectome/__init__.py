@@ -17,13 +17,6 @@ from .semantics import (
     combined_fidelity,
     dialect_semantic_profile,
 )
-from .type_system import (
-    CanonicalTypeFamily,
-    TypeProjectionRisk,
-    assess_type_semantics,
-    canonical_type_family,
-    dialect_type_graph,
-)
 from .text_pipeline import (
     SQLTextAnalysis,
     SQLTextError,
@@ -31,6 +24,13 @@ from .text_pipeline import (
     inspect_type_system,
     parse_sql_text,
     transpile_sql_text,
+)
+from .type_system import (
+    CanonicalTypeFamily,
+    TypeProjectionRisk,
+    assess_type_semantics,
+    canonical_type_family,
+    dialect_type_graph,
 )
 
 __all__ = [
