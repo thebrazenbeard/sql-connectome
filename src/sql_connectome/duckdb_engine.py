@@ -11,7 +11,6 @@ from sqlglot.errors import ParseError
 from .receipts import canonical_digest, make_receipt
 from .sql_guard import validate_readonly_sql
 
-
 DUCKDB_HARDENED_CONFIG = {
     "enable_external_access": "false",
     "allow_unsigned_extensions": "false",
