@@ -69,10 +69,14 @@ The first execution substrate remains the provider-neutral PostgreSQL control pl
 - Lantern current-cut adapter using one `REPEATABLE READ READ ONLY` transaction;
 - checksum-bound migration ledger;
 - local PostgreSQL Docker development;
-- integration CI against PostgreSQL 17.
+- integration CI against PostgreSQL 17;
+- provider-independent custom-format backup + blank-target restore qualification with
+  checksum-bound manifests and readback.
 
 PostgreSQL is the first execution/governance adapter, not the definition or semantic ceiling of SQL
 Connectome.
+
+Recovery is intentionally provider-independent. See `docs/RECOVERY.md`.
 
 ### MCP / ChatGPT surface
 
