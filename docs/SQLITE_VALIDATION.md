@@ -37,21 +37,21 @@ through this validation surface.
 
 The connection is ephemeral and exposes no durable SQLite database file.
 
-## Static-analysis model
+## Static-analysis review
 
 CodeQL's `py/sql-injection` rule correctly treats Python `sqlite3.execute` as a SQL sink. This
 validator necessarily has two dynamic SQL sinks: construction of the caller-described ephemeral
 schema and planning of the caller SQL itself.
 
-The repository-local CodeQL model pack under `.github/codeql/extensions/` marks only the reviewed
-return values of `_quote_identifier`, `_normalize_type`, and `validate_readonly_sql` as
-`sql-injection` barriers. Those models are backed by executable controls: SQLite identifier
-quoting, SQLGlot type parse/regeneration, delimiter rejection, single-statement/top-level-SELECT
-admission, `query_only`, compile-time authorization, `load_extension` denial, a fresh in-memory
+Both sinks are explicitly reviewed and backed by executable controls: SQLite identifier quoting,
+SQLGlot type parse/regeneration, delimiter rejection, single-statement/top-level-SELECT admission,
+`query_only`, compile-time authorization, explicit `load_extension` denial, a fresh in-memory
 database, and regression tests for statement and schema smuggling.
 
-No SQL-injection query is disabled or globally suppressed. Any new dynamic SQLite sink remains
-subject to the standard CodeQL rule.
+CodeQL cannot infer those application-specific sanitizers, so the two exact PR-introduced findings
+are triaged as reviewed false positives in GitHub with an audit explanation. The
+`py/sql-injection` query remains enabled and no source-wide suppression or query exclusion is
+used. Any new dynamic SQL sink remains independently subject to CodeQL.
 
 ## Plan-output boundary
 
