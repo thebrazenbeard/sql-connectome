@@ -1,6 +1,6 @@
 from sql_connectome.connectome import (
-    CanonicalTypeFamily,
     DEFAULT_CATALOG,
+    CanonicalTypeFamily,
     canonical_type_family,
     inspect_type_system,
     transpile_sql_text,
