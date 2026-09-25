@@ -27,5 +27,25 @@ services:
     ports:
       - "8080:8080"
 
+  mcp:
+    build: .
+    profiles: ["mcp"]
+    command: ["sql-connectome-mcp"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SQL_CONNECTOME_DATABASE_URL: postgresql://postgres:postgres@db:5432/sql_connectome
+      SQL_CONNECTOME_API_TOKEN: ${SQL_CONNECTOME_API_TOKEN:-local-dev-token}
+      SQL_CONNECTOME_READ_SCHEMAS: bt2,public,sql_connectome
+      SQL_CONNECTOME_MCP_HOST: 0.0.0.0
+      SQL_CONNECTOME_MCP_PORT: 8001
+      SQL_CONNECTOME_MCP_RESOURCE_URL: ${SQL_CONNECTOME_MCP_RESOURCE_URL:-}
+      SQL_CONNECTOME_MCP_ISSUER_URL: ${SQL_CONNECTOME_MCP_ISSUER_URL:-}
+      SQL_CONNECTOME_MCP_STATIC_TOKEN: ${SQL_CONNECTOME_MCP_STATIC_TOKEN:-}
+      SQL_CONNECTOME_MCP_REQUIRED_SCOPE: ${SQL_CONNECTOME_MCP_REQUIRED_SCOPE:-sql-connectome:read}
+    ports:
+      - "8001:8001"
+
 volumes:
   sql_connectome_pgdata:
