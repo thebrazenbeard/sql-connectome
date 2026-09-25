@@ -4,6 +4,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 
+from sqlglot.dialects import Dialect
+
 from sql_connectome.receipts import canonical_digest
 
 from .model import DialectGenome, RewriteRule
@@ -91,6 +93,12 @@ class ConnectomeCatalog:
                 raise ValueError(f"CATALOG_ORPHAN_PARSER_ADAPTER:{dialect_id}")
             if not adapter.strip():
                 raise ValueError(f"CATALOG_EMPTY_PARSER_ADAPTER:{dialect_id}")
+            try:
+                Dialect.get_or_raise(adapter)
+            except ValueError as exc:
+                raise ValueError(
+                    f"CATALOG_UNKNOWN_PARSER_ADAPTER:{dialect_id}:{adapter}"
+                ) from exc
 
     def manifest(self) -> dict[str, object]:
         dialects = [
