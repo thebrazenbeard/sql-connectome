@@ -23,8 +23,10 @@ from .db import (
     schema_inventory,
     validate_postgresql_readonly,
 )
+from .duckdb_engine import validate_duckdb_readonly
 from .models import (
     DialectProbeRequest,
+    DuckDBValidationRequest,
     PostgreSQLQualificationRequest,
     QueryRequest,
     SQLBindRequest,
@@ -145,6 +147,22 @@ def post_connectome_qualify_postgresql(
             allow_lossy=request.allow_lossy,
         )
     except (KeyError, SQLTextError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/v1/connectome/validate/duckdb", dependencies=[Depends(require_bearer)])
+def post_connectome_validate_duckdb(
+    request: DuckDBValidationRequest,
+) -> dict[str, object]:
+    try:
+        semantic = parse_sql_text(request.sql, "duckdb")
+        engine = validate_duckdb_readonly(
+            request.sql,
+            schema_context=request.schema_context,
+            params=request.params,
+        )
+        return {**engine, "semantic": semantic.as_dict()}
+    except (SQLRejected, SQLTextError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
