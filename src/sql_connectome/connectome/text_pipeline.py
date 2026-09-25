@@ -9,11 +9,11 @@ from sqlglot import ErrorLevel, exp
 from sqlglot.dialects import Dialect
 from sqlglot.errors import ParseError, UnsupportedError
 
+from .catalog import DEFAULT_CATALOG, DEFAULT_PARSER_ADAPTERS, ConnectomeCatalog
 from .contracts import expression_contracts
 from .ir import IREdge, IRNode, SQLSemanticIR
 from .model import SemanticDimension, TranslationFidelity
 from .planner import plan_translation
-from .registry import DEFAULT_DIALECTS, resolve_dialect
 from .semantics import assess_expression_semantics, combined_fidelity
 from .type_system import (
     assess_type_semantics,
@@ -25,36 +25,7 @@ MAX_SQL_TEXT_CHARS = 50_000
 MAX_SQL_AST_NODES = 10_000
 MAX_SQL_TOKENS = 20_000
 
-SQLGLOT_DIALECTS: dict[str, str] = {
-    "athena": "athena",
-    "bigquery": "bigquery",
-    "clickhouse": "clickhouse",
-    "databricks": "databricks",
-    "doris": "doris",
-    "dremio": "dremio",
-    "drill": "drill",
-    "druid": "druid",
-    "duckdb": "duckdb",
-    "dune": "dune",
-    "exasol": "exasol",
-    "fabric": "fabric",
-    "hive": "hive",
-    "materialize": "materialize",
-    "mysql": "mysql",
-    "oracle": "oracle",
-    "postgresql": "postgres",
-    "presto": "presto",
-    "redshift": "redshift",
-    "risingwave": "risingwave",
-    "singlestore": "singlestore",
-    "snowflake": "snowflake",
-    "spark": "spark",
-    "sqlite": "sqlite",
-    "starrocks": "starrocks",
-    "teradata": "teradata",
-    "trino": "trino",
-    "tsql": "tsql",
-}
+SQLGLOT_DIALECTS: dict[str, str] = dict(DEFAULT_PARSER_ADAPTERS)
 
 _EXPRESSION_CAPABILITIES: dict[str, str] = {
     "Select": "relational_select",
@@ -146,11 +117,16 @@ class SQLTextAnalysis:
         }
 
 
-def _dialect_adapter(dialect_id_or_alias: str) -> tuple[str, str]:
-    genome = resolve_dialect(dialect_id_or_alias)
-    adapter = SQLGLOT_DIALECTS.get(genome.dialect_id)
-    if not adapter:
-        raise SQLTextError(f"PARSER_ADAPTER_NOT_CONFIGURED:{genome.dialect_id}")
+def _dialect_adapter(
+    dialect_id_or_alias: str,
+    *,
+    catalog: ConnectomeCatalog = DEFAULT_CATALOG,
+) -> tuple[str, str]:
+    genome = catalog.resolve(dialect_id_or_alias)
+    try:
+        adapter = catalog.parser_adapter(genome.dialect_id)
+    except KeyError as exc:
+        raise SQLTextError(str(exc).strip("'")) from exc
     return genome.dialect_id, adapter
 
 
@@ -315,18 +291,29 @@ def _ir_as_dict(ir: SQLSemanticIR) -> dict[str, object]:
     }
 
 
-def parse_sql_text(sql: str, dialect: str) -> SQLTextAnalysis:
+def parse_sql_text(
+    sql: str,
+    dialect: str,
+    *,
+    catalog: ConnectomeCatalog = DEFAULT_CATALOG,
+) -> SQLTextAnalysis:
     text = _bounded_text(sql)
 
-    dialect_id, parser_dialect = _dialect_adapter(dialect)
-    genome = DEFAULT_DIALECTS[dialect_id]
+    dialect_id, parser_dialect = _dialect_adapter(dialect, catalog=catalog)
+    genome = catalog.dialects[dialect_id]
     expression = _parse_single_expression(text, parser_dialect)
     capabilities = _extract_capabilities(expression, text)
 
     # This validates that every capability we claim to have observed is admitted
     # by the declared source dialect genome.
     try:
-        plan_translation(dialect_id, dialect_id, capabilities)
+        plan_translation(
+            dialect_id,
+            dialect_id,
+            capabilities,
+            dialects=catalog.dialects,
+            rewrite_rules=catalog.rewrite_rules,
+        )
     except ValueError as exc:
         raise SQLTextError(str(exc)) from exc
 
