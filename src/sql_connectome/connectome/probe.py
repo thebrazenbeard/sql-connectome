@@ -147,6 +147,7 @@ def probe_sql_dialects(
 
     return {
         "schema": "SQL_CONNECTOME_DIALECT_PROBE_V1",
+        "catalog_digest": catalog.digest,
         "basis": "HEURISTIC_PARSE_AND_MARKER_EVIDENCE",
         "identity_proof": False,
         "ambiguous": not selected or tied_for_top,
