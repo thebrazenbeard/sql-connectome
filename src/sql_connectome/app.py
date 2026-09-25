@@ -8,6 +8,7 @@ from .config import Settings, get_settings
 from .connectome import (
     SQLTextError,
     bind_sql_text,
+    compare_dialects,
     inspect_sql_contracts,
     inspect_type_system,
     list_dialects,
@@ -64,6 +65,17 @@ def get_schema(settings: SettingsDep) -> dict:
 def get_connectome_dialects() -> dict[str, object]:
     dialects = list_dialects()
     return {"dialects": dialects, "count": len(dialects)}
+
+
+@app.get("/v1/connectome/compare", dependencies=[Depends(require_bearer)])
+def get_connectome_comparison(
+    source_dialect: str,
+    target_dialect: str,
+) -> dict[str, object]:
+    try:
+        return compare_dialects(source_dialect, target_dialect)
+    except (KeyError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post("/v1/connectome/translation-plan", dependencies=[Depends(require_bearer)])
