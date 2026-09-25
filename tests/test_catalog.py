@@ -203,3 +203,15 @@ def test_catalog_digest_binds_admission_state_deterministically() -> None:
     assert first.digest != extended.digest
     assert first.manifest()["schema"] == "SQL_CONNECTOME_CATALOG_V1"
     assert first.manifest()["dialects"][0]["dialect_id"] == "pgish"
+
+
+def test_catalog_rejects_unknown_parser_adapter_at_admission() -> None:
+    with pytest.raises(
+        ValueError,
+        match="CATALOG_UNKNOWN_PARSER_ADAPTER:pgish:definitely-not-a-dialect",
+    ):
+        ConnectomeCatalog(
+            dialects={"pgish": _genome("pgish")},
+            parser_adapters={"pgish": "definitely-not-a-dialect"},
+            rewrite_rules=(),
+        )
