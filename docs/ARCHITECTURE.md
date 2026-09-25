@@ -18,11 +18,12 @@ The semantic plane owns:
 
 1. **Dialect genomes** — version-aware dialect identities and capability bundles.
 2. **Semantic IR** — graph-shaped representation that may retain dialect-specific semantics.
-3. **Capability graph** — explicit feature support rather than family-name inference.
-4. **Rewrite knowledge** — target-dependent transformations with declared fidelity.
-5. **Translation loss** — preserved evidence when target semantics cannot remain exact.
-6. **Parser/generator adapters** — future components that map text into/out of semantic IR.
-7. **Validation adapters** — static binding plus target-engine qualification paths. PostgreSQL performs read-only, non-ANALYZE `EXPLAIN` validation; DuckDB performs hardened in-memory `EXPLAIN` validation with external access and extension autoload/install disabled; SQLite performs in-memory `EXPLAIN QUERY PLAN` validation under query-only mode and a compile-time SELECT/READ/function authorizer.
+3. **Type/coercion graph** — canonical semantic type families, dialect coercion evidence, and explicit type-projection fidelity.
+4. **Capability graph** — explicit feature support rather than family-name inference.
+5. **Rewrite knowledge** — target-dependent transformations with declared fidelity.
+6. **Translation loss** — preserved evidence when target semantics cannot remain exact.
+7. **Parser/generator adapters** — components that map text into/out of semantic IR.
+8. **Validation adapters** — static binding plus target-engine qualification paths. PostgreSQL performs read-only, non-ANALYZE `EXPLAIN` validation; DuckDB performs hardened in-memory `EXPLAIN` validation with external access and extension autoload/install disabled; SQLite performs in-memory `EXPLAIN QUERY PLAN` validation under query-only mode and a compile-time SELECT/READ/function authorizer.
 
 The semantic plane follows:
 
