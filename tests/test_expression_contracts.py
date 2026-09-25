@@ -33,6 +33,7 @@ def test_contracts_expose_expression_argument_shape() -> None:
 def test_contracts_include_dialect_coercion_graph() -> None:
     payload = inspect_sql_contracts("SELECT 1", "postgresql")
 
+    assert payload["catalog_digest"] == DEFAULT_CATALOG.digest
     assert payload["source"] == "SQLGLOT_EXPRESSION_METADATA"
     assert payload["sqlglot_version"]
     assert isinstance(payload["coercions"], list)
