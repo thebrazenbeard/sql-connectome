@@ -27,6 +27,7 @@ def test_sqlite_validation_plans_against_in_memory_schema() -> None:
     assert result["validation"]["behavioral_equivalence"] == "NOT_ESTABLISHED"
     assert result["runtime"]["database"] == ":memory:"
     assert result["runtime"]["query_only"] is True
+    assert result["runtime"]["trusted_schema"] is False
     assert result["runtime"]["authorizer"] == "SELECT_READ_FUNCTION_ONLY"
     assert result["plan"]
     assert result["receipt"]["kind"] == "SQLITE_ENGINE_VALIDATION"
@@ -50,6 +51,10 @@ def test_sqlite_authorizer_allows_select_reads_and_denies_attach_pragma() -> Non
     assert _select_authorizer(sqlite3.SQLITE_SELECT, None, None, None, None) == sqlite3.SQLITE_OK
     assert _select_authorizer(sqlite3.SQLITE_READ, "t", "c", "main", None) == sqlite3.SQLITE_OK
     assert _select_authorizer(sqlite3.SQLITE_FUNCTION, None, "length", None, None) == sqlite3.SQLITE_OK
+    assert (
+        _select_authorizer(sqlite3.SQLITE_FUNCTION, None, "load_extension", None, None)
+        == sqlite3.SQLITE_DENY
+    )
     assert _select_authorizer(sqlite3.SQLITE_ATTACH, "x.db", None, None, None) == sqlite3.SQLITE_DENY
     assert _select_authorizer(sqlite3.SQLITE_PRAGMA, "query_only", None, None, None) == sqlite3.SQLITE_DENY
 
