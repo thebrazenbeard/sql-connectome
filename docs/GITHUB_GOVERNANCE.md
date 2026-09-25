@@ -26,9 +26,8 @@ The intended administrative configuration for `main` is:
 - active branch ruleset targeting the default branch;
 - require a pull request before merge;
 - require required status checks before merge;
-- require the persisted GitHub check contexts `CI / test`, `Dependency Review`,
-  `Analyze Python`, `CodeQL`, and `snapshot` once each check has reported successfully at least
-  once;
+- require the persisted GitHub check contexts `test`, `dependency-review`, `CodeQL`, and `snapshot`
+  once each check has reported successfully at least once;
 - require the pull-request branch to be up to date with `main` before merge so required checks bind
   to the current base rather than a stale merge candidate;
 - block force pushes;
@@ -46,8 +45,8 @@ The intended administrative configuration for `main` is:
 - enable private vulnerability reporting.
 
 Required-check names are exact persisted GitHub contexts, not necessarily the workflow/job labels
-shown in source. Current ruleset readback stores five contexts: `CI / test`, `Dependency Review`,
-`Analyze Python`, `CodeQL`, and `snapshot`. If GitHub changes a context name, update both the
+shown in source. Current ruleset readback stores four required contexts: `test`, `dependency-review`, `CodeQL`,
+and `snapshot`. If GitHub changes a context name, update both the
 ruleset and this contract deliberately rather than silently weakening enforcement.
 
 ## Current administrative qualification
