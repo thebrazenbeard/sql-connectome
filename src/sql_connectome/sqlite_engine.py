@@ -93,6 +93,11 @@ def _select_authorizer(
     _db: str | None,
     _trigger: str | None,
 ) -> int:
+    if action == sqlite3.SQLITE_FUNCTION:
+        function_name = (_arg2 or _arg1 or "").lower()
+        if function_name == "load_extension":
+            return sqlite3.SQLITE_DENY
+
     allowed = {
         sqlite3.SQLITE_SELECT,
         sqlite3.SQLITE_READ,
@@ -109,13 +114,14 @@ def _runtime_identity(
     limits: dict[str, int],
 ) -> dict[str, Any]:
     query_only = bool(conn.execute("PRAGMA query_only").fetchone()[0])
+    trusted_schema = bool(conn.execute("PRAGMA trusted_schema").fetchone()[0])
     subject = {
         "engine": "sqlite",
         "version": sqlite3.sqlite_version,
         "version_info": list(sqlite3.sqlite_version_info),
         "database": ":memory:",
         "query_only": query_only,
-        "trusted_schema": False,
+        "trusted_schema": trusted_schema,
         "extension_loading": False,
         "authorizer": "SELECT_READ_FUNCTION_ONLY",
         "limits": limits,
