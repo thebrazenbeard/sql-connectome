@@ -2,7 +2,6 @@ import pytest
 
 from sql_connectome.differential import DifferentialProbe, run_differential_conformance
 
-
 ADDITION = DifferentialProbe(
     probe_id="test_integer_addition",
     sql="SELECT 1 + 2 AS value",
