@@ -98,3 +98,22 @@ def test_sqlite_validation_rejects_schema_type_statement_smuggling() -> None:
             "SELECT value FROM sample",
             schema_context={"sample": {"value": "INTEGER; DROP TABLE sample"}},
         )
+
+
+def test_sqlite_validation_quotes_schema_identifier_smuggling() -> None:
+    result = validate_sqlite_readonly(
+        "SELECT 1",
+        schema_context={
+            "orders\"; ATTACH DATABASE 'unexpected.db' AS escaped; --": {
+                "id": "INTEGER"
+            }
+        },
+    )
+
+    assert result["validation"]["status"] == "PASS"
+    assert result["validation"]["query_executed"] is False
+
+
+def test_sqlite_validation_rejects_multi_statement_injection() -> None:
+    with pytest.raises(SQLRejected, match="MULTI_STATEMENT"):
+        validate_sqlite_readonly("SELECT 1; ATTACH DATABASE 'unexpected.db' AS escaped")
