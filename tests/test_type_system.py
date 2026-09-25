@@ -20,6 +20,7 @@ def test_type_graph_is_dependency_evidence_not_engine_proof() -> None:
     assert graph["dialect_id"] == "postgresql"
     assert graph["evidence_basis"] == "SQLGLOT_COERCES_TO"
     assert graph["evidence_ceiling"] == "DEPENDENCY_METADATA"
+    assert graph["fidelity_scope"] == "COERCION_SHAPE_ONLY"
     assert graph["missing_edge_meaning"] == "UNKNOWN_NOT_UNSUPPORTED"
     assert graph["behavioral_equivalence"] == "NOT_ESTABLISHED"
     assert "INTEGER" in graph["canonical_families"]
@@ -36,6 +37,10 @@ def test_explicit_decimal_type_preserves_canonical_family() -> None:
 
     assert result["fidelity_components"]["types"] == "EXACT"
     assert result["type_semantics"]["risk_count"] == 0
+    assert (
+        result["type_semantics"]["fidelity_scope"]
+        == "EXPLICIT_TYPE_CANONICAL_FAMILY"
+    )
     projections = result["type_semantics"]["projections"]
     assert projections
     assert projections[0]["source_family"] == "DECIMAL"
