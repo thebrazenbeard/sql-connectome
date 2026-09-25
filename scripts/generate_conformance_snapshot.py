@@ -11,6 +11,7 @@ from sql_connectome.connectome import (
     DEFAULT_DIALECTS,
     DEFAULT_REWRITE_RULES,
     dialect_semantic_profile,
+    dialect_type_graph,
     list_dialects,
 )
 from sql_connectome.connectome.text_pipeline import SQLGLOT_DIALECTS
@@ -25,14 +26,25 @@ def build_snapshot() -> dict[str, object]:
         parser_dialect = SQLGLOT_DIALECTS.get(dialect_id)
 
         semantic_profile: dict[str, object] | None = None
+        type_graph_summary: dict[str, object] | None = None
         if parser_dialect:
             semantic_profile = dialect_semantic_profile(dialect_id, parser_dialect)
+            type_graph = dialect_type_graph(
+                dialect_id=dialect_id,
+                parser_dialect=parser_dialect,
+            )
+            type_graph_summary = {
+                "dialect_type_count": len(type_graph["dialect_types"]),
+                "implicit_coercion_count": len(type_graph["implicit_coercions"]),
+                "type_graph_digest": canonical_digest(type_graph),
+            }
 
         dialects.append(
             {
                 **dialect,
                 "parser_dialect": parser_dialect,
                 "semantic_profile": semantic_profile,
+                "type_graph_summary": type_graph_summary,
             }
         )
 

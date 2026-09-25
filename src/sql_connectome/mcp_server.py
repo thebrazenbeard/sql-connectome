@@ -14,6 +14,7 @@ from .connectome import (
     SQLTextError,
     bind_sql_text,
     inspect_sql_contracts,
+    inspect_type_system,
     list_dialects,
     parse_sql_text,
     plan_translation,
@@ -144,6 +145,14 @@ def build_mcp_server(
         """List admitted SQL dialect genomes and their current capability knowledge."""
         dialects = list_dialects()
         return {"dialects": dialects, "count": len(dialects)}
+
+    @mcp.tool()
+    def type_graph(dialect: str) -> dict[str, Any]:
+        """Inspect canonical type families and implicit-coercion evidence for one dialect."""
+        try:
+            return inspect_type_system(dialect)
+        except (KeyError, SQLTextError) as exc:
+            raise _tool_error(exc) from exc
 
     @mcp.tool()
     def probe_sql_dialect(sql: str, max_candidates: int = 8) -> dict[str, Any]:

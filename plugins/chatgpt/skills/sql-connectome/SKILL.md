@@ -24,6 +24,7 @@ Preserve this separation:
 
 - Dialect probing provides ranked evidence, not proof of identity.
 - Translation fidelity is not behavioral equivalence.
+- Type/coercion metadata is dependency evidence, not engine proof; missing edges mean unknown, not unsupported.
 - Target parser acceptance is not target-engine validation.
 - PostgreSQL EXPLAIN validation is not query execution.
 - DuckDB EXPLAIN validation is not query execution or cross-engine behavioral equivalence.
@@ -37,7 +38,8 @@ tools.
 
 - Use dialect probing when source dialect is uncertain.
 - Parse before making semantic claims about unfamiliar SQL.
-- Inspect expression contracts when function/operator/type semantics may differ across dialects.
+- Inspect expression contracts when function/operator semantics may differ across dialects.
+- Inspect the type graph when dialect type aliases, implicit coercions, or explicit cast representation may affect fidelity.
 - Use translation planning before transpiling when capability differences matter.
 - Do not silently enable lossy translation.
 - Use PostgreSQL validation when connected PostgreSQL engine/catalog acceptance matters without executing the query.

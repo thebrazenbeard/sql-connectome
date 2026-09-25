@@ -21,12 +21,26 @@ from .text_pipeline import (
     SQLTextAnalysis,
     SQLTextError,
     inspect_sql_contracts,
+    inspect_type_system,
     parse_sql_text,
     transpile_sql_text,
+)
+from .type_system import (
+    CanonicalTypeFamily,
+    TypeProjectionRisk,
+    assess_type_semantics,
+    canonical_type_family,
+    dialect_type_graph,
 )
 
 __all__ = [
     "AppliedRewrite",
+    "inspect_type_system",
+    "dialect_type_graph",
+    "canonical_type_family",
+    "assess_type_semantics",
+    "TypeProjectionRisk",
+    "CanonicalTypeFamily",
     "bind_sql_text",
     "DEFAULT_DIALECTS",
     "DEFAULT_REWRITE_RULES",

@@ -30,9 +30,7 @@ Where:
 - `G`: authority and effect governance;
 - `K`: provenance, uncertainty, and semantic-loss state.
 
-The current code implements the first executable portions of `D`, `I`, `C`, and `R`.
-The pre-existing PostgreSQL control plane is retained as the first `E/G/V` substrate rather
-than defining the scope of the whole project.
+The current code implements executable portions of `D`, `P`, `I`, `S`, `T`, `F`, `C`, `R`, `E`, `V`, `G`, and `K`. Coverage remains intentionally partial and evidence-bounded. PostgreSQL is retained as the first connected execution/governance substrate rather than defining the scope of the whole project.
 
 ## Dialect genomes
 
@@ -309,3 +307,46 @@ For each distinct expression class present, the contract surface records:
 The same response exposes the dialect's declared type-coercion graph. This remains dependency
 evidence from the pinned SQLGlot version, not independent engine proof. Runtime binding and
 target-engine validation remain separate states.
+
+
+## Canonical type and coercion graph
+
+The V1 type layer makes `T` explicit rather than treating types as incidental parser metadata.
+
+It defines canonical semantic families including boolean, integer, decimal, floating-point, string,
+binary, temporal, JSON, array/map/struct, variant, UUID, geospatial, vector, and an explicit
+`OTHER` bucket.
+
+For each admitted parser dialect, SQL Connectome can expose:
+
+- dialect type names observed in SQLGlot's coercion metadata;
+- their canonical semantic families;
+- implicit coercion edges;
+- a conservative edge classification such as same-family, numeric widening, temporal widening,
+  binary-float precision risk, or cross-family coercion;
+- the exact pinned SQLGlot version that supplied the dependency evidence.
+
+A missing coercion edge means `UNKNOWN_NOT_UNSUPPORTED`. SQL Connectome does not turn incomplete
+dependency metadata into a negative capability claim.
+
+During transpilation, explicit type nodes are projected separately from capability and
+function/operator semantics. The result now reports three fidelity components:
+
+```text
+capability_fidelity
+expression_semantic_fidelity
+type_fidelity
+```
+
+The overall ceiling is the worst of those components.
+
+V1 type-projection coverage is deliberately `EXPLICIT_TYPES_ONLY`. Runtime column types are not
+invented when schema binding has not supplied them.
+
+Known representation rules such as Snowflake-style `VARIANT` to a JSON-capable target remain
+`LOSSY` because data representation can survive while source typing/coercion semantics may not.
+Likewise, a STRUCT-to-JSON fallback is not treated as exact merely because the payload can be
+serialized.
+
+The dedicated type graph is dependency evidence. It does not establish engine acceptance or
+cross-engine behavioral equivalence.

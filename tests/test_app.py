@@ -224,3 +224,19 @@ def test_connectome_sqlite_validation_endpoint(monkeypatch) -> None:
     assert payload["validation"]["engine"] == "sqlite"
     assert payload["validation"]["query_executed"] is False
     assert payload["semantic"]["ir"]["source_dialect"] == "sqlite"
+
+
+def test_connectome_type_graph_endpoint(monkeypatch) -> None:
+    client, headers = _authenticated_client(monkeypatch)
+    response = client.get(
+        "/v1/connectome/type-graph",
+        headers=headers,
+        params={"dialect": "postgresql"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["schema"] == "SQL_CONNECTOME_TYPE_GRAPH_V1"
+    assert payload["dialect_id"] == "postgresql"
+    assert payload["evidence_ceiling"] == "DEPENDENCY_METADATA"
+    assert "INTEGER" in payload["canonical_families"]

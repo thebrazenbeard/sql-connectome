@@ -17,6 +17,7 @@ EXPECTED_TOOLS = {
     "bind_sql",
     "translation_plan",
     "transpile_sql",
+    "type_graph",
     "validate_duckdb",
     "validate_sqlite",
     "validate_postgresql",
@@ -72,6 +73,13 @@ def test_semantic_mcp_tool_roundtrip() -> None:
             )
             assert contracts.is_error is False
             assert contracts.structured_content is not None
+
+            type_graph_result = await client.call_tool(
+                "type_graph",
+                {"dialect": "postgresql"},
+            )
+            assert type_graph_result.is_error is False
+            assert type_graph_result.structured_content is not None
 
             duckdb_validation = await client.call_tool(
                 "validate_duckdb",

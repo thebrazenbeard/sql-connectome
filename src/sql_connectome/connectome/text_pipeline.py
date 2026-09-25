@@ -15,6 +15,11 @@ from .model import SemanticDimension, TranslationFidelity
 from .planner import plan_translation
 from .registry import DEFAULT_DIALECTS, resolve_dialect
 from .semantics import assess_expression_semantics, combined_fidelity
+from .type_system import (
+    assess_type_semantics,
+    dialect_type_graph,
+    rewrite_type_representations,
+)
 
 MAX_SQL_TEXT_CHARS = 50_000
 MAX_SQL_AST_NODES = 10_000
@@ -365,6 +370,14 @@ def inspect_sql_contracts(sql: str, dialect: str) -> dict[str, object]:
     )
 
 
+def inspect_type_system(dialect: str) -> dict[str, object]:
+    dialect_id, parser_dialect = _dialect_adapter(dialect)
+    return dialect_type_graph(
+        dialect_id=dialect_id,
+        parser_dialect=parser_dialect,
+    )
+
+
 def transpile_sql_text(
     sql: str,
     source_dialect: str,
@@ -395,13 +408,34 @@ def transpile_sql_text(
         source_parser_dialect=source_adapter,
         target_parser_dialect=target_adapter,
     )
-    overall_fidelity = combined_fidelity(plan.fidelity, expression_semantics)
+    type_semantics = assess_type_semantics(
+        expression,
+        source_dialect=source_id,
+        target_dialect=target_id,
+        source_parser_dialect=source_adapter,
+        target_parser_dialect=target_adapter,
+    )
+    expression_fidelity = combined_fidelity(plan.fidelity, expression_semantics)
+    type_fidelity = TranslationFidelity(str(type_semantics["fidelity_ceiling"]))
+    overall_fidelity = max(
+        (expression_fidelity, type_fidelity),
+        key=lambda value: value.severity,
+    )
+
+    if type_fidelity is TranslationFidelity.UNREPRESENTABLE:
+        raise SQLTextError("UNREPRESENTABLE_TYPE_TRANSLATION")
 
     if overall_fidelity is TranslationFidelity.LOSSY and not allow_lossy:
         raise SQLTextError("LOSSY_TRANSLATION_REQUIRES_OPT_IN")
 
+    generation_expression = rewrite_type_representations(
+        expression,
+        target_dialect=target_id,
+        target_parser_dialect=target_adapter,
+    )
+
     try:
-        generated = expression.sql(
+        generated = generation_expression.sql(
             dialect=target_adapter,
             unsupported_level=ErrorLevel.RAISE,
         )
@@ -416,6 +450,12 @@ def transpile_sql_text(
         "target_parse": target.as_dict(),
         "plan": plan.as_dict(),
         "expression_semantics": expression_semantics,
+        "type_semantics": type_semantics,
+        "fidelity_components": {
+            "capability": plan.fidelity.value,
+            "expression_semantics": expression_semantics["fidelity_ceiling"],
+            "types": type_semantics["fidelity_ceiling"],
+        },
         "combined_fidelity": overall_fidelity.value,
         "validation": {
             "source_parse": "PASS",
