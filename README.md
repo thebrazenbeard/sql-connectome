@@ -64,6 +64,7 @@ The current semantic-core slice includes:
 - lossy-translation opt-in and unrepresentable-translation blocking;
 - 28 SQL-family parser adapters/genomes with deliberately partial capability admission where needed;
 - heuristic dialect probing that returns ranked evidence and preserves ambiguity rather than claiming identity;
+- first-class dialect comparison across admitted capabilities, semantic dimensions, SQLGlot dialect flags, and type/coercion graph summaries without inventing a compatibility score;
 - schema-aware static binding with identifier qualification, star expansion, and type annotation;
 - real PostgreSQL target validation through read-only, non-ANALYZE JSON EXPLAIN;
 - hardened in-memory DuckDB target validation through non-executing EXPLAIN with external access disabled;
@@ -102,8 +103,8 @@ Differential engine evidence is fixture-bounded and does not establish universal
 ### MCP / ChatGPT surface
 
 The source-controlled MCP v2 server exposes the semantic plane and governed PostgreSQL read
-substrate over Streamable HTTP. Its current tool surface includes dialect probing/parsing,
-translation planning/transpilation, type/coercion graph inspection, PostgreSQL validation/qualification, schema/runtime inspection,
+substrate over Streamable HTTP. Its current tool surface includes dialect inventory/comparison,
+dialect probing/parsing, translation planning/transpilation, type/coercion graph inspection, PostgreSQL validation/qualification, schema/runtime inspection,
 bounded read-only queries, migration-state inspection, and Lantern current-cut reads.
 
 No protected write tool is exposed. Network deployment fails closed unless MCP resource-server
