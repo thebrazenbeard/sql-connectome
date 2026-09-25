@@ -120,6 +120,7 @@ def bind_sql_text(
 
     return {
         "schema": "SQL_CONNECTOME_STATIC_BINDING_V1",
+        "catalog_digest": connectome_catalog.digest,
         "dialect": dialect_id,
         "schema_digest": canonical_digest(schema),
         "qualified_sql": typed.sql(dialect=adapter),

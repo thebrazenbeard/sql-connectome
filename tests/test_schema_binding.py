@@ -1,6 +1,6 @@
 import pytest
 
-from sql_connectome.connectome import SQLTextError, bind_sql_text
+from sql_connectome.connectome import DEFAULT_CATALOG, SQLTextError, bind_sql_text
 
 SCHEMA = {
     "users": {
@@ -20,6 +20,7 @@ def test_bind_qualifies_columns_and_records_schema_digest() -> None:
 
     assert result["schema"] == "SQL_CONNECTOME_STATIC_BINDING_V1"
     assert result["dialect"] == "postgresql"
+    assert result["catalog_digest"] == DEFAULT_CATALOG.digest
     assert len(result["schema_digest"]) == 64
     assert result["binding"]["status"] == "STATIC_BOUND"
     assert result["binding"]["engine_validation"] == "NOT_RUN"

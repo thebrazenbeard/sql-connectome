@@ -1,6 +1,11 @@
 import pytest
 
-from sql_connectome.connectome import SQLTextError, list_dialects, probe_sql_dialects
+from sql_connectome.connectome import (
+    DEFAULT_CATALOG,
+    SQLTextError,
+    list_dialects,
+    probe_sql_dialects,
+)
 
 
 def test_registry_exposes_expanded_sql_family_coverage() -> None:
@@ -23,6 +28,7 @@ def test_registry_exposes_expanded_sql_family_coverage() -> None:
 def test_tsql_top_produces_strong_tsql_evidence() -> None:
     result = probe_sql_dialects("SELECT TOP 10 * FROM users", max_candidates=5)
 
+    assert result["catalog_digest"] == DEFAULT_CATALOG.digest
     assert result["identity_proof"] is False
     assert result["candidates"][0]["dialect_id"] == "tsql"
     assert result["candidates"][0]["score"] >= 7
