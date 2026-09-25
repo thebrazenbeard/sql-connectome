@@ -44,6 +44,11 @@ def _runtime_identity(conn: duckdb.DuckDBPyConnection) -> dict[str, Any]:
         """
         SELECT version() AS version,
                current_setting('enable_external_access') AS enable_external_access,
+               current_setting('allow_community_extensions') AS allow_community_extensions,
+               current_setting('allow_unsigned_extensions') AS allow_unsigned_extensions,
+               current_setting('autoinstall_known_extensions') AS autoinstall_known_extensions,
+               current_setting('autoload_known_extensions') AS autoload_known_extensions,
+               current_setting('lock_configuration') AS lock_configuration,
                current_setting('threads') AS threads,
                current_setting('memory_limit') AS memory_limit
         """
@@ -55,8 +60,13 @@ def _runtime_identity(conn: duckdb.DuckDBPyConnection) -> dict[str, Any]:
         "version": row[0],
         "database": ":memory:",
         "enable_external_access": row[1],
-        "threads": row[2],
-        "memory_limit": row[3],
+        "allow_community_extensions": row[2],
+        "allow_unsigned_extensions": row[3],
+        "autoinstall_known_extensions": row[4],
+        "autoload_known_extensions": row[5],
+        "lock_configuration": row[6],
+        "threads": row[7],
+        "memory_limit": row[8],
     }
     return {**subject, "identity_digest": canonical_digest(subject)}
 
@@ -74,6 +84,8 @@ def validate_duckdb_readonly(
         "enable_external_access": "false",
         "allow_unsigned_extensions": "false",
         "allow_community_extensions": "false",
+        "autoinstall_known_extensions": "false",
+        "autoload_known_extensions": "false",
         "threads": "1",
         "memory_limit": "256MB",
     }
