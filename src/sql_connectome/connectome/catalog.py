@@ -7,7 +7,8 @@ from types import MappingProxyType
 from .model import DialectGenome, RewriteRule
 from .registry import DEFAULT_DIALECTS, DEFAULT_REWRITE_RULES
 
-DEFAULT_PARSER_ADAPTERS: dict[str, str] = {
+
+_DEFAULT_PARSER_ADAPTERS = {
     "athena": "athena",
     "bigquery": "bigquery",
     "clickhouse": "clickhouse",
@@ -38,6 +39,10 @@ DEFAULT_PARSER_ADAPTERS: dict[str, str] = {
     "tsql": "tsql",
 }
 
+DEFAULT_PARSER_ADAPTERS: Mapping[str, str] = MappingProxyType(
+    dict(_DEFAULT_PARSER_ADAPTERS)
+)
+
 
 @dataclass(frozen=True, slots=True)
 class ConnectomeCatalog:
@@ -57,12 +62,15 @@ class ConnectomeCatalog:
             MappingProxyType(dict(self.parser_adapters)),
         )
         object.__setattr__(self, "rewrite_rules", tuple(self.rewrite_rules))
-        self._validate_aliases()
+        self._validate()
 
-    def _validate_aliases(self) -> None:
+    def _validate(self) -> None:
         claims = {dialect_id: dialect_id for dialect_id in self.dialects}
 
         for dialect_id, genome in self.dialects.items():
+            normalized_id = dialect_id.strip().lower()
+            if normalized_id != dialect_id:
+                raise ValueError(f"CATALOG_DIALECT_KEY_NOT_NORMALIZED:{dialect_id}")
             if genome.dialect_id != dialect_id:
                 raise ValueError(
                     f"CATALOG_DIALECT_KEY_MISMATCH:{dialect_id}:{genome.dialect_id}"
@@ -70,10 +78,18 @@ class ConnectomeCatalog:
 
             for alias in genome.aliases:
                 normalized = alias.strip().lower()
+                if not normalized:
+                    raise ValueError(f"CATALOG_EMPTY_ALIAS:{dialect_id}")
                 owner = claims.get(normalized)
                 if owner is not None and owner != dialect_id:
                     raise ValueError(f"CATALOG_ALIAS_COLLISION:{normalized}")
                 claims[normalized] = dialect_id
+
+        for dialect_id, adapter in self.parser_adapters.items():
+            if dialect_id not in self.dialects:
+                raise ValueError(f"CATALOG_ORPHAN_PARSER_ADAPTER:{dialect_id}")
+            if not adapter.strip():
+                raise ValueError(f"CATALOG_EMPTY_PARSER_ADAPTER:{dialect_id}")
 
     def resolve(self, dialect_id_or_alias: str) -> DialectGenome:
         key = dialect_id_or_alias.strip().lower()
@@ -81,7 +97,7 @@ class ConnectomeCatalog:
             return self.dialects[key]
 
         for genome in self.dialects.values():
-            if key in genome.aliases:
+            if key in {alias.strip().lower() for alias in genome.aliases}:
                 return genome
 
         raise KeyError(f"UNKNOWN_DIALECT:{dialect_id_or_alias}")
