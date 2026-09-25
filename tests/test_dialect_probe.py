@@ -1,6 +1,6 @@
 import pytest
 
-from sql_connectome.connectome import SQLTextError, list_dialects, probe_sql_dialects
+from sql_connectome.connectome import (\n    DEFAULT_CATALOG,\n    SQLTextError,\n    list_dialects,\n    probe_sql_dialects,\n)
 
 
 def test_registry_exposes_expanded_sql_family_coverage() -> None:
