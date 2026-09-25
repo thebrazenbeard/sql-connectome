@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 import sqlite3
 from typing import Any
 
@@ -131,6 +133,22 @@ def _runtime_identity(
     return {**subject, "identity_digest": canonical_digest(subject)}
 
 
+@contextmanager
+def hardened_sqlite_session(
+    schema_context: dict[str, dict[str, str]] | None = None,
+) -> Iterator[tuple[sqlite3.Connection, dict[str, Any]]]:
+    schema = schema_context or {}
+    with sqlite3.connect(":memory:") as conn:
+        conn.enable_load_extension(False)
+        limits = _set_limits(conn)
+        _install_schema(conn, schema)
+        conn.execute("PRAGMA trusted_schema = OFF")
+        conn.execute("PRAGMA query_only = ON")
+        identity = _runtime_identity(conn, limits)
+        conn.set_authorizer(_select_authorizer)
+        yield conn, identity
+
+
 def validate_sqlite_readonly(
     sql: str,
     *,
@@ -143,15 +161,7 @@ def validate_sqlite_readonly(
     plan: list[list[Any]] | None = None
     error: dict[str, Any] | None = None
 
-    with sqlite3.connect(":memory:") as conn:
-        conn.enable_load_extension(False)
-        limits = _set_limits(conn)
-        _install_schema(conn, schema)
-        conn.execute("PRAGMA trusted_schema = OFF")
-        conn.execute("PRAGMA query_only = ON")
-        identity = _runtime_identity(conn, limits)
-        conn.set_authorizer(_select_authorizer)
-
+    with hardened_sqlite_session(schema) as (conn, identity):
         try:
             # The caller SQL is intentionally the validation subject. validate_readonly_sql
             # admits one top-level SELECT only; query_only blocks mutations; the compile-time
