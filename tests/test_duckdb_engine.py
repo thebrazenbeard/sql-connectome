@@ -24,6 +24,12 @@ def test_duckdb_validation_plans_against_in_memory_schema() -> None:
     assert result["validation"]["external_access"] is False
     assert result["validation"]["behavioral_equivalence"] == "NOT_ESTABLISHED"
     assert result["runtime"]["database"] == ":memory:"
+    assert result["runtime"]["enable_external_access"] is False
+    assert result["runtime"]["allow_community_extensions"] is False
+    assert result["runtime"]["allow_unsigned_extensions"] is False
+    assert result["runtime"]["autoinstall_known_extensions"] is False
+    assert result["runtime"]["autoload_known_extensions"] is False
+    assert result["runtime"]["lock_configuration"] is True
     assert result["plan"]
     assert result["receipt"]["kind"] == "DUCKDB_ENGINE_VALIDATION"
 
