@@ -1,5 +1,3 @@
-from sqlglot import exp
-
 from sql_connectome.connectome import (
     CanonicalTypeFamily,
     canonical_type_family,
@@ -9,10 +7,10 @@ from sql_connectome.connectome import (
 
 
 def test_canonical_type_families_normalize_common_aliases() -> None:
-    assert canonical_type_family(exp.DType.INT) is CanonicalTypeFamily.INTEGER
-    assert canonical_type_family(exp.DType.BIGINT) is CanonicalTypeFamily.INTEGER
-    assert canonical_type_family(exp.DType.JSONB) is CanonicalTypeFamily.JSON
-    assert canonical_type_family(exp.DType.TIMESTAMPTZ) is CanonicalTypeFamily.TIMESTAMP
+    assert canonical_type_family("INT") is CanonicalTypeFamily.INTEGER
+    assert canonical_type_family("BIGINT") is CanonicalTypeFamily.INTEGER
+    assert canonical_type_family("JSONB") is CanonicalTypeFamily.JSON
+    assert canonical_type_family("TIMESTAMPTZ") is CanonicalTypeFamily.TIMESTAMP
 
 
 def test_type_graph_is_dependency_evidence_not_engine_proof() -> None:
