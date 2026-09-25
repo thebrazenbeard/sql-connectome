@@ -9,11 +9,11 @@ from sqlglot import ErrorLevel, exp
 from sqlglot.dialects import Dialect
 from sqlglot.errors import ParseError, UnsupportedError
 
+from .catalog import DEFAULT_CATALOG, DEFAULT_PARSER_ADAPTERS, ConnectomeCatalog
 from .contracts import expression_contracts
 from .ir import IREdge, IRNode, SQLSemanticIR
 from .model import SemanticDimension, TranslationFidelity
 from .planner import plan_translation
-from .registry import DEFAULT_DIALECTS, resolve_dialect
 from .semantics import assess_expression_semantics, combined_fidelity
 from .type_system import (
     assess_type_semantics,
@@ -25,36 +25,7 @@ MAX_SQL_TEXT_CHARS = 50_000
 MAX_SQL_AST_NODES = 10_000
 MAX_SQL_TOKENS = 20_000
 
-SQLGLOT_DIALECTS: dict[str, str] = {
-    "athena": "athena",
-    "bigquery": "bigquery",
-    "clickhouse": "clickhouse",
-    "databricks": "databricks",
-    "doris": "doris",
-    "dremio": "dremio",
-    "drill": "drill",
-    "druid": "druid",
-    "duckdb": "duckdb",
-    "dune": "dune",
-    "exasol": "exasol",
-    "fabric": "fabric",
-    "hive": "hive",
-    "materialize": "materialize",
-    "mysql": "mysql",
-    "oracle": "oracle",
-    "postgresql": "postgres",
-    "presto": "presto",
-    "redshift": "redshift",
-    "risingwave": "risingwave",
-    "singlestore": "singlestore",
-    "snowflake": "snowflake",
-    "spark": "spark",
-    "sqlite": "sqlite",
-    "starrocks": "starrocks",
-    "teradata": "teradata",
-    "trino": "trino",
-    "tsql": "tsql",
-}
+SQLGLOT_DIALECTS: dict[str, str] = dict(DEFAULT_PARSER_ADAPTERS)
 
 _EXPRESSION_CAPABILITIES: dict[str, str] = {
     "Select": "relational_select",
@@ -146,11 +117,16 @@ class SQLTextAnalysis:
         }
 
 
-def _dialect_adapter(dialect_id_or_alias: str) -> tuple[str, str]:
-    genome = resolve_dialect(dialect_id_or_alias)
-    adapter = SQLGLOT_DIALECTS.get(genome.dialect_id)
-    if not adapter:
-        raise SQLTextError(f"PARSER_ADAPTER_NOT_CONFIGURED:{genome.dialect_id}")
+def _dialect_adapter(
+    dialect_id_or_alias: str,
+    *,
+    catalog: ConnectomeCatalog = DEFAULT_CATALOG,
+) -> tuple[str, str]:
+    genome = catalog.resolve(dialect_id_or_alias)
+    try:
+        adapter = catalog.parser_adapter(genome.dialect_id)
+    except KeyError as exc:
+        raise SQLTextError(str(exc).strip("'")) from exc
     return genome.dialect_id, adapter
 
 
@@ -315,18 +291,29 @@ def _ir_as_dict(ir: SQLSemanticIR) -> dict[str, object]:
     }
 
 
-def parse_sql_text(sql: str, dialect: str) -> SQLTextAnalysis:
+def parse_sql_text(
+    sql: str,
+    dialect: str,
+    *,
+    catalog: ConnectomeCatalog = DEFAULT_CATALOG,
+) -> SQLTextAnalysis:
     text = _bounded_text(sql)
 
-    dialect_id, parser_dialect = _dialect_adapter(dialect)
-    genome = DEFAULT_DIALECTS[dialect_id]
+    dialect_id, parser_dialect = _dialect_adapter(dialect, catalog=catalog)
+    genome = catalog.dialects[dialect_id]
     expression = _parse_single_expression(text, parser_dialect)
     capabilities = _extract_capabilities(expression, text)
 
     # This validates that every capability we claim to have observed is admitted
     # by the declared source dialect genome.
     try:
-        plan_translation(dialect_id, dialect_id, capabilities)
+        plan_translation(
+            dialect_id,
+            dialect_id,
+            capabilities,
+            dialects=catalog.dialects,
+            rewrite_rules=catalog.rewrite_rules,
+        )
     except ValueError as exc:
         raise SQLTextError(str(exc)) from exc
 
@@ -359,9 +346,14 @@ def parse_sql_text(sql: str, dialect: str) -> SQLTextAnalysis:
 
 
 
-def inspect_sql_contracts(sql: str, dialect: str) -> dict[str, object]:
+def inspect_sql_contracts(
+    sql: str,
+    dialect: str,
+    *,
+    catalog: ConnectomeCatalog = DEFAULT_CATALOG,
+) -> dict[str, object]:
     text = _bounded_text(sql)
-    dialect_id, parser_dialect = _dialect_adapter(dialect)
+    dialect_id, parser_dialect = _dialect_adapter(dialect, catalog=catalog)
     expression = _parse_single_expression(text, parser_dialect)
     return expression_contracts(
         expression,
@@ -370,8 +362,12 @@ def inspect_sql_contracts(sql: str, dialect: str) -> dict[str, object]:
     )
 
 
-def inspect_type_system(dialect: str) -> dict[str, object]:
-    dialect_id, parser_dialect = _dialect_adapter(dialect)
+def inspect_type_system(
+    dialect: str,
+    *,
+    catalog: ConnectomeCatalog = DEFAULT_CATALOG,
+) -> dict[str, object]:
+    dialect_id, parser_dialect = _dialect_adapter(dialect, catalog=catalog)
     return dialect_type_graph(
         dialect_id=dialect_id,
         parser_dialect=parser_dialect,
@@ -384,15 +380,18 @@ def transpile_sql_text(
     target_dialect: str,
     *,
     allow_lossy: bool = False,
+    catalog: ConnectomeCatalog = DEFAULT_CATALOG,
 ) -> dict[str, object]:
-    source = parse_sql_text(sql, source_dialect)
-    target_id, target_adapter = _dialect_adapter(target_dialect)
-    source_id, source_adapter = _dialect_adapter(source_dialect)
+    source = parse_sql_text(sql, source_dialect, catalog=catalog)
+    target_id, target_adapter = _dialect_adapter(target_dialect, catalog=catalog)
+    source_id, source_adapter = _dialect_adapter(source_dialect, catalog=catalog)
 
     plan = plan_translation(
         source_id,
         target_id,
         source.ir.required_capabilities,
+        dialects=catalog.dialects,
+        rewrite_rules=catalog.rewrite_rules,
     )
 
     if plan.fidelity is TranslationFidelity.UNREPRESENTABLE:
@@ -414,6 +413,7 @@ def transpile_sql_text(
         target_dialect=target_id,
         source_parser_dialect=source_adapter,
         target_parser_dialect=target_adapter,
+        target_capabilities=catalog.dialects[target_id].capabilities,
     )
     expression_fidelity = combined_fidelity(plan.fidelity, expression_semantics)
     type_fidelity = TranslationFidelity(str(type_semantics["fidelity_ceiling"]))
@@ -432,6 +432,7 @@ def transpile_sql_text(
         expression,
         target_dialect=target_id,
         target_parser_dialect=target_adapter,
+        target_capabilities=catalog.dialects[target_id].capabilities,
     )
 
     try:
@@ -442,7 +443,7 @@ def transpile_sql_text(
     except UnsupportedError as exc:
         raise SQLTextError(f"TRANSPILER_REJECTED:{exc}") from exc
 
-    target = parse_sql_text(generated, target_id)
+    target = parse_sql_text(generated, target_id, catalog=catalog)
 
     return {
         "source": source.as_dict(),

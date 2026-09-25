@@ -1,4 +1,9 @@
 from .binding import bind_sql_text
+from .catalog import (
+    DEFAULT_CATALOG,
+    DEFAULT_PARSER_ADAPTERS,
+    ConnectomeCatalog,
+)
 from .ir import IREdge, IRNode, SQLSemanticIR, TranslationLoss
 from .model import (
     AppliedRewrite,
@@ -42,7 +47,10 @@ __all__ = [
     "TypeProjectionRisk",
     "CanonicalTypeFamily",
     "bind_sql_text",
+    "ConnectomeCatalog",
+    "DEFAULT_CATALOG",
     "DEFAULT_DIALECTS",
+    "DEFAULT_PARSER_ADAPTERS",
     "DEFAULT_REWRITE_RULES",
     "DialectCandidate",
     "DialectGenome",

@@ -255,16 +255,21 @@ def _project_explicit_type(
     target_dialect: str,
     source_parser_dialect: str,
     target_parser_dialect: str,
+    target_capabilities: frozenset[str] | None = None,
 ) -> tuple[dict[str, object], TypeProjectionRisk | None]:
     source_sql = node.sql(dialect=source_parser_dialect)
     source_family = canonical_type_family(node.this)
     source_parameters = _type_parameters(node, source_parser_dialect)
 
-    target_genome = DEFAULT_DIALECTS[target_dialect]
+    capabilities = (
+        target_capabilities
+        if target_capabilities is not None
+        else DEFAULT_DIALECTS[target_dialect].capabilities
+    )
     if (
         source_family is CanonicalTypeFamily.VARIANT
-        and "variant" not in target_genome.capabilities
-        and "json" in target_genome.capabilities
+        and "variant" not in capabilities
+        and "json" in capabilities
     ):
         risk = TypeProjectionRisk(
             code="VARIANT_TO_JSON_REPRESENTATION",
@@ -294,8 +299,8 @@ def _project_explicit_type(
 
     if (
         source_family is CanonicalTypeFamily.STRUCT
-        and "structs" not in target_genome.capabilities
-        and "json" in target_genome.capabilities
+        and "structs" not in capabilities
+        and "json" in capabilities
     ):
         risk = TypeProjectionRisk(
             code="STRUCT_TO_JSON_REPRESENTATION",
@@ -413,6 +418,7 @@ def assess_type_semantics(
     target_dialect: str,
     source_parser_dialect: str,
     target_parser_dialect: str,
+    target_capabilities: frozenset[str] | None = None,
 ) -> dict[str, Any]:
     projections: list[dict[str, object]] = []
     risks: list[TypeProjectionRisk] = []
@@ -425,6 +431,7 @@ def assess_type_semantics(
             target_dialect=target_dialect,
             source_parser_dialect=source_parser_dialect,
             target_parser_dialect=target_parser_dialect,
+            target_capabilities=target_capabilities,
         )
         projections.append(projection)
         if risk is not None:
@@ -470,8 +477,13 @@ def rewrite_type_representations(
     *,
     target_dialect: str,
     target_parser_dialect: str,
+    target_capabilities: frozenset[str] | None = None,
 ) -> exp.Expression:
-    target_genome = DEFAULT_DIALECTS[target_dialect]
+    capabilities = (
+        target_capabilities
+        if target_capabilities is not None
+        else DEFAULT_DIALECTS[target_dialect].capabilities
+    )
 
     def rewrite(node: exp.Expression) -> exp.Expression:
         if not isinstance(node, exp.DataType):
@@ -480,15 +492,15 @@ def rewrite_type_representations(
         family = canonical_type_family(node.this)
         if (
             family is CanonicalTypeFamily.VARIANT
-            and "variant" not in target_genome.capabilities
-            and "json" in target_genome.capabilities
+            and "variant" not in capabilities
+            and "json" in capabilities
         ):
             return exp.DataType.build("JSON", dialect=target_parser_dialect)
 
         if (
             family is CanonicalTypeFamily.STRUCT
-            and "structs" not in target_genome.capabilities
-            and "json" in target_genome.capabilities
+            and "structs" not in capabilities
+            and "json" in capabilities
         ):
             return exp.DataType.build("JSON", dialect=target_parser_dialect)
 

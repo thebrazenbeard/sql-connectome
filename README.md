@@ -27,6 +27,21 @@ every language into one monolithic grammar.
 
 See `docs/CONNECTOME_MODEL.md` for the semantic model.
 
+### Governed dialect catalog
+
+The executable semantic core now binds dialect genomes, parser adapters, and rewrite rules through an
+immutable `ConnectomeCatalog`. `DEFAULT_CATALOG` is the source-controlled runtime admission state.
+
+Library callers can derive an extended catalog with `admit_dialect(...)`; admission is copy-on-write
+and validates canonical IDs, alias ownership, and parser-adapter bindings. Parsing, static binding,
+contract/type inspection, dialect probing, and transpilation can consume that explicit catalog.
+
+The network REST/MCP surfaces intentionally continue to use the source-controlled default catalog.
+SQL Connectome does **not** auto-discover or auto-admit installed dialect plugins: installation is not
+semantic authority, validation evidence, execution authority, or permission to change the live
+runtime. Conformance snapshots bind the default catalog with a canonical digest.
+
+
 ## Current executable slices
 
 ### Semantic connectome

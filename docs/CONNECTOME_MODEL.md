@@ -32,28 +32,35 @@ Where:
 
 The current code implements executable portions of `D`, `P`, `I`, `S`, `T`, `F`, `C`, `R`, `E`, `V`, `G`, and `K`. Coverage remains intentionally partial and evidence-bounded. PostgreSQL is retained as the first connected execution/governance substrate rather than defining the scope of the whole project.
 
-## Dialect genomes
+## Dialect genomes and governed admission
 
 A dialect genome is a version-aware capability bundle, not merely a name.
 
-The bootstrap registry is deliberately conservative. A listed dialect does not imply complete
-grammar or conformance coverage. Capabilities are admitted as explicit facts needed by tested
-translation rules and will grow under evidence.
+The default registry is deliberately conservative. A listed dialect does not imply complete grammar
+or conformance coverage. Capabilities are admitted as explicit facts needed by tested translation
+rules and grow under evidence. Higher-coverage genomes coexist with baseline SQLGlot-backed genomes
+whose admitted semantics may be limited to relational SELECT behavior.
 
-Current bootstrap dialects:
+Executable admission is bound by the immutable `ConnectomeCatalog`. The source-controlled
+`DEFAULT_CATALOG` combines:
 
-- PostgreSQL
-- DuckDB
-- SQLite
-- MySQL
-- BigQuery GoogleSQL
-- Snowflake SQL
-- Microsoft T-SQL
-- Oracle SQL
-- Trino SQL
+- canonical dialect genomes and aliases;
+- parser-adapter bindings;
+- admitted rewrite rules.
 
-A future dialect is added by registering a genome and its semantic connections rather than
-modifying one monolithic universal grammar.
+Catalog construction rejects non-normalized canonical IDs, ID/genome mismatches, alias collisions,
+orphan parser adapters, and empty parser adapters. `admit_dialect(...)` is copy-on-write: extending
+a catalog produces a new validated catalog rather than mutating the trusted source catalog.
+
+Library semantic entrypoints can consume an explicitly supplied catalog for parsing, static binding,
+expression/type inspection, dialect probing, inventory, and transpilation. The REST/MCP runtime
+surfaces intentionally use the source-controlled default. Installed parser/dialect plugins are not
+auto-discovered or auto-admitted; installation does not establish semantic authority, engine
+validation, execution authority, or permission to mutate the runtime.
+
+Conformance snapshots bind the default catalog with a canonical digest. A future dialect can
+therefore be attached by adding a genome, parser adapter, semantic connections, rewrite evidence,
+and qualification without modifying one monolithic universal grammar.
 
 ## Semantic dimensions
 
@@ -83,8 +90,8 @@ dimensions, provenance, side effects, extensions, and translation loss.
 Dialect-specific semantics are allowed to survive in the IR. The system must not erase a source
 feature merely because a target cannot express it.
 
-The current IR envelope validates graph integrity but does not yet parse SQL text into that graph.
-Parser admission is a later layer.
+The current SQL text pipeline parses bounded, declared-dialect input into that graph, validates
+source capability admission, and keeps parser acceptance distinct from target-engine validation.
 
 ## Translation fidelity
 
