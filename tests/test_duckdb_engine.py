@@ -73,8 +73,8 @@ def test_duckdb_validation_rejects_schema_type_statement_smuggling() -> None:
         )
 
 
-def test_duckdb_validation_normalizes_unknown_schema_type_failure() -> None:
-    with pytest.raises(ValueError, match="INVALID_DUCKDB_SCHEMA"):
+def test_duckdb_validation_rejects_unknown_schema_type() -> None:
+    with pytest.raises(ValueError, match="INVALID_DUCKDB_TYPE"):
         validate_duckdb_readonly(
             "SELECT value FROM sample",
             schema_context={"sample": {"value": "NOT_A_REAL_DUCKDB_TYPE"}},
