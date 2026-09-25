@@ -1,4 +1,4 @@
-from sql_connectome.connectome import inspect_sql_contracts
+from sql_connectome.connectome import DEFAULT_CATALOG, inspect_sql_contracts
 
 
 def _contracts_by_name(payload: dict[str, object]) -> dict[str, dict[str, object]]:
