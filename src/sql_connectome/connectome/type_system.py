@@ -148,11 +148,16 @@ def _type_parameters(node: exp.DataType, parser_dialect: str) -> tuple[str, ...]
 
 
 def _coercion_fidelity(
+    source_type: str,
+    target_type: str,
     source_family: CanonicalTypeFamily,
     target_family: CanonicalTypeFamily,
 ) -> tuple[TranslationFidelity, str]:
+    if source_type == target_type:
+        return TranslationFidelity.EXACT, "IDENTICAL_DIALECT_TYPE"
+
     if source_family == target_family:
-        return TranslationFidelity.EXACT, "SAME_CANONICAL_FAMILY"
+        return TranslationFidelity.CONSTRUCTIVE, "SAME_CANONICAL_FAMILY"
 
     if (
         source_family is CanonicalTypeFamily.INTEGER
@@ -195,7 +200,12 @@ def dialect_type_graph(
             target_name = _dtype_name(target)
             target_family = canonical_type_family(target)
             dialect_types[target_name] = target_family
-            fidelity, risk_class = _coercion_fidelity(source_family, target_family)
+            fidelity, risk_class = _coercion_fidelity(
+                source_name,
+                target_name,
+                source_family,
+                target_family,
+            )
             edges.append(
                 {
                     "source_type": source_name,
@@ -204,6 +214,7 @@ def dialect_type_graph(
                     "target_family": target_family.value,
                     "mode": "IMPLICIT_DEPENDENCY_EVIDENCE",
                     "fidelity": fidelity.value,
+                    "fidelity_scope": "COERCION_SHAPE_ONLY",
                     "risk_class": risk_class,
                 }
             )
@@ -232,6 +243,7 @@ def dialect_type_graph(
         "implicit_coercions": edges,
         "evidence_basis": "SQLGLOT_COERCES_TO",
         "evidence_ceiling": "DEPENDENCY_METADATA",
+        "fidelity_scope": "COERCION_SHAPE_ONLY",
         "missing_edge_meaning": "UNKNOWN_NOT_UNSUPPORTED",
         "behavioral_equivalence": "NOT_ESTABLISHED",
     }
@@ -437,6 +449,7 @@ def assess_type_semantics(
         "source_dialect": source_dialect,
         "target_dialect": target_dialect,
         "coverage": "EXPLICIT_TYPES_ONLY",
+        "fidelity_scope": "EXPLICIT_TYPE_CANONICAL_FAMILY",
         "projections": projections,
         "risks": [risk.as_dict() for risk in risks],
         "risk_count": len(risks),
