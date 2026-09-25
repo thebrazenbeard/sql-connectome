@@ -18,6 +18,7 @@ from .sql_guard import validate_readonly_sql
 from .sqlite_engine import hardened_sqlite_session
 
 MAX_PROBE_ROWS = 32
+MAX_PROBES = 64
 
 
 @dataclass(frozen=True, slots=True)
@@ -335,6 +336,24 @@ def run_differential_conformance(
     corpus = tuple(probes)
     if not corpus:
         raise ValueError("DIFFERENTIAL_PROBE_CORPUS_EMPTY")
+    if len(corpus) > MAX_PROBES:
+        raise ValueError("DIFFERENTIAL_PROBE_COUNT_EXCEEDED")
+
+    probe_ids = [probe.probe_id for probe in corpus]
+    if len(set(probe_ids)) != len(probe_ids):
+        raise ValueError("DIFFERENTIAL_PROBE_ID_DUPLICATE")
+
+    default_corpus = corpus == DEFAULT_PROBES
+    corpus_origin = (
+        "DEFAULT_SOURCE_CONTROLLED"
+        if default_corpus
+        else "BOUNDED_LIBRARY_INPUT"
+    )
+    evidence_scope = (
+        "FIXED_SOURCE_CONTROLLED_PROBES_ONLY"
+        if default_corpus
+        else "BOUNDED_PROBE_SET_ONLY"
+    )
 
     postgres_runtime: dict[str, Any] | None = None
     if settings is not None:
@@ -375,7 +394,7 @@ def run_differential_conformance(
                     participating,
                     "type_projection",
                 ),
-                "evidence_scope": "FIXED_SOURCE_CONTROLLED_PROBE",
+                "evidence_scope": evidence_scope,
                 "behavioral_equivalence": "NOT_ESTABLISHED",
             }
         )
@@ -386,6 +405,7 @@ def run_differential_conformance(
         "postgresql_included": settings is not None,
         "probe_count": len(corpus),
         "source_commit": source_commit,
+        "corpus_origin": corpus_origin,
     }
 
     return {
@@ -393,7 +413,8 @@ def run_differential_conformance(
         "source_commit": source_commit,
         "probe_count": len(corpus),
         "postgresql_included": settings is not None,
-        "evidence_scope": "FIXED_SOURCE_CONTROLLED_PROBES_ONLY",
+        "corpus_origin": corpus_origin,
+        "evidence_scope": evidence_scope,
         "generalization": "NOT_ESTABLISHED",
         "behavioral_equivalence": "NOT_ESTABLISHED",
         "results": results,
