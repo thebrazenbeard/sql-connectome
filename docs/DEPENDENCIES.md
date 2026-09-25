@@ -151,3 +151,17 @@ Upstream references:
 - https://www.sqlite.org/c3ref/set_authorizer.html
 - https://www.sqlite.org/eqp.html
 - https://www.sqlite.org/lang_explain.html
+
+
+### Type/coercion graph evidence
+
+SQL Connectome reads the pinned SQLGlot dialect `COERCES_TO` metadata to build a dependency-bound
+implicit coercion graph. That graph is normalized into SQL Connectome canonical type families and
+annotated with conservative fidelity/risk classes.
+
+This metadata is descriptive evidence from the pinned SQLGlot version. It is not an independent
+engine conformance result, and absence of an edge is represented as unknown rather than unsupported.
+
+Explicit source type nodes are separately rendered through the target adapter and compared at the
+canonical-family and parameter level. Known admitted representation rules such as VARIANT-to-JSON
+remain lossy even when target SQL generation succeeds.
