@@ -240,7 +240,6 @@ def dialect_type_graph(
 def _project_explicit_type(
     node: exp.DataType,
     *,
-    source_dialect: str,
     target_dialect: str,
     source_parser_dialect: str,
     target_parser_dialect: str,
@@ -411,7 +410,6 @@ def assess_type_semantics(
             continue
         projection, risk = _project_explicit_type(
             node,
-            source_dialect=source_dialect,
             target_dialect=target_dialect,
             source_parser_dialect=source_parser_dialect,
             target_parser_dialect=target_parser_dialect,
