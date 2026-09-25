@@ -358,11 +358,13 @@ def inspect_sql_contracts(
     text = _bounded_text(sql)
     dialect_id, parser_dialect = _dialect_adapter(dialect, catalog=catalog)
     expression = _parse_single_expression(text, parser_dialect)
-    return expression_contracts(
+    result = expression_contracts(
         expression,
         dialect_id=dialect_id,
         parser_dialect=parser_dialect,
     )
+    result["catalog_digest"] = catalog.digest
+    return result
 
 
 def inspect_type_system(
@@ -371,10 +373,12 @@ def inspect_type_system(
     catalog: ConnectomeCatalog = DEFAULT_CATALOG,
 ) -> dict[str, object]:
     dialect_id, parser_dialect = _dialect_adapter(dialect, catalog=catalog)
-    return dialect_type_graph(
+    result = dialect_type_graph(
         dialect_id=dialect_id,
         parser_dialect=parser_dialect,
     )
+    result["catalog_digest"] = catalog.digest
+    return result
 
 
 def transpile_sql_text(
