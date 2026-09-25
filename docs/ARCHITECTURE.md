@@ -44,6 +44,8 @@ The first executable substrate contains:
    cross-binding, blank-target restore, and post-restore qualification.
 8. **ChatGPT/MCP adapter** — current MCP v2/Streamable HTTP layer exposing semantic and governed
    read tools without adding write authority.
+9. **Project control plane** — provider-neutral logical projects and concrete database-target
+   bindings with append-only effect receipts.
 
 The execution layer is intentionally separable from semantic reasoning. Understanding Oracle SQL,
 for example, does not require an Oracle execution credential, and having a PostgreSQL connection
@@ -65,8 +67,9 @@ extra HTTP hop. See `MCP_CHATGPT.md`.
 ## Optional components
 
 PostgREST and postgres-meta are composable candidates, not mandatory runtime dependencies.
-Realtime, Auth, storage, GraphQL, cloud-scale pooling, foreign-engine adapters, and parser engines
-are admitted only when a consumer demonstrates the need.
+Provider provisioning, Realtime, Auth, storage, GraphQL, cloud-scale pooling, foreign-engine adapters,
+and parser engines are admitted only when a consumer demonstrates the need. Project/target
+registration now exists, but registration is not treated as provider provisioning.
 
 ## Provider rule
 
