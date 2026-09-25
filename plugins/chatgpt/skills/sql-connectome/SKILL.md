@@ -22,6 +22,7 @@ Preserve this separation:
 
 `UNDERSTAND != TRANSLATE != VALIDATE != EXECUTE != AUTHORIZE`
 
+- Dialect comparison reports admitted/dependency evidence, not a compatibility score or proof of behavioral equivalence.
 - Dialect probing provides ranked evidence, not proof of identity.
 - Translation fidelity is not behavioral equivalence.
 - Type/coercion metadata is dependency evidence, not engine proof; missing edges mean unknown, not unsupported.
@@ -36,6 +37,7 @@ tools.
 
 ## Tool-selection guidance
 
+- Use dialect comparison when the user needs explicit capability, semantic-dimension, dialect-flag, or type/coercion differences between two admitted dialects.
 - Use dialect probing when source dialect is uncertain.
 - Parse before making semantic claims about unfamiliar SQL.
 - Inspect expression contracts when function/operator semantics may differ across dialects.
