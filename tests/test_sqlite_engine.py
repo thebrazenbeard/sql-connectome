@@ -2,8 +2,8 @@ import sqlite3
 
 import pytest
 
-from sql_connectome.sqlite_engine import _select_authorizer, validate_sqlite_readonly
 from sql_connectome.sql_guard import SQLRejected
+from sql_connectome.sqlite_engine import _select_authorizer, validate_sqlite_readonly
 
 
 def test_sqlite_validation_plans_against_in_memory_schema() -> None:
@@ -50,13 +50,22 @@ def test_sqlite_validation_reports_binder_failure() -> None:
 def test_sqlite_authorizer_allows_select_reads_and_denies_attach_pragma() -> None:
     assert _select_authorizer(sqlite3.SQLITE_SELECT, None, None, None, None) == sqlite3.SQLITE_OK
     assert _select_authorizer(sqlite3.SQLITE_READ, "t", "c", "main", None) == sqlite3.SQLITE_OK
-    assert _select_authorizer(sqlite3.SQLITE_FUNCTION, None, "length", None, None) == sqlite3.SQLITE_OK
+    assert (
+        _select_authorizer(sqlite3.SQLITE_FUNCTION, None, "length", None, None)
+        == sqlite3.SQLITE_OK
+    )
     assert (
         _select_authorizer(sqlite3.SQLITE_FUNCTION, None, "load_extension", None, None)
         == sqlite3.SQLITE_DENY
     )
-    assert _select_authorizer(sqlite3.SQLITE_ATTACH, "x.db", None, None, None) == sqlite3.SQLITE_DENY
-    assert _select_authorizer(sqlite3.SQLITE_PRAGMA, "query_only", None, None, None) == sqlite3.SQLITE_DENY
+    assert (
+        _select_authorizer(sqlite3.SQLITE_ATTACH, "x.db", None, None, None)
+        == sqlite3.SQLITE_DENY
+    )
+    assert (
+        _select_authorizer(sqlite3.SQLITE_PRAGMA, "query_only", None, None, None)
+        == sqlite3.SQLITE_DENY
+    )
 
 
 def test_sqlite_validation_blocks_extension_loading() -> None:
