@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
 
 import duckdb
@@ -8,6 +10,17 @@ from sqlglot.errors import ParseError
 
 from .receipts import canonical_digest, make_receipt
 from .sql_guard import validate_readonly_sql
+
+
+DUCKDB_HARDENED_CONFIG = {
+    "enable_external_access": "false",
+    "allow_unsigned_extensions": "false",
+    "allow_community_extensions": "false",
+    "autoinstall_known_extensions": "false",
+    "autoload_known_extensions": "false",
+    "threads": "1",
+    "memory_limit": "256MB",
+}
 
 
 def _quote_identifier(value: str) -> str:
@@ -82,6 +95,18 @@ def _runtime_identity(conn: duckdb.DuckDBPyConnection) -> dict[str, Any]:
     return {**subject, "identity_digest": canonical_digest(subject)}
 
 
+@contextmanager
+def hardened_duckdb_session(
+    schema_context: dict[str, dict[str, str]] | None = None,
+) -> Iterator[tuple[duckdb.DuckDBPyConnection, dict[str, Any]]]:
+    schema = schema_context or {}
+    with duckdb.connect(database=":memory:", config=DUCKDB_HARDENED_CONFIG) as conn:
+        _install_schema(conn, schema)
+        conn.execute("SET lock_configuration = true")
+        identity = _runtime_identity(conn)
+        yield conn, identity
+
+
 def validate_duckdb_readonly(
     sql: str,
     *,
@@ -91,24 +116,10 @@ def validate_duckdb_readonly(
     statement = validate_readonly_sql(sql)
     schema = schema_context or {}
 
-    config = {
-        "enable_external_access": "false",
-        "allow_unsigned_extensions": "false",
-        "allow_community_extensions": "false",
-        "autoinstall_known_extensions": "false",
-        "autoload_known_extensions": "false",
-        "threads": "1",
-        "memory_limit": "256MB",
-    }
-
     plan: list[list[Any]] | None = None
     error: dict[str, Any] | None = None
 
-    with duckdb.connect(database=":memory:", config=config) as conn:
-        _install_schema(conn, schema)
-        conn.execute("SET lock_configuration = true")
-        identity = _runtime_identity(conn)
-
+    with hardened_duckdb_session(schema) as (conn, identity):
         try:
             cursor = conn.execute(f"EXPLAIN {statement}", params or ())
             rows = cursor.fetchall()
