@@ -84,7 +84,11 @@ def plan_translation(
     )
 
 
-def list_dialects() -> list[dict[str, object]]:
+def list_dialects(
+    *,
+    dialects: Mapping[str, DialectGenome] | None = None,
+) -> list[dict[str, object]]:
+    registry = dialects or DEFAULT_DIALECTS
     return [
         {
             "dialect_id": genome.dialect_id,
@@ -98,5 +102,5 @@ def list_dialects() -> list[dict[str, object]]:
             ),
             "notes": list(genome.notes),
         }
-        for genome in sorted(DEFAULT_DIALECTS.values(), key=lambda item: item.dialect_id)
+        for genome in sorted(registry.values(), key=lambda item: item.dialect_id)
     ]
