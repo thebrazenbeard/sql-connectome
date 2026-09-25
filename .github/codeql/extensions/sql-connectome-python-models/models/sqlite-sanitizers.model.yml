@@ -1,0 +1,20 @@
+extensions:
+  - addsTo:
+      pack: codeql/python-all
+      extensible: barrierModel
+    data:
+      - [
+          "sql_connectome.sqlite_engine",
+          "Member[_quote_identifier].ReturnValue",
+          "sql-injection",
+        ]
+      - [
+          "sql_connectome.sqlite_engine",
+          "Member[_normalize_type].ReturnValue",
+          "sql-injection",
+        ]
+      - [
+          "sql_connectome.sql_guard",
+          "Member[validate_readonly_sql].ReturnValue",
+          "sql-injection",
+        ]
