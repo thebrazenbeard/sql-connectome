@@ -15,7 +15,11 @@ from .model import SemanticDimension, TranslationFidelity
 from .planner import plan_translation
 from .registry import DEFAULT_DIALECTS, resolve_dialect
 from .semantics import assess_expression_semantics, combined_fidelity
-from .type_system import assess_type_semantics, dialect_type_graph
+from .type_system import (
+    assess_type_semantics,
+    dialect_type_graph,
+    rewrite_type_representations,
+)
 
 MAX_SQL_TEXT_CHARS = 50_000
 MAX_SQL_AST_NODES = 10_000
@@ -424,8 +428,14 @@ def transpile_sql_text(
     if overall_fidelity is TranslationFidelity.LOSSY and not allow_lossy:
         raise SQLTextError("LOSSY_TRANSLATION_REQUIRES_OPT_IN")
 
+    generation_expression = rewrite_type_representations(
+        expression,
+        target_dialect=target_id,
+        target_parser_dialect=target_adapter,
+    )
+
     try:
-        generated = expression.sql(
+        generated = generation_expression.sql(
             dialect=target_adapter,
             unsupported_level=ErrorLevel.RAISE,
         )
