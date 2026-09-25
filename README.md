@@ -52,6 +52,7 @@ The current semantic-core slice includes:
 - schema-aware static binding with identifier qualification, star expansion, and type annotation;
 - real PostgreSQL target validation through read-only, non-ANALYZE JSON EXPLAIN;
 - hardened in-memory DuckDB target validation through non-executing EXPLAIN with external access disabled;
+- hardened in-memory SQLite target validation through EXPLAIN QUERY PLAN with query-only mode and a compile-time authorizer;
 - end-to-end foreign-dialect → PostgreSQL translation qualification with one provenance receipt;
 - expression-level function/operator/type inventories and dialect-semantic risk ceilings;
 - query-scoped expression contracts exposing argument shape, type rules, and dialect coercions.

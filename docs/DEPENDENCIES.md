@@ -124,3 +124,30 @@ Upstream references:
 - https://duckdb.org/docs/current/guides/meta/explain
 - https://duckdb.org/docs/current/operations_manual/securing_duckdb/overview
 - https://duckdb.org/docs/current/operations_manual/securing_duckdb/securing_extensions
+
+
+## SQLite (Python standard library)
+
+SQL Connectome uses Python's standard-library `sqlite3` module as its embedded SQLite target-engine
+validator. No additional SQLite package is admitted by this slice.
+
+Each validation call creates a fresh in-memory connection, materializes only the caller-supplied
+schema, enables `PRAGMA query_only=ON`, disables extension loading, disables trusted-schema
+behavior, installs a compile-time authorizer that allows SELECT/READ/function/recursive-select
+actions only, applies resource limits, and invokes `EXPLAIN QUERY PLAN`.
+
+SQLite documents `query_only` as rejecting CREATE, DELETE, DROP, INSERT, and UPDATE; its
+authorizer runs during statement compilation; and `EXPLAIN QUERY PLAN` reports the strategy that
+would have been used by the underlying statement. SQL Connectome does not treat the plan output
+format as a stable semantic API.
+
+A PASS means the exact bundled SQLite runtime accepted and planned the SQL against the supplied
+in-memory catalog. It does not establish cross-engine behavioral equivalence and does not execute
+the underlying SELECT.
+
+Upstream references:
+
+- https://www.sqlite.org/pragma.html#pragma_query_only
+- https://www.sqlite.org/c3ref/set_authorizer.html
+- https://www.sqlite.org/eqp.html
+- https://www.sqlite.org/lang_explain.html
