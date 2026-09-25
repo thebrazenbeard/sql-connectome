@@ -37,7 +37,8 @@ def test_embedded_differential_conformance_records_agreement_and_divergence() ->
     assert payload["schema"] == "SQL_CONNECTOME_DIFFERENTIAL_CONFORMANCE_V1"
     assert payload["source_commit"] == "test-commit"
     assert payload["postgresql_included"] is False
-    assert payload["evidence_scope"] == "FIXED_SOURCE_CONTROLLED_PROBES_ONLY"
+    assert payload["corpus_origin"] == "BOUNDED_LIBRARY_INPUT"
+    assert payload["evidence_scope"] == "BOUNDED_PROBE_SET_ONLY"
     assert payload["generalization"] == "NOT_ESTABLISHED"
     assert payload["behavioral_equivalence"] == "NOT_ESTABLISHED"
 
@@ -74,3 +75,9 @@ def test_differential_receipt_binds_corpus_and_results() -> None:
 def test_differential_conformance_rejects_empty_corpus() -> None:
     with pytest.raises(ValueError, match="DIFFERENTIAL_PROBE_CORPUS_EMPTY"):
         run_differential_conformance(probes=())
+
+
+
+def test_differential_conformance_rejects_duplicate_probe_ids() -> None:
+    with pytest.raises(ValueError, match="DIFFERENTIAL_PROBE_ID_DUPLICATE"):
+        run_differential_conformance(probes=(ADDITION, ADDITION))
