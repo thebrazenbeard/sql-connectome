@@ -1,5 +1,6 @@
 from sql_connectome.connectome import (
     CanonicalTypeFamily,
+    DEFAULT_CATALOG,
     canonical_type_family,
     inspect_type_system,
     transpile_sql_text,
@@ -17,6 +18,7 @@ def test_type_graph_is_dependency_evidence_not_engine_proof() -> None:
     graph = inspect_type_system("postgresql")
 
     assert graph["schema"] == "SQL_CONNECTOME_TYPE_GRAPH_V1"
+    assert graph["catalog_digest"] == DEFAULT_CATALOG.digest
     assert graph["dialect_id"] == "postgresql"
     assert graph["evidence_basis"] == "SQLGLOT_COERCES_TO"
     assert graph["evidence_ceiling"] == "DEPENDENCY_METADATA"
