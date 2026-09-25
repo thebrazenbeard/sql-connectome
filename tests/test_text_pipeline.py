@@ -1,6 +1,11 @@
 import pytest
 
-from sql_connectome.connectome import SQLTextError, parse_sql_text, transpile_sql_text
+from sql_connectome.connectome import (
+    DEFAULT_CATALOG,
+    SQLTextError,
+    parse_sql_text,
+    transpile_sql_text,
+)
 
 
 def test_parse_postgresql_into_semantic_ir() -> None:
@@ -13,6 +18,7 @@ def test_parse_postgresql_into_semantic_ir() -> None:
     ir = payload["ir"]
 
     assert payload["parser"]["engine"] == "sqlglot"
+    assert payload["catalog_digest"] == DEFAULT_CATALOG.digest
     assert ir["source_dialect"] == "postgresql"
     assert ir["operation"] == "SELECT"
     assert "relational_select" in ir["required_capabilities"]
@@ -59,6 +65,7 @@ def test_transpile_simple_query_and_reparse_target() -> None:
         "postgresql",
     )
 
+    assert result["catalog_digest"] == DEFAULT_CATALOG.digest
     assert result["plan"]["fidelity"] == "EXACT"
     assert result["validation"]["source_parse"] == "PASS"
     assert result["validation"]["target_parse"] == "PASS"

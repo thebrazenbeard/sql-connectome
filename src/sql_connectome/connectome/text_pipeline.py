@@ -104,10 +104,12 @@ class SQLTextAnalysis:
     normalized_sql: str
     parser_dialect: str
     parser_version: str
+    catalog_digest: str
 
     def as_dict(self) -> dict[str, object]:
         return {
             "normalized_sql": self.normalized_sql,
+            "catalog_digest": self.catalog_digest,
             "parser": {
                 "engine": "sqlglot",
                 "version": self.parser_version,
@@ -342,6 +344,7 @@ def parse_sql_text(
         normalized_sql=expression.sql(dialect=parser_dialect),
         parser_dialect=parser_dialect,
         parser_version=sqlglot.__version__,
+        catalog_digest=catalog.digest,
     )
 
 
@@ -446,6 +449,7 @@ def transpile_sql_text(
     target = parse_sql_text(generated, target_id, catalog=catalog)
 
     return {
+        "catalog_digest": catalog.digest,
         "source": source.as_dict(),
         "target_sql": generated,
         "target_parse": target.as_dict(),
