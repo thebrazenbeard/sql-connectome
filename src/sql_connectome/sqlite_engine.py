@@ -112,9 +112,10 @@ def _runtime_identity(
     subject = {
         "engine": "sqlite",
         "version": sqlite3.sqlite_version,
-        "python_sqlite_version": sqlite3.version,
+        "version_info": list(sqlite3.sqlite_version_info),
         "database": ":memory:",
         "query_only": query_only,
+        "trusted_schema": False,
         "extension_loading": False,
         "authorizer": "SELECT_READ_FUNCTION_ONLY",
         "limits": limits,
