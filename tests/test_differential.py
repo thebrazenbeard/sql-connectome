@@ -81,3 +81,17 @@ def test_differential_conformance_rejects_empty_corpus() -> None:
 def test_differential_conformance_rejects_duplicate_probe_ids() -> None:
     with pytest.raises(ValueError, match="DIFFERENTIAL_PROBE_ID_DUPLICATE"):
         run_differential_conformance(probes=(ADDITION, ADDITION))
+
+
+
+def test_default_corpus_is_source_controlled_and_bounded() -> None:
+    payload = run_differential_conformance(source_commit="default-corpus-test")
+
+    assert payload["corpus_origin"] == "DEFAULT_SOURCE_CONTROLLED"
+    assert payload["evidence_scope"] == "FIXED_SOURCE_CONTROLLED_PROBES_ONLY"
+    assert payload["probe_count"] >= 6
+    assert payload["postgresql_included"] is False
+    assert all(
+        result["behavioral_equivalence"] == "NOT_ESTABLISHED"
+        for result in payload["results"]
+    )
