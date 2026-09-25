@@ -27,6 +27,7 @@ Preserve this separation:
 - Target parser acceptance is not target-engine validation.
 - PostgreSQL EXPLAIN validation is not query execution.
 - DuckDB EXPLAIN validation is not query execution or cross-engine behavioral equivalence.
+- SQLite EXPLAIN QUERY PLAN validation is not query execution or cross-engine behavioral equivalence.
 - Read authority is not write authority.
 
 Carry forward fidelity, semantic-loss, currentness, provenance, and authority fields returned by the
@@ -41,6 +42,7 @@ tools.
 - Do not silently enable lossy translation.
 - Use PostgreSQL validation when connected PostgreSQL engine/catalog acceptance matters without executing the query.
 - Use DuckDB validation for embedded target-engine planning against caller-supplied schema context without external access.
+- Use SQLite validation for embedded SQLite planner/catalog acceptance under query-only and compile-time authorization controls.
 - Use bounded read-only execution only when the user needs actual result rows.
 - Inspect schema/runtime state when a query depends on the connected database layout.
 
