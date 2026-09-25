@@ -283,6 +283,9 @@ def _run_postgresql_probe(
     except psycopg.Error as exc:
         return _engine_error(engine="postgresql", runtime=runtime, exc=exc)
 
+    if result["truncated"] or len(result["rows"]) > MAX_PROBE_ROWS:
+        raise ValueError("DIFFERENTIAL_PROBE_ROW_LIMIT_EXCEEDED")
+
     columns = [str(column) for column in result["columns"]]
     rows = [
         [row[column] for column in columns]
@@ -327,6 +330,7 @@ def run_differential_conformance(
     *,
     settings: Settings | None = None,
     probes: Iterable[DifferentialProbe] = DEFAULT_PROBES,
+    source_commit: str | None = None,
 ) -> dict[str, object]:
     corpus = tuple(probes)
     if not corpus:
@@ -381,10 +385,12 @@ def run_differential_conformance(
         "result_digest": canonical_digest(results),
         "postgresql_included": settings is not None,
         "probe_count": len(corpus),
+        "source_commit": source_commit,
     }
 
     return {
         "schema": "SQL_CONNECTOME_DIFFERENTIAL_CONFORMANCE_V1",
+        "source_commit": source_commit,
         "probe_count": len(corpus),
         "postgresql_included": settings is not None,
         "evidence_scope": "FIXED_SOURCE_CONTROLLED_PROBES_ONLY",
