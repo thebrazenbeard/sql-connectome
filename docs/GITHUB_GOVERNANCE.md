@@ -26,9 +26,9 @@ The intended administrative configuration for `main` is:
 - active branch ruleset targeting the default branch;
 - require a pull request before merge;
 - require required status checks before merge;
-- require `CI / test`, `Dependency Review / dependency-review`,
-  `CodeQL / Analyze Python`, and `Conformance Snapshot / snapshot` once each check has reported
-  successfully at least once;
+- require the persisted GitHub check contexts `CI / test`, `Dependency Review`,
+  `Analyze Python`, `CodeQL`, and `snapshot` once each check has reported successfully at least
+  once;
 - require the pull-request branch to be up to date with `main` before merge so required checks bind
   to the current base rather than a stale merge candidate;
 - block force pushes;
@@ -45,8 +45,30 @@ The intended administrative configuration for `main` is:
 - enable secret scanning and push protection;
 - enable private vulnerability reporting.
 
-Required-check names are exact subjects. If GitHub changes a job/check display name, update the
-ruleset deliberately rather than silently weakening enforcement.
+Required-check names are exact persisted GitHub contexts, not necessarily the workflow/job labels
+shown in source. Current ruleset readback stores five contexts: `CI / test`, `Dependency Review`,
+`Analyze Python`, `CodeQL`, and `snapshot`. If GitHub changes a context name, update both the
+ruleset and this contract deliberately rather than silently weakening enforcement.
+
+## Current administrative qualification
+
+As of 2026-09-24, repository administration has been verified through GitHub UI/API readback:
+
+- active ruleset `main protection` targets the default branch;
+- force pushes and branch deletion are blocked;
+- pull requests and conversation resolution are required;
+- approving-review count is zero while the repository has one maintainer;
+- no routine bypass actors are configured;
+- required checks use strict/current-base evaluation;
+- default `GITHUB_TOKEN` permissions are read-only;
+- Actions must be pinned to full-length commit SHAs;
+- Dependabot alerts and Dependabot security updates are enabled;
+- secret scanning and push protection are enabled;
+- private vulnerability reporting is enabled;
+- automatic merge remains disabled.
+
+This section records the qualified administrative state. Runtime settings still require live GitHub
+readback when currentness matters.
 
 ## Deliberately deferred
 
