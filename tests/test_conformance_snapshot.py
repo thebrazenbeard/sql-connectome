@@ -31,5 +31,12 @@ def test_conformance_snapshot_generator(tmp_path) -> None:
         dialect_ids
     )
 
+    by_id = {row["dialect_id"]: row for row in snapshot["dialects"]}
+    postgres_type_graph = by_id["postgresql"]["type_graph_summary"]
+    assert postgres_type_graph is not None
+    assert postgres_type_graph["dialect_type_count"] >= 0
+    assert postgres_type_graph["implicit_coercion_count"] >= 0
+    assert len(postgres_type_graph["type_graph_digest"]) == 64
+
     rewrite_names = {row["name"] for row in snapshot["rewrite_rules"]}
     assert "qualify-via-derived-table" in rewrite_names
