@@ -15,11 +15,19 @@ def _quote_identifier(value: str) -> str:
 
 
 def _normalize_type(type_name: str) -> str:
+    raw = type_name.strip()
+    if not raw or any(marker in raw for marker in (";", "--", "/*", "*/", "\x00")):
+        raise ValueError(f"INVALID_DUCKDB_TYPE:{type_name}")
+
     try:
-        data_type = exp.DataType.build(type_name, dialect="duckdb")
+        data_type = exp.DataType.build(raw, dialect="duckdb")
     except (ParseError, ValueError, TypeError) as exc:
         raise ValueError(f"INVALID_DUCKDB_TYPE:{type_name}") from exc
-    return data_type.sql(dialect="duckdb")
+
+    rendered = data_type.sql(dialect="duckdb")
+    if any(marker in rendered for marker in (";", "--", "/*", "*/", "\x00")):
+        raise ValueError(f"INVALID_DUCKDB_TYPE:{type_name}")
+    return rendered
 
 
 def _install_schema(
@@ -34,9 +42,12 @@ def _install_schema(
             f"{_quote_identifier(column_name)} {_normalize_type(type_name)}"
             for column_name, type_name in sorted(columns.items())
         )
-        conn.execute(
-            f"CREATE TABLE {_quote_identifier(table_name)} ({definitions})"
-        )
+        try:
+            conn.execute(
+                f"CREATE TABLE {_quote_identifier(table_name)} ({definitions})"
+            )
+        except duckdb.Error as exc:
+            raise ValueError(f"INVALID_DUCKDB_SCHEMA:{table_name}") from exc
 
 
 def _runtime_identity(conn: duckdb.DuckDBPyConnection) -> dict[str, Any]:
