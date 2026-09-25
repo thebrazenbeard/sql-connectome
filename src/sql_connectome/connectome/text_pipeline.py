@@ -406,7 +406,6 @@ def transpile_sql_text(
         target_dialect=target_id,
         source_parser_dialect=source_adapter,
         target_parser_dialect=target_adapter,
-        target_capabilities=catalog.dialects[target_id].capabilities,
     )
     type_semantics = assess_type_semantics(
         expression,
@@ -414,6 +413,7 @@ def transpile_sql_text(
         target_dialect=target_id,
         source_parser_dialect=source_adapter,
         target_parser_dialect=target_adapter,
+        target_capabilities=catalog.dialects[target_id].capabilities,
     )
     expression_fidelity = combined_fidelity(plan.fidelity, expression_semantics)
     type_fidelity = TranslationFidelity(str(type_semantics["fidelity_ceiling"]))
