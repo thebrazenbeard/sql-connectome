@@ -1,7 +1,12 @@
 import pytest
 
 import sql_connectome.connectome as connectome
-from sql_connectome.connectome import ConnectomeCatalog, DialectGenome, SemanticDimension
+from sql_connectome.connectome import (
+    ConnectomeCatalog,
+    DialectGenome,
+    SemanticDimension,
+    parse_sql_text,
+)
 
 
 def test_default_catalog_is_public_and_resolves_existing_aliases() -> None:
@@ -39,3 +44,25 @@ def test_catalog_rejects_alias_collision() -> None:
             parser_adapters={"alpha": "postgres", "beta": "postgres"},
             rewrite_rules=(),
         )
+
+
+def test_custom_catalog_can_drive_parser_admission() -> None:
+    genome = DialectGenome(
+        dialect_id="pgish",
+        family="postgres-family",
+        engine="PG-ish test dialect",
+        version_selector="test",
+        capabilities=frozenset({"relational_select"}),
+        semantic_dimensions=frozenset({SemanticDimension.RELATIONAL}),
+        aliases=frozenset({"pgx"}),
+    )
+    catalog = ConnectomeCatalog(
+        dialects={"pgish": genome},
+        parser_adapters={"pgish": "postgres"},
+        rewrite_rules=(),
+    )
+
+    parsed = parse_sql_text("SELECT 1 AS one", "pgx", catalog=catalog)
+
+    assert parsed.ir.source_dialect == "pgish"
+    assert parsed.parser_dialect == "postgres"
