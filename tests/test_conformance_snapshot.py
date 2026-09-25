@@ -3,6 +3,8 @@ import os
 import subprocess
 import sys
 
+from sql_connectome.connectome import DEFAULT_CATALOG
+
 
 def test_conformance_snapshot_generator(tmp_path) -> None:
     output = tmp_path / "snapshot.json"
@@ -26,7 +28,7 @@ def test_conformance_snapshot_generator(tmp_path) -> None:
     assert snapshot["parser_adapter_count"] >= 28
     assert snapshot["catalog"]["admission"] == "SOURCE_CONTROLLED_DEFAULT"
     assert snapshot["catalog"]["automatic_plugin_discovery"] is False
-    assert len(snapshot["catalog"]["digest"]) == 64
+    assert snapshot["catalog"]["digest"] == DEFAULT_CATALOG.digest
     assert len(snapshot["snapshot_digest"]) == 64
 
     dialect_ids = {row["dialect_id"] for row in snapshot["dialects"]}
