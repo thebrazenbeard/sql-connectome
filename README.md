@@ -1,3 +1,5 @@
+> **License status:** No repository-wide license file is currently present in this source tree. Do not infer reuse, redistribution, hosting, or commercial permission from repository visibility alone; separately identified third-party components remain governed by their own licenses.
+
 # SQL Connectome
 
 SQL Connectome is a semantic network for understanding, comparing, translating, validating,
