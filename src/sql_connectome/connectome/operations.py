@@ -591,3 +591,14 @@ def operation_graph(
         "evidence_basis": "SOURCE_CONTROLLED_OPERATION_CATALOG_AND_SQLGLOT_AST",
         "behavioral_equivalence": "NOT_ESTABLISHED",
     }
+
+
+
+def operation_catalog_payload(
+    operation_catalog: OperationCatalog = DEFAULT_OPERATION_CATALOG,
+) -> dict[str, object]:
+    manifest = operation_catalog.manifest()
+    return {
+        **manifest,
+        "operation_catalog_digest": operation_catalog.digest,
+    }
