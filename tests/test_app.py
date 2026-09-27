@@ -301,3 +301,21 @@ def test_connectome_expression_registry_manifest_endpoint(monkeypatch) -> None:
     semantic_ids = {row["semantic_id"] for row in payload["entries"]}
     assert "function.coalesce" in semantic_ids
     assert "operator.div" in semantic_ids
+
+
+def test_connectome_expression_bindings_endpoint(monkeypatch) -> None:
+    client, headers = _authenticated_client(monkeypatch)
+    response = client.get(
+        "/v1/connectome/expression-bindings",
+        headers=headers,
+        params={"dialect": "postgresql"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["schema"] == "SQL_CONNECTOME_EXPRESSION_DIALECT_BINDINGS_V1"
+    assert payload["dialect_id"] == "postgresql"
+    assert payload["evidence_ceiling"] == "DEPENDENCY_BEHAVIOR"
+    assert payload["behavioral_equivalence"] == "NOT_ESTABLISHED"
+    assert len(payload["catalog_digest"]) == 64
+    assert len(payload["probe_set_digest"]) == 64
