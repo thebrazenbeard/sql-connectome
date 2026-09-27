@@ -30,6 +30,15 @@ def test_conformance_snapshot_generator(tmp_path) -> None:
     assert snapshot["catalog"]["automatic_plugin_discovery"] is False
     assert snapshot["catalog"]["digest"] == DEFAULT_CATALOG.digest
     assert len(snapshot["snapshot_digest"]) == 64
+    assert len(snapshot["operation_catalog_digest"]) == 64
+    assert snapshot["operation_catalog"]["schema"] == "SQL_CONNECTOME_OPERATION_CATALOG_V1"
+    assert snapshot["operation_catalog"]["operation_count"] >= 30
+    operation_ids = {
+        row["semantic_id"] for row in snapshot["operation_catalog"]["operations"]
+    }
+    assert {"arithmetic.divide", "aggregate.count", "string.concat"}.issubset(
+        operation_ids
+    )
 
     dialect_ids = {row["dialect_id"] for row in snapshot["dialects"]}
     assert {"postgresql", "mysql", "bigquery", "snowflake", "duckdb"}.issubset(
