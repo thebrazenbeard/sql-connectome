@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -240,6 +241,9 @@ def _expression_graph(
     expression: exp.Expression,
     *,
     parser_dialect: str,
+    extra_attribute_provider: (
+        Callable[[exp.Expression], list[tuple[str, Any]]] | None
+    ) = None,
 ) -> tuple[
     tuple[str, ...],
     tuple[IRNode, ...],
@@ -263,6 +267,8 @@ def _expression_graph(
                 parser_dialect=parser_dialect,
             )
         )
+        if extra_attribute_provider is not None:
+            attributes.extend(extra_attribute_provider(node))
 
         if isinstance(node, exp.Table):
             attributes.append(("name", node.name))
