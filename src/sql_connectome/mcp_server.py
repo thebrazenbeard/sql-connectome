@@ -14,6 +14,8 @@ from .connectome import (
     SQLTextError,
     bind_sql_text,
     compare_dialects,
+    inspect_operation_catalog,
+    inspect_operation_graph,
     inspect_sql_contracts,
     inspect_type_system,
     list_dialects,
@@ -156,6 +158,20 @@ def build_mcp_server(
         try:
             return compare_dialects(source_dialect, target_dialect)
         except (KeyError, ValueError) as exc:
+            raise _tool_error(exc) from exc
+
+    @mcp.tool()
+    def operation_catalog() -> dict[str, Any]:
+        """List governed function/operator semantic identities and evidence metadata."""
+        return inspect_operation_catalog()
+
+    @mcp.tool()
+    def operation_graph(sql: str, dialect: str) -> dict[str, Any]:
+        """Map query-scoped functions/operators to governed semantic identities."""
+        statement = _bounded_sql(sql)
+        try:
+            return inspect_operation_graph(statement, dialect)
+        except (KeyError, SQLTextError) as exc:
             raise _tool_error(exc) from exc
 
     @mcp.tool()
