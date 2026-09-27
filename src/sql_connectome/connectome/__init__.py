@@ -5,6 +5,12 @@ from .catalog import (
     ConnectomeCatalog,
 )
 from .compare import compare_dialects
+from .expression_bindings import (
+    DEFAULT_EXPRESSION_BINDING_PROBES,
+    ExpressionBindingProbe,
+    ExpressionBindingProbeSet,
+    probe_expression_dialect_bindings,
+)
 from .expression_registry import (
     DEFAULT_EXPRESSION_REGISTRY,
     ExpressionSemantic,
@@ -33,6 +39,7 @@ from .semantics import (
 from .text_pipeline import (
     SQLTextAnalysis,
     SQLTextError,
+    inspect_expression_bindings,
     inspect_expression_registry,
     inspect_sql_contracts,
     inspect_type_system,
@@ -64,6 +71,11 @@ __all__ = [
     "ExpressionSemanticKind",
     "ExpressionSemantic",
     "DEFAULT_EXPRESSION_REGISTRY",
+    "probe_expression_dialect_bindings",
+    "inspect_expression_bindings",
+    "ExpressionBindingProbeSet",
+    "ExpressionBindingProbe",
+    "DEFAULT_EXPRESSION_BINDING_PROBES",
     "DEFAULT_DIALECTS",
     "DEFAULT_PARSER_ADAPTERS",
     "DEFAULT_REWRITE_RULES",
