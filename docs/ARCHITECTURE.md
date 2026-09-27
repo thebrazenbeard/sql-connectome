@@ -20,14 +20,15 @@ The semantic plane owns:
 2. **Semantic IR** — graph-shaped representation that may retain dialect-specific semantics.
 3. **Type/coercion graph** — canonical semantic type families, dialect coercion evidence, and explicit type-projection fidelity.
 4. **Expression semantic registry** — stable source-controlled identities for admitted functions/operators plus explicit query-scoped unknowns and links to known semantic-risk rules.
-5. **Capability graph** — explicit feature support rather than family-name inference.
-6. **Rewrite knowledge** — target-dependent transformations with declared fidelity.
-7. **Translation loss** — preserved evidence when target semantics cannot remain exact.
-8. **Parser/generator adapters** — components that map text into/out of semantic IR.
-9. **Validation adapters** — static binding plus target-engine qualification paths. PostgreSQL performs read-only, non-ANALYZE `EXPLAIN` validation; DuckDB performs hardened in-memory `EXPLAIN` validation with external access and extension autoload/install disabled; SQLite performs in-memory `EXPLAIN QUERY PLAN` validation under query-only mode and a compile-time SELECT/READ/function authorizer.
+5. **Expression dialect bindings** — source-controlled parser/generator probes that report bounded binding states for semantic IDs without claiming engine support or behavioral equivalence.
+6. **Capability graph** — explicit feature support rather than family-name inference.
+7. **Rewrite knowledge** — target-dependent transformations with declared fidelity.
+8. **Translation loss** — preserved evidence when target semantics cannot remain exact.
+9. **Parser/generator adapters** — components that map text into/out of semantic IR.
+10. **Validation adapters** — static binding plus target-engine qualification paths. PostgreSQL performs read-only, non-ANALYZE `EXPLAIN` validation; DuckDB performs hardened in-memory `EXPLAIN` validation with external access and extension autoload/install disabled; SQLite performs in-memory `EXPLAIN QUERY PLAN` validation under query-only mode and a compile-time SELECT/READ/function authorizer.
 
-10. **Dialect comparison evidence** — catalog-bound capability/dimension deltas plus pinned SQLGlot semantic-flag and type/coercion summaries, with no compatibility score or behavioral-equivalence claim.
-11. **Differential conformance** — bounded source-controlled probes compare normalized values and type families across qualified engine runtimes without upgrading fixture evidence into general behavioral equivalence.
+11. **Dialect comparison evidence** — catalog-bound capability/dimension deltas plus pinned SQLGlot semantic-flag and type/coercion summaries, with no compatibility score or behavioral-equivalence claim.
+12. **Differential conformance** — bounded source-controlled probes compare normalized values and type families across qualified engine runtimes without upgrading fixture evidence into general behavioral equivalence.
 
 The semantic plane follows:
 
@@ -64,6 +65,7 @@ The semantic slice exposes:
 - `GET /v1/connectome/compare?source_dialect=...&target_dialect=...`
 - `GET /v1/connectome/type-graph?dialect=...`
 - `GET /v1/connectome/expression-registry`
+- `GET /v1/connectome/expression-bindings?dialect=...`
 - `POST /v1/connectome/expression-semantics`
 - `POST /v1/connectome/translation-plan`
 
