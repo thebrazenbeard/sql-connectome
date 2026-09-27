@@ -408,6 +408,8 @@ DEFAULT_EXPRESSION_REGISTRY = ExpressionSemanticRegistry(
 
 
 def _expression_name(node: exp.Expression) -> str:
+    if isinstance(node, exp.Anonymous):
+        return node.name.upper()
     if isinstance(node, exp.Func):
         sql_name = getattr(node, "sql_name", None)
         if callable(sql_name):
