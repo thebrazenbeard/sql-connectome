@@ -4,9 +4,9 @@ from sql_connectome.connectome import (
     DEFAULT_CATALOG,
     DEFAULT_EXPRESSION_REGISTRY,
     SQLTextError,
-    type_graph_digest,
     parse_sql_text,
     transpile_sql_text,
+    type_graph_digest,
 )
 
 
