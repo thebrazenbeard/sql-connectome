@@ -132,7 +132,7 @@ def test_parse_binds_explicit_type_semantics_into_ir() -> None:
     assert attributes["type_dialect_name"] == "DECIMAL"
     assert attributes["type_canonical_family"] == "DECIMAL"
     assert attributes["type_source_sql"] == "DECIMAL(10, 2)"
-    assert attributes["type_parameters"] == ["10", "2"]
+    assert attributes["type_parameters"] == ("10", "2")
     assert attributes["type_evidence_basis"] == "PARSED_EXPLICIT_TYPE"
 
     expected_digest = type_graph_digest(
