@@ -41,10 +41,13 @@ from .text_pipeline import (
 )
 from .type_system import (
     CanonicalTypeFamily,
+    ExplicitTypeSemantic,
     TypeProjectionRisk,
     assess_type_semantics,
     canonical_type_family,
     dialect_type_graph,
+    explicit_type_semantic,
+    type_graph_digest,
 )
 
 __all__ = [
@@ -55,6 +58,9 @@ __all__ = [
     "assess_type_semantics",
     "TypeProjectionRisk",
     "CanonicalTypeFamily",
+    "type_graph_digest",
+    "explicit_type_semantic",
+    "ExplicitTypeSemantic",
     "bind_sql_text",
     "ConnectomeCatalog",
     "DEFAULT_CATALOG",
