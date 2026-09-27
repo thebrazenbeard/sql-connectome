@@ -17,6 +17,7 @@ class SemanticRisk:
     target_value: object
     condition: str
     description: str
+    semantic_operation_ids: tuple[str, ...] = ()
     fidelity: TranslationFidelity = TranslationFidelity.LOSSY
 
     def as_dict(self) -> dict[str, object]:
@@ -27,6 +28,7 @@ class SemanticRisk:
             "target_value": self.target_value,
             "condition": self.condition,
             "description": self.description,
+            "semantic_operation_ids": list(self.semantic_operation_ids),
             "fidelity": self.fidelity.value,
         }
 
@@ -142,6 +144,7 @@ def _flag_risk(
     flag: str,
     condition: str,
     description: str,
+    semantic_operation_ids: tuple[str, ...] = (),
     none_is_unknown: bool = True,
 ) -> SemanticRisk | None:
     source_flags = source_profile["flags"]
@@ -164,6 +167,7 @@ def _flag_risk(
         target_value=target_value,
         condition=condition,
         description=description,
+        semantic_operation_ids=semantic_operation_ids,
     )
 
 
@@ -191,6 +195,7 @@ def assess_expression_semantics(
                 "Source and target dialects disagree on whether LEAST/GREATEST "
                 "ignore NULL arguments."
             ),
+            semantic_operation_ids=("ordering.least", "ordering.greatest"),
         )
         if risk:
             risks.append(risk)
@@ -208,6 +213,7 @@ def assess_expression_semantics(
                     "Source and target dialects disagree on whether integer operand "
                     "types change division semantics."
                 ),
+                semantic_operation_ids=("arithmetic.divide",),
             ),
             _flag_risk(
                 code="DIVISION_BY_ZERO_SEMANTICS",
@@ -220,6 +226,7 @@ def assess_expression_semantics(
                     "Source and target dialects disagree on whether division by zero "
                     "returns NULL or raises an error."
                 ),
+                semantic_operation_ids=("arithmetic.divide",),
             ),
         ):
             if risk:
@@ -237,6 +244,7 @@ def assess_expression_semantics(
                 description=(
                     "Source and target dialects disagree on CONCAT NULL coalescing."
                 ),
+                semantic_operation_ids=("string.concat",),
             ),
             _flag_risk(
                 code="CONCAT_ARGUMENT_TYPE_SEMANTICS",
@@ -249,6 +257,7 @@ def assess_expression_semantics(
                     "Source and target dialects disagree on whether CONCAT arguments "
                     "must already be strings."
                 ),
+                semantic_operation_ids=("string.concat",),
             ),
         ):
             if risk:
@@ -265,6 +274,7 @@ def assess_expression_semantics(
             description=(
                 "Source and target dialects use different base offsets for positional indexing."
             ),
+            semantic_operation_ids=("index.bracket",),
         )
         if risk:
             risks.append(risk)
@@ -281,6 +291,7 @@ def assess_expression_semantics(
                 "Source and target dialects disagree on argument order or support "
                 "for two-argument LOG."
             ),
+            semantic_operation_ids=("math.log",),
             none_is_unknown=False,
         )
         if risk:
