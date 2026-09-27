@@ -14,6 +14,16 @@ from .model import (
     TranslationFidelity,
     TranslationPlan,
 )
+from .operations import (
+    DEFAULT_OPERATION_CATALOG,
+    DeterminismClass,
+    EvaluationClass,
+    OperationCatalog,
+    OperationKind,
+    OperationSpec,
+    operation_catalog_payload,
+    operation_graph,
+)
 from .planner import list_dialects, plan_translation
 from .probe import DialectCandidate, probe_sql_dialects
 from .registry import DEFAULT_DIALECTS, DEFAULT_REWRITE_RULES, resolve_dialect
@@ -26,6 +36,8 @@ from .semantics import (
 from .text_pipeline import (
     SQLTextAnalysis,
     SQLTextError,
+    inspect_operation_catalog,
+    inspect_operation_graph,
     inspect_sql_contracts,
     inspect_type_system,
     parse_sql_text,
@@ -41,6 +53,16 @@ from .type_system import (
 
 __all__ = [
     "AppliedRewrite",
+    "operation_graph",
+    "operation_catalog_payload",
+    "inspect_operation_graph",
+    "inspect_operation_catalog",
+    "OperationSpec",
+    "OperationKind",
+    "OperationCatalog",
+    "EvaluationClass",
+    "DeterminismClass",
+    "DEFAULT_OPERATION_CATALOG",
     "inspect_type_system",
     "dialect_type_graph",
     "canonical_type_family",
