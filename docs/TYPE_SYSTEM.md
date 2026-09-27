@@ -88,6 +88,22 @@ The combined translation ceiling is the worst of those components.
 Known representation fallbacks such as VARIANT-to-JSON or STRUCT-to-JSON remain `LOSSY` even when
 target SQL can be generated, because source typing/coercion semantics may not survive.
 
+## Static binding overlay
+
+Schema binding does not rewrite the parse-time IR in place. It produces a separate bound graph from
+the qualified and SQLGlot-annotated AST.
+
+Each bound node records static type state and canonical family where available. Column nodes also
+record their qualified table/column identity. The bound IR is cross-bound to both the source IR
+digest and the schema-context digest.
+
+This makes parse identity and binding evidence independently reconstructible and allows star
+expansion or qualification to change bound-graph shape without pretending the original parse graph
+was mutated.
+
+Unknown projection-result types contribute to the binding's `PARTIAL` annotation ceiling even when
+all referenced columns have known schema types.
+
 ## Separation from schema binding
 
 Parse-time explicit type identity and schema-bound inferred type information are distinct.
