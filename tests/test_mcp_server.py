@@ -15,6 +15,7 @@ EXPECTED_TOOLS = {
     "probe_sql_dialect",
     "parse_sql",
     "expression_contracts",
+    "expression_registry",
     "expression_semantics",
     "bind_sql",
     "translation_plan",
@@ -82,6 +83,13 @@ def test_semantic_mcp_tool_roundtrip() -> None:
             )
             assert contracts.is_error is False
             assert contracts.structured_content is not None
+
+            registry = await client.call_tool(
+                "expression_registry",
+                {},
+            )
+            assert registry.is_error is False
+            assert registry.structured_content is not None
 
             semantic_inventory = await client.call_tool(
                 "expression_semantics",
