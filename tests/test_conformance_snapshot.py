@@ -3,7 +3,11 @@ import os
 import subprocess
 import sys
 
-from sql_connectome.connectome import DEFAULT_CATALOG, DEFAULT_EXPRESSION_REGISTRY
+from sql_connectome.connectome import (
+    DEFAULT_CATALOG,
+    DEFAULT_EXPRESSION_BINDING_PROBES,
+    DEFAULT_EXPRESSION_REGISTRY,
+)
 
 
 def test_conformance_snapshot_generator(tmp_path) -> None:
@@ -33,6 +37,10 @@ def test_conformance_snapshot_generator(tmp_path) -> None:
     assert semantic_registry["admission"] == "SOURCE_CONTROLLED_DEFAULT"
     assert semantic_registry["digest"] == DEFAULT_EXPRESSION_REGISTRY.digest
     assert semantic_registry["entry_count"] == len(DEFAULT_EXPRESSION_REGISTRY.entries)
+    binding_probes = snapshot["expression_binding_probes"]
+    assert binding_probes["admission"] == "SOURCE_CONTROLLED_DEFAULT"
+    assert binding_probes["digest"] == DEFAULT_EXPRESSION_BINDING_PROBES.digest
+    assert binding_probes["probe_count"] == len(DEFAULT_EXPRESSION_BINDING_PROBES.probes)
     assert len(snapshot["snapshot_digest"]) == 64
 
     dialect_ids = {row["dialect_id"] for row in snapshot["dialects"]}
@@ -46,6 +54,17 @@ def test_conformance_snapshot_generator(tmp_path) -> None:
     assert postgres_type_graph["dialect_type_count"] >= 0
     assert postgres_type_graph["implicit_coercion_count"] >= 0
     assert len(postgres_type_graph["type_graph_digest"]) == 64
+
+    postgres_expression_bindings = by_id["postgresql"]["expression_binding_summary"]
+    assert postgres_expression_bindings is not None
+    assert postgres_expression_bindings["probe_count"] == len(
+        DEFAULT_EXPRESSION_BINDING_PROBES.probes
+    )
+    assert (
+        postgres_expression_bindings["probe_set_digest"]
+        == DEFAULT_EXPRESSION_BINDING_PROBES.digest
+    )
+    assert len(postgres_expression_bindings["binding_digest"]) == 64
 
     rewrite_names = {row["name"] for row in snapshot["rewrite_rules"]}
     assert "qualify-via-derived-table" in rewrite_names
