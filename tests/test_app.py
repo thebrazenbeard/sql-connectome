@@ -260,3 +260,36 @@ def test_connectome_dialect_comparison_endpoint(monkeypatch) -> None:
     assert payload["target"]["dialect_id"] == "sqlite"
     assert payload["behavioral_equivalence"] == "NOT_ESTABLISHED"
     assert payload["compatibility_score"] is None
+
+
+def test_connectome_operation_catalog_endpoint(monkeypatch) -> None:
+    client, headers = _authenticated_client(monkeypatch)
+    response = client.get("/v1/connectome/operation-catalog", headers=headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["schema"] == "SQL_CONNECTOME_OPERATION_CATALOG_V1"
+    assert payload["operation_count"] >= 30
+    assert len(payload["operation_catalog_digest"]) == 64
+
+
+def test_connectome_operation_graph_endpoint(monkeypatch) -> None:
+    client, headers = _authenticated_client(monkeypatch)
+    response = client.post(
+        "/v1/connectome/operation-graph",
+        headers=headers,
+        json={
+            "sql": "SELECT COUNT(*), COALESCE(a, 0) FROM t",
+            "dialect": "postgresql",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["schema"] == "SQL_CONNECTOME_OPERATION_GRAPH_V1"
+    semantic_ids = {
+        row["semantic_id"]
+        for row in payload["operations"]
+        if row["semantic_id"] is not None
+    }
+    assert {"aggregate.count", "null.coalesce"}.issubset(semantic_ids)
