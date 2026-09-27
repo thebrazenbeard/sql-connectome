@@ -72,6 +72,31 @@ semantic_id = null
 An unregistered expression is not automatically unsupported. It means SQL Connectome has not yet
 admitted a stable semantic identity for that expression.
 
+## Dialect binding probes
+
+The source-controlled expression binding probe set supplies representative SQL for a bounded subset
+of semantic IDs and records how one declared SQLGlot dialect parser/generator handles each probe.
+
+Possible states are:
+
+- `ROUNDTRIP_BOUND`: source probe parsed to the expected expression class, rendered through the
+  same declared dialect generator, and reparsed to the expected class;
+- `PARSE_FAILED`;
+- `PARSED_WITHOUT_EXPECTED_CLASS`;
+- `PARSE_BOUND_RENDER_FAILED`;
+- `RENDER_REPARSE_FAILED`;
+- `RENDERED_WITHOUT_EXPECTED_CLASS`.
+
+Each result binds the catalog digest, expression-registry digest, and source-controlled probe-set
+digest. Conformance snapshots retain a compact digest/count summary per dialect.
+
+These probes establish parser/generator dependency behavior only. They do not prove that a database
+engine accepts the expression, that the expression executes, or that two dialects implement the
+same semantic ID with equal runtime behavior.
+
+Dialect comparison may report shared/source-only/target-only `ROUNDTRIP_BOUND` semantic IDs. That
+is a set comparison of bounded evidence, not a compatibility score.
+
 ## Risk linkage
 
 Registry identity and semantic-risk analysis are deliberately separate.
