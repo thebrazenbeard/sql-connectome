@@ -492,3 +492,15 @@ def inspect_expression_semantics(
         "evidence_basis": "SOURCE_CONTROLLED_SEMANTIC_REGISTRY",
         "behavioral_equivalence": "NOT_ESTABLISHED",
     }
+
+
+
+def expression_registry_manifest(
+    registry: ExpressionSemanticRegistry = DEFAULT_EXPRESSION_REGISTRY,
+) -> dict[str, object]:
+    manifest = registry.manifest()
+    return {
+        **manifest,
+        "digest": registry.digest,
+        "entry_count": len(registry.entries),
+    }
