@@ -393,6 +393,36 @@ The dedicated type graph is dependency evidence. It does not establish engine ac
 cross-engine behavioral equivalence.
 
 
+### Type semantics in IR
+
+Parsed explicit type nodes are projected into the semantic IR rather than remaining only in
+translation-side analysis.
+
+For each explicit `DataType` node, IR attributes record:
+
+- `type_semantic_state=EXPLICIT`;
+- the normalized dialect type name;
+- the canonical type family;
+- the source-dialect rendering;
+- explicit type parameters such as precision, scale, length, or nested arguments;
+- the evidence basis `PARSED_EXPLICIT_TYPE`.
+
+The IR envelope also binds:
+
+- `source_type_graph_schema=SQL_CONNECTOME_TYPE_GRAPH_V1`;
+- the canonical source-dialect type-graph digest;
+- the current type-semantic coverage ceiling `EXPLICIT_TYPES_ONLY`.
+
+That digest is repeated in IR provenance and is the same digest used by conformance snapshots. This
+cross-binding prevents downstream consumers from interpreting a node's canonical type family
+without knowing the exact coercion/type graph version that informed it.
+
+This does not promote inferred runtime column types into parse-time truth. Schema binding remains a
+separate state, and implicit coercion metadata remains dependency evidence rather than engine proof.
+
+See `TYPE_SYSTEM.md`.
+
+
 ## Differential conformance evidence
 
 SQL Connectome now implements the first bounded differential-execution evidence layer anticipated by
