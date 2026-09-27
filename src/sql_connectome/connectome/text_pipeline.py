@@ -201,11 +201,15 @@ def _expression_semantic_attributes(
         ]
 
     if isinstance(node, exp.Func):
-        source_name = (
-            node.name
-            if isinstance(node, exp.Anonymous)
-            else expression_class
-        )
+        if isinstance(node, exp.Anonymous):
+            source_name = node.name
+        else:
+            sql_name = getattr(node, "sql_name", None)
+            source_name = (
+                str(sql_name())
+                if callable(sql_name)
+                else expression_class
+            )
         return [
             ("semantic_state", "UNREGISTERED"),
             ("semantic_id", None),
