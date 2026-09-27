@@ -4,6 +4,7 @@ from sql_connectome.connectome import (
     canonical_type_family,
     inspect_type_system,
     transpile_sql_text,
+    type_graph_digest,
 )
 
 
@@ -65,3 +66,18 @@ def test_variant_to_json_is_independently_type_lossy() -> None:
     assert {risk["code"] for risk in risks} == {"VARIANT_TO_JSON_REPRESENTATION"}
     assert risks[0]["source_family"] == "VARIANT"
     assert risks[0]["target_family"] == "JSON"
+
+
+
+def test_type_graph_digest_matches_graph_payload() -> None:
+    graph = inspect_type_system("postgresql")
+    digest = type_graph_digest(
+        dialect_id="postgresql",
+        parser_dialect="postgres",
+    )
+
+    assert len(digest) == 64
+    assert digest == type_graph_digest(
+        dialect_id=graph["dialect_id"],
+        parser_dialect=graph["parser_dialect"],
+    )
