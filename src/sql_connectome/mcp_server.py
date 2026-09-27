@@ -15,6 +15,7 @@ from .connectome import (
     bind_sql_text,
     compare_dialects,
     expression_registry_manifest,
+    inspect_expression_bindings,
     inspect_expression_registry,
     inspect_sql_contracts,
     inspect_type_system,
@@ -185,6 +186,14 @@ def build_mcp_server(
         statement = _bounded_sql(sql)
         try:
             return parse_sql_text(statement, dialect).as_dict()
+        except (KeyError, SQLTextError) as exc:
+            raise _tool_error(exc) from exc
+
+    @mcp.tool()
+    def expression_bindings(dialect: str) -> dict[str, Any]:
+        """Probe parser/generator binding for source-controlled semantic IDs."""
+        try:
+            return inspect_expression_bindings(dialect)
         except (KeyError, SQLTextError) as exc:
             raise _tool_error(exc) from exc
 
