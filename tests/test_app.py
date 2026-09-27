@@ -260,3 +260,27 @@ def test_connectome_dialect_comparison_endpoint(monkeypatch) -> None:
     assert payload["target"]["dialect_id"] == "sqlite"
     assert payload["behavioral_equivalence"] == "NOT_ESTABLISHED"
     assert payload["compatibility_score"] is None
+
+
+def test_connectome_expression_semantics_endpoint(monkeypatch) -> None:
+    client, headers = _authenticated_client(monkeypatch)
+    response = client.post(
+        "/v1/connectome/expression-semantics",
+        headers=headers,
+        json={
+            "sql": "SELECT COALESCE(a, b), 5 / 2 FROM events",
+            "dialect": "postgresql",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["schema"] == "SQL_CONNECTOME_EXPRESSION_SEMANTIC_INVENTORY_V1"
+    semantic_ids = {
+        row["semantic_id"]
+        for row in payload["bindings"]
+        if row["semantic_id"] is not None
+    }
+    assert {"function.coalesce", "operator.div"}.issubset(semantic_ids)
+    assert len(payload["catalog_digest"]) == 64
+    assert len(payload["semantic_registry_digest"]) == 64
