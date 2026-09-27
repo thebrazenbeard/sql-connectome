@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .catalog import DEFAULT_CATALOG, ConnectomeCatalog
+from .expression_bindings import probe_expression_dialect_bindings
 from .semantics import dialect_semantic_profile
 from .type_system import dialect_type_graph
 
@@ -54,6 +55,29 @@ def _type_graph_summary(graph: dict[str, object]) -> dict[str, object]:
     }
 
 
+def _expression_binding_summary(
+    payload: dict[str, object],
+) -> dict[str, object]:
+    bound = payload["roundtrip_bound_semantic_ids"]
+    state_counts = payload["state_counts"]
+    assert isinstance(bound, list)
+    assert isinstance(state_counts, dict)
+
+    return {
+        "dialect_id": payload["dialect_id"],
+        "parser_dialect": payload["parser_dialect"],
+        "probe_count": payload["probe_count"],
+        "state_counts": state_counts,
+        "roundtrip_bound_count": len(bound),
+        "roundtrip_bound_semantic_ids": bound,
+        "probe_set_digest": payload["probe_set_digest"],
+        "semantic_registry_digest": payload["semantic_registry_digest"],
+        "evidence_basis": payload["evidence_basis"],
+        "evidence_scope": payload["evidence_scope"],
+        "evidence_ceiling": payload["evidence_ceiling"],
+    }
+
+
 def compare_dialects(
     source_dialect: str,
     target_dialect: str,
@@ -75,6 +99,18 @@ def compare_dialects(
         dialect_id=target.dialect_id,
         parser_dialect=target_parser,
     )
+    source_bindings = probe_expression_dialect_bindings(
+        dialect_id=source.dialect_id,
+        parser_dialect=source_parser,
+        catalog_digest=catalog.digest,
+    )
+    target_bindings = probe_expression_dialect_bindings(
+        dialect_id=target.dialect_id,
+        parser_dialect=target_parser,
+        catalog_digest=catalog.digest,
+    )
+    source_bound = frozenset(source_bindings["roundtrip_bound_semantic_ids"])
+    target_bound = frozenset(target_bindings["roundtrip_bound_semantic_ids"])
 
     return {
         "schema": "SQL_CONNECTOME_DIALECT_COMPARISON_V1",
@@ -108,6 +144,11 @@ def compare_dialects(
         "type_graphs": {
             "source": _type_graph_summary(source_graph),
             "target": _type_graph_summary(target_graph),
+        },
+        "expression_bindings": {
+            "source": _expression_binding_summary(source_bindings),
+            "target": _expression_binding_summary(target_bindings),
+            "roundtrip_bound": _set_comparison(source_bound, target_bound),
         },
         "compatibility_score": None,
         "behavioral_equivalence": "NOT_ESTABLISHED",
