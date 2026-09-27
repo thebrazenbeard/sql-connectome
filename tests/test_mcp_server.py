@@ -14,6 +14,7 @@ EXPECTED_TOOLS = {
     "sql_dialects",
     "probe_sql_dialect",
     "parse_sql",
+    "expression_bindings",
     "expression_contracts",
     "expression_registry",
     "expression_semantics",
@@ -76,6 +77,13 @@ def test_semantic_mcp_tool_roundtrip() -> None:
             )
             assert result.is_error is False
             assert result.structured_content is not None
+
+            binding_evidence = await client.call_tool(
+                "expression_bindings",
+                {"dialect": "postgresql"},
+            )
+            assert binding_evidence.is_error is False
+            assert binding_evidence.structured_content is not None
 
             contracts = await client.call_tool(
                 "expression_contracts",
