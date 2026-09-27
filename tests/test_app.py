@@ -284,3 +284,20 @@ def test_connectome_expression_semantics_endpoint(monkeypatch) -> None:
     assert {"function.coalesce", "operator.div"}.issubset(semantic_ids)
     assert len(payload["catalog_digest"]) == 64
     assert len(payload["semantic_registry_digest"]) == 64
+
+
+def test_connectome_expression_registry_manifest_endpoint(monkeypatch) -> None:
+    client, headers = _authenticated_client(monkeypatch)
+    response = client.get(
+        "/v1/connectome/expression-registry",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["schema"] == "SQL_CONNECTOME_EXPRESSION_SEMANTIC_REGISTRY_V1"
+    assert payload["entry_count"] >= 30
+    assert len(payload["digest"]) == 64
+    semantic_ids = {row["semantic_id"] for row in payload["entries"]}
+    assert "function.coalesce" in semantic_ids
+    assert "operator.div" in semantic_ids
