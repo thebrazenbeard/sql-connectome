@@ -9,6 +9,7 @@ from .connectome import (
     SQLTextError,
     bind_sql_text,
     compare_dialects,
+    expression_registry_manifest,
     inspect_expression_registry,
     inspect_sql_contracts,
     inspect_type_system,
@@ -92,6 +93,14 @@ def post_connectome_translation_plan(request: TranslationPlanRequest) -> dict[st
 
 
 
+
+
+@app.get(
+    "/v1/connectome/expression-registry",
+    dependencies=[Depends(require_bearer)],
+)
+def get_connectome_expression_registry() -> dict[str, object]:
+    return expression_registry_manifest()
 
 
 @app.get("/v1/connectome/type-graph", dependencies=[Depends(require_bearer)])
