@@ -14,6 +14,8 @@ from .connectome import (
     SQLTextError,
     bind_sql_text,
     compare_dialects,
+    expression_registry_manifest,
+    inspect_expression_registry,
     inspect_sql_contracts,
     inspect_type_system,
     list_dialects,
@@ -183,6 +185,20 @@ def build_mcp_server(
         statement = _bounded_sql(sql)
         try:
             return parse_sql_text(statement, dialect).as_dict()
+        except (KeyError, SQLTextError) as exc:
+            raise _tool_error(exc) from exc
+
+    @mcp.tool()
+    def expression_registry() -> dict[str, Any]:
+        """List source-controlled semantic IDs for admitted functions/operators."""
+        return expression_registry_manifest()
+
+    @mcp.tool()
+    def expression_semantics(sql: str, dialect: str) -> dict[str, Any]:
+        """Map query expressions to stable semantic IDs and known risk links."""
+        statement = _bounded_sql(sql)
+        try:
+            return inspect_expression_registry(statement, dialect)
         except (KeyError, SQLTextError) as exc:
             raise _tool_error(exc) from exc
 

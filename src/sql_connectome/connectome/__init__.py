@@ -5,6 +5,13 @@ from .catalog import (
     ConnectomeCatalog,
 )
 from .compare import compare_dialects
+from .expression_registry import (
+    DEFAULT_EXPRESSION_REGISTRY,
+    ExpressionSemantic,
+    ExpressionSemanticKind,
+    ExpressionSemanticRegistry,
+    expression_registry_manifest,
+)
 from .ir import IREdge, IRNode, SQLSemanticIR, TranslationLoss
 from .model import (
     AppliedRewrite,
@@ -26,6 +33,7 @@ from .semantics import (
 from .text_pipeline import (
     SQLTextAnalysis,
     SQLTextError,
+    inspect_expression_registry,
     inspect_sql_contracts,
     inspect_type_system,
     parse_sql_text,
@@ -50,6 +58,12 @@ __all__ = [
     "bind_sql_text",
     "ConnectomeCatalog",
     "DEFAULT_CATALOG",
+    "inspect_expression_registry",
+    "ExpressionSemanticRegistry",
+    "expression_registry_manifest",
+    "ExpressionSemanticKind",
+    "ExpressionSemantic",
+    "DEFAULT_EXPRESSION_REGISTRY",
     "DEFAULT_DIALECTS",
     "DEFAULT_PARSER_ADAPTERS",
     "DEFAULT_REWRITE_RULES",

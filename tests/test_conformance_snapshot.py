@@ -3,7 +3,7 @@ import os
 import subprocess
 import sys
 
-from sql_connectome.connectome import DEFAULT_CATALOG
+from sql_connectome.connectome import DEFAULT_CATALOG, DEFAULT_EXPRESSION_REGISTRY
 
 
 def test_conformance_snapshot_generator(tmp_path) -> None:
@@ -29,6 +29,10 @@ def test_conformance_snapshot_generator(tmp_path) -> None:
     assert snapshot["catalog"]["admission"] == "SOURCE_CONTROLLED_DEFAULT"
     assert snapshot["catalog"]["automatic_plugin_discovery"] is False
     assert snapshot["catalog"]["digest"] == DEFAULT_CATALOG.digest
+    semantic_registry = snapshot["expression_semantic_registry"]
+    assert semantic_registry["admission"] == "SOURCE_CONTROLLED_DEFAULT"
+    assert semantic_registry["digest"] == DEFAULT_EXPRESSION_REGISTRY.digest
+    assert semantic_registry["entry_count"] == len(DEFAULT_EXPRESSION_REGISTRY.entries)
     assert len(snapshot["snapshot_digest"]) == 64
 
     dialect_ids = {row["dialect_id"] for row in snapshot["dialects"]}

@@ -9,6 +9,8 @@ from .connectome import (
     SQLTextError,
     bind_sql_text,
     compare_dialects,
+    expression_registry_manifest,
+    inspect_expression_registry,
     inspect_sql_contracts,
     inspect_type_system,
     list_dialects,
@@ -93,10 +95,31 @@ def post_connectome_translation_plan(request: TranslationPlanRequest) -> dict[st
 
 
 
+@app.get(
+    "/v1/connectome/expression-registry",
+    dependencies=[Depends(require_bearer)],
+)
+def get_connectome_expression_registry() -> dict[str, object]:
+    return expression_registry_manifest()
+
+
 @app.get("/v1/connectome/type-graph", dependencies=[Depends(require_bearer)])
 def get_connectome_type_graph(dialect: str) -> dict[str, object]:
     try:
         return inspect_type_system(dialect)
+    except (KeyError, SQLTextError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post(
+    "/v1/connectome/expression-semantics",
+    dependencies=[Depends(require_bearer)],
+)
+def post_connectome_expression_semantics(
+    request: SQLParseRequest,
+) -> dict[str, object]:
+    try:
+        return inspect_expression_registry(request.sql, request.dialect)
     except (KeyError, SQLTextError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

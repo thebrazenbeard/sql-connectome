@@ -71,6 +71,7 @@ The current semantic-core slice includes:
 - hardened in-memory SQLite target validation through EXPLAIN QUERY PLAN with query-only mode and a compile-time authorizer;
 - end-to-end foreign-dialect → PostgreSQL translation qualification with one provenance receipt;
 - expression-level function/operator/type inventories and dialect-semantic risk ceilings;
+- a governed expression-semantic registry with stable function/operator IDs and explicit unknowns;
 - canonical type families plus dialect coercion graphs with explicit type-projection fidelity;
 - bounded differential conformance probes across DuckDB, SQLite, and PostgreSQL with fixture-scoped agreement/divergence evidence;
 - query-scoped expression contracts exposing argument shape, type rules, and dialect coercions.
@@ -104,7 +105,8 @@ Differential engine evidence is fixture-bounded and does not establish universal
 
 The source-controlled MCP v2 server exposes the semantic plane and governed PostgreSQL read
 substrate over Streamable HTTP. Its current tool surface includes dialect inventory/comparison,
-dialect probing/parsing, translation planning/transpilation, type/coercion graph inspection, PostgreSQL validation/qualification, schema/runtime inspection,
+dialect probing/parsing, expression semantic/contract inspection, translation planning/transpilation,
+type/coercion graph inspection, PostgreSQL validation/qualification, schema/runtime inspection,
 bounded read-only queries, migration-state inspection, and Lantern current-cut reads.
 
 No protected write tool is exposed. Network deployment fails closed unless MCP resource-server

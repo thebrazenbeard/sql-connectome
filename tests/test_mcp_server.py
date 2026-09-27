@@ -15,6 +15,8 @@ EXPECTED_TOOLS = {
     "probe_sql_dialect",
     "parse_sql",
     "expression_contracts",
+    "expression_registry",
+    "expression_semantics",
     "bind_sql",
     "translation_plan",
     "transpile_sql",
@@ -81,6 +83,20 @@ def test_semantic_mcp_tool_roundtrip() -> None:
             )
             assert contracts.is_error is False
             assert contracts.structured_content is not None
+
+            registry = await client.call_tool(
+                "expression_registry",
+                {},
+            )
+            assert registry.is_error is False
+            assert registry.structured_content is not None
+
+            semantic_inventory = await client.call_tool(
+                "expression_semantics",
+                {"sql": "SELECT COALESCE(NULL, 1)", "dialect": "postgresql"},
+            )
+            assert semantic_inventory.is_error is False
+            assert semantic_inventory.structured_content is not None
 
             type_graph_result = await client.call_tool(
                 "type_graph",

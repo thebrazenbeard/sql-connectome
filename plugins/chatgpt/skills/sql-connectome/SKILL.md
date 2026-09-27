@@ -25,6 +25,7 @@ Preserve this separation:
 - Dialect comparison reports admitted/dependency evidence, not a compatibility score or proof of behavioral equivalence.
 - Dialect probing provides ranked evidence, not proof of identity.
 - Translation fidelity is not behavioral equivalence.
+- A registered expression semantic ID identifies an operation; it does not prove equal runtime behavior across dialects.
 - Type/coercion metadata is dependency evidence, not engine proof; missing edges mean unknown, not unsupported.
 - Target parser acceptance is not target-engine validation.
 - PostgreSQL EXPLAIN validation is not query execution.
@@ -40,7 +41,8 @@ tools.
 - Use dialect comparison when the user needs explicit capability, semantic-dimension, dialect-flag, or type/coercion differences between two admitted dialects.
 - Use dialect probing when source dialect is uncertain.
 - Parse before making semantic claims about unfamiliar SQL.
-- Inspect expression contracts when function/operator semantics may differ across dialects.
+- Inspect the expression registry/inventory when stable function/operator identity or known semantic-risk links matter.
+- Inspect expression contracts when parser/type metadata for a function or operator matters.
 - Inspect the type graph when dialect type aliases, implicit coercions, or explicit cast representation may affect fidelity.
 - Use translation planning before transpiling when capability differences matter.
 - Do not silently enable lossy translation.

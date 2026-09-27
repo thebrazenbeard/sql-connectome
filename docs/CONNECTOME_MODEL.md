@@ -295,6 +295,36 @@ combined_fidelity = LOSSY
 That is intentional. Feature availability is not semantic equivalence.
 
 
+## Governed expression semantic registry
+
+The V1 expression registry makes `F` explicit for a bounded set of functions, aggregates,
+operators, control expressions, and conversions.
+
+Each admitted semantic entry has:
+
+- a stable connectome semantic ID such as `function.coalesce`, `aggregate.count`, or
+  `operator.div`;
+- the normalized SQLGlot expression class used as the current parser binding;
+- a semantic kind and family;
+- semantic argument-role names;
+- links to source-controlled risk rules already used by translation fidelity;
+- optional notes.
+
+The registry is immutable at runtime, source-controlled, and has its own canonical digest.
+Conformance snapshots bind that digest independently of the dialect catalog digest.
+
+A query-scoped inventory maps expression classes actually present in one parsed statement to the
+registry. Unknown functions remain explicitly `UNREGISTERED`; SQL Connectome does not guess a
+semantic identity from spelling similarity.
+
+Semantic identity is not behavioral equivalence. For example, `operator.div` identifies the
+division operation while existing dialect flags may still cap a translation at `LOSSY` because
+integer division or division-by-zero behavior differs.
+
+The registry is deliberately incomplete. Absence means `UNREGISTERED`, not unsupported.
+
+See `EXPRESSION_SEMANTICS.md`.
+
 ## Query-scoped expression contracts
 
 SQL Connectome can now inspect the expression classes actually present in a query and expose their
