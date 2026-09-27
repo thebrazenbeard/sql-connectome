@@ -27,6 +27,7 @@ Preserve this separation:
 - Translation fidelity is not behavioral equivalence.
 - A registered expression semantic ID identifies an operation; it does not prove equal runtime behavior across dialects.
 - Type/coercion metadata is dependency evidence, not engine proof; missing edges mean unknown, not unsupported.
+- Treat source IR and bound IR as separate evidence states; qualification/star expansion may change bound graph shape.
 - Target parser acceptance is not target-engine validation.
 - PostgreSQL EXPLAIN validation is not query execution.
 - DuckDB EXPLAIN validation is not query execution or cross-engine behavioral equivalence.
