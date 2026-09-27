@@ -9,6 +9,7 @@ import sqlglot
 
 from sql_connectome.connectome import (
     DEFAULT_CATALOG,
+    DEFAULT_EXPRESSION_REGISTRY,
     dialect_semantic_profile,
     dialect_type_graph,
     list_dialects,
@@ -72,6 +73,11 @@ def build_snapshot() -> dict[str, object]:
             "admission": "SOURCE_CONTROLLED_DEFAULT",
             "automatic_plugin_discovery": False,
             "digest": DEFAULT_CATALOG.digest,
+        },
+        "expression_semantic_registry": {
+            "admission": "SOURCE_CONTROLLED_DEFAULT",
+            "digest": DEFAULT_EXPRESSION_REGISTRY.digest,
+            "entry_count": len(DEFAULT_EXPRESSION_REGISTRY.entries),
         },
         "dialects": dialects,
         "rewrite_rules": rewrites,
