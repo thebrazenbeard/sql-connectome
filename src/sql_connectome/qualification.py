@@ -32,6 +32,7 @@ def qualify_translation_to_postgresql(
     target_runtime = engine["runtime"]
 
     subject = {
+        "catalog_digest": translation["catalog_digest"],
         "source_dialect": source_dialect,
         "target_dialect": "postgresql",
         "source_sql_digest": canonical_digest(sql.strip()),

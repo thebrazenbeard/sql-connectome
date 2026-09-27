@@ -75,3 +75,19 @@ jobs:
 
       - name: Test
         run: pytest -q
+
+
+  container-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build runtime image
+        run: docker build --tag sql-connectome-ci .
+
+      - name: Qualify runtime image
+        run: >-
+          docker run --rm sql-connectome-ci
+          python -c "import platform; import sql_connectome; from sql_connectome.app import app; import sql_connectome.mcp_server as mcp_server; assert platform.python_version_tuple()[:2] == ('3', '14'); assert app.title == 'SQL Connectome'; assert callable(mcp_server.build_mcp_server); print('container-python=' + platform.python_version()); print('sql-connectome=' + sql_connectome.__version__)"

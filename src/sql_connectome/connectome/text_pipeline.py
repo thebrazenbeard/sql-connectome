@@ -104,10 +104,12 @@ class SQLTextAnalysis:
     normalized_sql: str
     parser_dialect: str
     parser_version: str
+    catalog_digest: str
 
     def as_dict(self) -> dict[str, object]:
         return {
             "normalized_sql": self.normalized_sql,
+            "catalog_digest": self.catalog_digest,
             "parser": {
                 "engine": "sqlglot",
                 "version": self.parser_version,
@@ -342,6 +344,7 @@ def parse_sql_text(
         normalized_sql=expression.sql(dialect=parser_dialect),
         parser_dialect=parser_dialect,
         parser_version=sqlglot.__version__,
+        catalog_digest=catalog.digest,
     )
 
 
@@ -355,11 +358,13 @@ def inspect_sql_contracts(
     text = _bounded_text(sql)
     dialect_id, parser_dialect = _dialect_adapter(dialect, catalog=catalog)
     expression = _parse_single_expression(text, parser_dialect)
-    return expression_contracts(
+    result = expression_contracts(
         expression,
         dialect_id=dialect_id,
         parser_dialect=parser_dialect,
     )
+    result["catalog_digest"] = catalog.digest
+    return result
 
 
 def inspect_type_system(
@@ -368,10 +373,12 @@ def inspect_type_system(
     catalog: ConnectomeCatalog = DEFAULT_CATALOG,
 ) -> dict[str, object]:
     dialect_id, parser_dialect = _dialect_adapter(dialect, catalog=catalog)
-    return dialect_type_graph(
+    result = dialect_type_graph(
         dialect_id=dialect_id,
         parser_dialect=parser_dialect,
     )
+    result["catalog_digest"] = catalog.digest
+    return result
 
 
 def transpile_sql_text(
@@ -446,6 +453,7 @@ def transpile_sql_text(
     target = parse_sql_text(generated, target_id, catalog=catalog)
 
     return {
+        "catalog_digest": catalog.digest,
         "source": source.as_dict(),
         "target_sql": generated,
         "target_parse": target.as_dict(),

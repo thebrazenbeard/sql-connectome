@@ -32,6 +32,7 @@ def test_mysql_translation_qualifies_against_real_postgresql() -> None:
     assert result["qualification"]["query_executed"] is False
     assert result["engine_validation"]["validation"]["status"] == "PASS"
     assert len(result["receipt"]["receipt_digest"]) == 64
+    assert result["receipt"]["subject"]["catalog_digest"] == result["translation"]["catalog_digest"]
 
 
 def test_bigquery_qualify_constructive_rewrite_plans_on_postgresql() -> None:
