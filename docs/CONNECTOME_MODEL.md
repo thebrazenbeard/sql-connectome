@@ -208,6 +208,45 @@ This separation allows future engine-backed prepare/EXPLAIN validation or differ
 strengthen the evidence without retroactively redefining a parser/optimizer result as runtime truth.
 
 
+### Bound semantic IR
+
+Static binding now emits a second semantic graph rather than mutating the parse-time source IR.
+
+`source.ir` remains the graph derived from declared-dialect parsing.
+
+`bound_semantics.ir` is rebuilt from SQLGlot's qualified and statically typed AST after applying the
+caller-supplied schema context. Its nodes retain the ordinary expression/type semantic attributes and
+add binding evidence:
+
+- `binding_type_state=ANNOTATED|UNKNOWN`;
+- `binding_type_sql`;
+- `binding_type_canonical_family`;
+- `binding_type_evidence_basis=SQLGLOT_STATIC_SCHEMA_ANNOTATION`;
+- qualified table/column identity on column nodes.
+
+The bound IR envelope cross-binds:
+
+- the canonical schema digest;
+- the exact source-IR digest;
+- `binding_state=STATIC_BOUND`;
+- the aggregate type-annotation ceiling.
+
+The outer binding response separately records a digest of the bound IR. This avoids a circular
+self-digest while making both source and bound graphs independently addressable.
+
+Qualification may expand stars or add identifier qualification, so source and bound graphs are not
+required to have identical node IDs or shapes. That is intentional: the bound graph is a distinct
+evidence state.
+
+Unknown projection types now contribute to the `PARTIAL` annotation ceiling even when every column
+type is known. The legacy `unknown_type_count` retains its column-count meaning; new fields expose
+column, projection, and combined unknown-type counts explicitly.
+
+The claim boundary is:
+
+`PARSED_IR != STATIC_BOUND_IR != ENGINE_VALIDATED_IR`
+
+
 ## Target-engine validation
 
 Static parsing and schema binding can now be strengthened for the PostgreSQL execution substrate by
