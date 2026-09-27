@@ -327,6 +327,14 @@ Parsed semantic IR nodes now carry the registered semantic identity/state direct
 envelope binds the exact registry digest in semantic extensions and provenance. This makes the
 function/operator layer part of the core graph rather than a sidecar lookup result.
 
+A separate source-controlled probe set tests whether representative syntax for selected semantic
+IDs parses to the expected normalized expression class, renders through the declared SQLGlot
+dialect generator, and reparses to that class. Probe outcomes such as `ROUNDTRIP_BOUND` are
+dependency behavior only. They do not establish target-engine support or equal runtime semantics.
+
+Dialect comparison may compare the sets of semantic IDs that round-trip under these probes, but it
+still emits no compatibility score and does not generalize beyond the source-controlled corpus.
+
 See `EXPRESSION_SEMANTICS.md`.
 
 ## Query-scoped expression contracts
