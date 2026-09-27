@@ -12,6 +12,7 @@ from sql_connectome.receipts import canonical_digest
 from .catalog import DEFAULT_CATALOG, ConnectomeCatalog
 from .ir import SQLSemanticIR
 from .text_pipeline import (
+    SQLTextAnalysis,
     SQLTextError,
     _bounded_text,
     _expression_graph,
@@ -70,7 +71,7 @@ def _binding_node_attributes(node: exp.Expression) -> list[tuple[str, Any]]:
 def _build_bound_ir(
     typed: exp.Expression,
     *,
-    source_analysis: Any,
+    source_analysis: SQLTextAnalysis,
     dialect_id: str,
     adapter: str,
     schema_digest: str,
@@ -203,10 +204,12 @@ def bind_sql_text(
                 }
             )
 
-    unknown_type_count = (
+    unknown_binding_type_count = (
         unknown_column_type_count + unknown_projection_type_count
     )
-    type_annotation = "PARTIAL" if unknown_type_count else "ANNOTATED"
+    type_annotation = (
+        "PARTIAL" if unknown_binding_type_count else "ANNOTATED"
+    )
     schema_digest = canonical_digest(schema)
     bound_ir_payload, source_ir_digest, bound_ir_digest = _build_bound_ir(
         typed,
@@ -229,9 +232,10 @@ def bind_sql_text(
             "status": "STATIC_BOUND",
             "type_annotation": type_annotation,
             "type_annotation_scope": "COLUMNS_AND_PROJECTIONS",
-            "unknown_type_count": unknown_type_count,
+            "unknown_type_count": unknown_column_type_count,
             "unknown_column_type_count": unknown_column_type_count,
             "unknown_projection_type_count": unknown_projection_type_count,
+            "unknown_binding_type_count": unknown_binding_type_count,
             "source_ir_digest": source_ir_digest,
             "bound_ir_digest": bound_ir_digest,
             "engine_validation": "NOT_RUN",
