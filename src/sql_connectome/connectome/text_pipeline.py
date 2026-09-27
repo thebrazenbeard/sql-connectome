@@ -11,8 +11,8 @@ from sqlglot.errors import ParseError, UnsupportedError
 
 from .catalog import DEFAULT_CATALOG, DEFAULT_PARSER_ADAPTERS, ConnectomeCatalog
 from .contracts import expression_contracts
+from .expression_registry import DEFAULT_EXPRESSION_REGISTRY
 from .expression_registry import (
-    DEFAULT_EXPRESSION_REGISTRY,
     inspect_expression_semantics as _inspect_expression_semantics,
 )
 from .ir import IREdge, IRNode, SQLSemanticIR
