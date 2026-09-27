@@ -4,6 +4,7 @@ from .catalog import (
     DEFAULT_PARSER_ADAPTERS,
     ConnectomeCatalog,
 )
+from .compare import compare_dialects
 from .ir import IREdge, IRNode, SQLSemanticIR, TranslationLoss
 from .model import (
     AppliedRewrite,
@@ -67,6 +68,7 @@ __all__ = [
     "TranslationPlan",
     "assess_expression_semantics",
     "combined_fidelity",
+    "compare_dialects",
     "dialect_semantic_profile",
     "inspect_sql_contracts",
     "list_dialects",

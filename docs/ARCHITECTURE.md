@@ -25,7 +25,8 @@ The semantic plane owns:
 7. **Parser/generator adapters** — components that map text into/out of semantic IR.
 8. **Validation adapters** — static binding plus target-engine qualification paths. PostgreSQL performs read-only, non-ANALYZE `EXPLAIN` validation; DuckDB performs hardened in-memory `EXPLAIN` validation with external access and extension autoload/install disabled; SQLite performs in-memory `EXPLAIN QUERY PLAN` validation under query-only mode and a compile-time SELECT/READ/function authorizer.
 
-9. **Differential conformance** — bounded source-controlled probes compare normalized values and type families across qualified engine runtimes without upgrading fixture evidence into general behavioral equivalence.
+9. **Dialect comparison evidence** — catalog-bound capability/dimension deltas plus pinned SQLGlot semantic-flag and type/coercion summaries, with no compatibility score or behavioral-equivalence claim.
+10. **Differential conformance** — bounded source-controlled probes compare normalized values and type families across qualified engine runtimes without upgrading fixture evidence into general behavioral equivalence.
 
 The semantic plane follows:
 
@@ -59,6 +60,7 @@ does not make PostgreSQL the meaning of a foreign dialect.
 The semantic slice exposes:
 
 - `GET /v1/connectome/dialects`
+- `GET /v1/connectome/compare?source_dialect=...&target_dialect=...`
 - `GET /v1/connectome/type-graph?dialect=...`
 - `POST /v1/connectome/translation-plan`
 

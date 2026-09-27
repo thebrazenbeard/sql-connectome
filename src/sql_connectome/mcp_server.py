@@ -13,6 +13,7 @@ from .config import Settings, get_settings
 from .connectome import (
     SQLTextError,
     bind_sql_text,
+    compare_dialects,
     inspect_sql_contracts,
     inspect_type_system,
     list_dialects,
@@ -145,6 +146,17 @@ def build_mcp_server(
         """List admitted SQL dialect genomes and their current capability knowledge."""
         dialects = list_dialects()
         return {"dialects": dialects, "count": len(dialects)}
+
+    @mcp.tool()
+    def compare_sql_dialects(
+        source_dialect: str,
+        target_dialect: str,
+    ) -> dict[str, Any]:
+        """Compare admitted dialect evidence without claiming behavioral equivalence."""
+        try:
+            return compare_dialects(source_dialect, target_dialect)
+        except (KeyError, ValueError) as exc:
+            raise _tool_error(exc) from exc
 
     @mcp.tool()
     def type_graph(dialect: str) -> dict[str, Any]:

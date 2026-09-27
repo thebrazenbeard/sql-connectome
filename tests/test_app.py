@@ -240,3 +240,23 @@ def test_connectome_type_graph_endpoint(monkeypatch) -> None:
     assert payload["dialect_id"] == "postgresql"
     assert payload["evidence_ceiling"] == "DEPENDENCY_METADATA"
     assert "INTEGER" in payload["canonical_families"]
+
+
+def test_connectome_dialect_comparison_endpoint(monkeypatch) -> None:
+    client, headers = _authenticated_client(monkeypatch)
+    response = client.get(
+        "/v1/connectome/compare",
+        headers=headers,
+        params={
+            "source_dialect": "postgresql",
+            "target_dialect": "sqlite",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["schema"] == "SQL_CONNECTOME_DIALECT_COMPARISON_V1"
+    assert payload["source"]["dialect_id"] == "postgresql"
+    assert payload["target"]["dialect_id"] == "sqlite"
+    assert payload["behavioral_equivalence"] == "NOT_ESTABLISHED"
+    assert payload["compatibility_score"] is None
