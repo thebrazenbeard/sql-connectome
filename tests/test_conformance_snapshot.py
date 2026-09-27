@@ -3,7 +3,11 @@ import os
 import subprocess
 import sys
 
-from sql_connectome.connectome import DEFAULT_CATALOG, DEFAULT_EXPRESSION_REGISTRY
+from sql_connectome.connectome import (
+    DEFAULT_CATALOG,
+    DEFAULT_EXPRESSION_REGISTRY,
+    type_graph_digest,
+)
 
 
 def test_conformance_snapshot_generator(tmp_path) -> None:
@@ -46,6 +50,10 @@ def test_conformance_snapshot_generator(tmp_path) -> None:
     assert postgres_type_graph["dialect_type_count"] >= 0
     assert postgres_type_graph["implicit_coercion_count"] >= 0
     assert len(postgres_type_graph["type_graph_digest"]) == 64
+    assert postgres_type_graph["type_graph_digest"] == type_graph_digest(
+        dialect_id="postgresql",
+        parser_dialect="postgres",
+    )
 
     rewrite_names = {row["name"] for row in snapshot["rewrite_rules"]}
     assert "qualify-via-derived-table" in rewrite_names

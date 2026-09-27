@@ -73,6 +73,7 @@ The current semantic-core slice includes:
 - expression-level function/operator/type inventories and dialect-semantic risk ceilings;
 - a governed expression-semantic registry with stable function/operator IDs and explicit unknowns;
 - canonical type families plus dialect coercion graphs with explicit type-projection fidelity;
+- explicit parsed type identities embedded directly in semantic IR nodes with source type-graph provenance;
 - bounded differential conformance probes across DuckDB, SQLite, and PostgreSQL with fixture-scoped agreement/divergence evidence;
 - query-scoped expression contracts exposing argument shape, type rules, and dialect coercions.
 

@@ -22,7 +22,9 @@ from .semantics import assess_expression_semantics, combined_fidelity
 from .type_system import (
     assess_type_semantics,
     dialect_type_graph,
+    explicit_type_semantic,
     rewrite_type_representations,
+    type_graph_digest,
 )
 
 MAX_SQL_TEXT_CHARS = 50_000
@@ -219,7 +221,26 @@ def _expression_semantic_attributes(
     return []
 
 
-def _expression_graph(expression: exp.Expression) -> tuple[
+def _type_semantic_attributes(
+    node: exp.Expression,
+    *,
+    parser_dialect: str,
+) -> list[tuple[str, Any]]:
+    if not isinstance(node, exp.DataType):
+        return []
+
+    semantic = explicit_type_semantic(
+        node,
+        parser_dialect=parser_dialect,
+    )
+    return list(semantic.ir_attributes())
+
+
+def _expression_graph(
+    expression: exp.Expression,
+    *,
+    parser_dialect: str,
+) -> tuple[
     tuple[str, ...],
     tuple[IRNode, ...],
     tuple[IREdge, ...],
@@ -236,6 +257,12 @@ def _expression_graph(expression: exp.Expression) -> tuple[
         node_id = f"n{len(nodes)}"
         attributes: list[tuple[str, Any]] = [("expression_key", node.key)]
         attributes.extend(_expression_semantic_attributes(node))
+        attributes.extend(
+            _type_semantic_attributes(
+                node,
+                parser_dialect=parser_dialect,
+            )
+        )
 
         if isinstance(node, exp.Table):
             attributes.append(("name", node.name))
@@ -358,7 +385,14 @@ def parse_sql_text(
     except ValueError as exc:
         raise SQLTextError(str(exc)) from exc
 
-    roots, nodes, edges = _expression_graph(expression)
+    source_type_graph_digest = type_graph_digest(
+        dialect_id=dialect_id,
+        parser_dialect=parser_dialect,
+    )
+    roots, nodes, edges = _expression_graph(
+        expression,
+        parser_dialect=parser_dialect,
+    )
     ir = SQLSemanticIR(
         operation=expression.key.upper(),
         source_dialect=dialect_id,
@@ -380,11 +414,24 @@ def parse_sql_text(
                 "expression_semantic_registry_schema",
                 "SQL_CONNECTOME_EXPRESSION_SEMANTIC_REGISTRY_V1",
             ),
+            (
+                "source_type_graph_schema",
+                "SQL_CONNECTOME_TYPE_GRAPH_V1",
+            ),
+            (
+                "source_type_graph_digest",
+                source_type_graph_digest,
+            ),
+            (
+                "type_semantic_coverage",
+                "EXPLICIT_TYPES_ONLY",
+            ),
         ),
         provenance=(
             f"parser:sqlglot:{sqlglot.__version__}",
             f"dialect:{dialect_id}:{genome.version_selector}",
             f"expression-registry:{DEFAULT_EXPRESSION_REGISTRY.digest}",
+            f"type-graph:{dialect_id}:{source_type_graph_digest}",
         ),
     )
     ir.validate_graph()

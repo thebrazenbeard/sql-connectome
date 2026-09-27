@@ -13,6 +13,7 @@ from sql_connectome.connectome import (
     dialect_semantic_profile,
     dialect_type_graph,
     list_dialects,
+    type_graph_digest,
 )
 from sql_connectome.receipts import canonical_digest
 
@@ -50,7 +51,10 @@ def build_snapshot() -> dict[str, object]:
             type_graph_summary = {
                 "dialect_type_count": len(type_graph["dialect_types"]),
                 "implicit_coercion_count": len(type_graph["implicit_coercions"]),
-                "type_graph_digest": canonical_digest(type_graph),
+                "type_graph_digest": type_graph_digest(
+                    dialect_id=dialect_id,
+                    parser_dialect=parser_dialect,
+                ),
             }
 
         dialects.append(
