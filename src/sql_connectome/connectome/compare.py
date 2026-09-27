@@ -153,5 +153,5 @@ def compare_dialects(
         "compatibility_score": None,
         "behavioral_equivalence": "NOT_ESTABLISHED",
         "generalization": "NOT_ESTABLISHED",
-        "evidence_scope": "CATALOG_AND_PINNED_DEPENDENCY_METADATA",
+        "evidence_scope": "CATALOG_AND_PINNED_DEPENDENCY_EVIDENCE",
     }
