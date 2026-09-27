@@ -9,6 +9,8 @@ from sqlglot import ErrorLevel, exp
 from sqlglot.dialects import Dialect
 from sqlglot.errors import ParseError, UnsupportedError
 
+from sql_connectome.receipts import canonical_digest
+
 from .model import TranslationFidelity
 from .registry import DEFAULT_DIALECTS
 
@@ -127,6 +129,24 @@ class TypeProjectionRisk:
         }
 
 
+@dataclass(frozen=True, slots=True)
+class ExplicitTypeSemantic:
+    dialect_type: str
+    canonical_family: CanonicalTypeFamily
+    source_sql: str
+    parameters: tuple[str, ...]
+
+    def ir_attributes(self) -> tuple[tuple[str, object], ...]:
+        return (
+            ("type_semantic_state", "EXPLICIT"),
+            ("type_dialect_name", self.dialect_type),
+            ("type_canonical_family", self.canonical_family.value),
+            ("type_source_sql", self.source_sql),
+            ("type_parameters", self.parameters),
+            ("type_evidence_basis", "PARSED_EXPLICIT_TYPE"),
+        )
+
+
 def _dtype_name(value: object) -> str:
     if isinstance(value, exp.DType):
         return value.value.upper()
@@ -144,6 +164,32 @@ def _type_parameters(node: exp.DataType, parser_dialect: str) -> tuple[str, ...]
     return tuple(
         parameter.sql(dialect=parser_dialect)
         for parameter in node.expressions
+    )
+
+
+def explicit_type_semantic(
+    node: exp.DataType,
+    *,
+    parser_dialect: str,
+) -> ExplicitTypeSemantic:
+    return ExplicitTypeSemantic(
+        dialect_type=_dtype_name(node.this),
+        canonical_family=canonical_type_family(node.this),
+        source_sql=node.sql(dialect=parser_dialect),
+        parameters=_type_parameters(node, parser_dialect),
+    )
+
+
+def type_graph_digest(
+    *,
+    dialect_id: str,
+    parser_dialect: str,
+) -> str:
+    return canonical_digest(
+        dialect_type_graph(
+            dialect_id=dialect_id,
+            parser_dialect=parser_dialect,
+        )
     )
 
 
