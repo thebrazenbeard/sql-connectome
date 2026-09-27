@@ -4,6 +4,7 @@ from sql_connectome.connectome import (
     DEFAULT_CATALOG,
     DEFAULT_EXPRESSION_REGISTRY,
     SQLTextError,
+    type_graph_digest,
     parse_sql_text,
     transpile_sql_text,
 )
@@ -112,3 +113,54 @@ def test_parse_preserves_unregistered_function_identity() -> None:
     assert attributes["semantic_state"] == "UNREGISTERED"
     assert attributes["semantic_id"] is None
     assert attributes["semantic_source_name"] == "mystery_function"
+
+
+
+def test_parse_binds_explicit_type_semantics_into_ir() -> None:
+    analysis = parse_sql_text(
+        "SELECT CAST(amount AS DECIMAL(10, 2)) FROM measurements",
+        "postgresql",
+    )
+
+    payload = analysis.as_dict()
+    ir = payload["ir"]
+    data_types = [node for node in ir["nodes"] if node["kind"] == "DATATYPE"]
+
+    assert len(data_types) == 1
+    attributes = data_types[0]["attributes"]
+    assert attributes["type_semantic_state"] == "EXPLICIT"
+    assert attributes["type_dialect_name"] == "DECIMAL"
+    assert attributes["type_canonical_family"] == "DECIMAL"
+    assert attributes["type_source_sql"] == "DECIMAL(10, 2)"
+    assert attributes["type_parameters"] == ["10", "2"]
+    assert attributes["type_evidence_basis"] == "PARSED_EXPLICIT_TYPE"
+
+    expected_digest = type_graph_digest(
+        dialect_id="postgresql",
+        parser_dialect="postgres",
+    )
+    extensions = ir["semantic_extensions"]
+    assert extensions["source_type_graph_schema"] == "SQL_CONNECTOME_TYPE_GRAPH_V1"
+    assert extensions["source_type_graph_digest"] == expected_digest
+    assert extensions["type_semantic_coverage"] == "EXPLICIT_TYPES_ONLY"
+    assert f"type-graph:postgresql:{expected_digest}" in ir["provenance"]
+
+
+def test_parse_preserves_variant_type_identity_in_ir() -> None:
+    analysis = parse_sql_text(
+        "SELECT CAST('1' AS VARIANT) AS value",
+        "snowflake",
+    )
+
+    payload = analysis.as_dict()
+    data_types = [
+        node
+        for node in payload["ir"]["nodes"]
+        if node["kind"] == "DATATYPE"
+    ]
+
+    assert len(data_types) == 1
+    attributes = data_types[0]["attributes"]
+    assert attributes["type_dialect_name"] == "VARIANT"
+    assert attributes["type_canonical_family"] == "VARIANT"
+    assert attributes["type_semantic_state"] == "EXPLICIT"
