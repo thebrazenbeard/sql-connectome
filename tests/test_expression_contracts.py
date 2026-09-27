@@ -1,4 +1,8 @@
-from sql_connectome.connectome import DEFAULT_CATALOG, inspect_sql_contracts
+from sql_connectome.connectome import (
+    DEFAULT_CATALOG,
+    DEFAULT_OPERATION_CATALOG,
+    inspect_sql_contracts,
+)
 
 
 def _contracts_by_name(payload: dict[str, object]) -> dict[str, dict[str, object]]:
@@ -16,6 +20,8 @@ def test_contracts_expose_fixed_and_inferred_type_rules() -> None:
 
     assert contracts["LENGTH"]["type_rule"] == "FIXED_RETURN"
     assert contracts["LENGTH"]["fixed_return_type"] == "INT"
+    assert contracts["LENGTH"]["operation_mapping_status"] == "ADMITTED"
+    assert contracts["LENGTH"]["semantic_operation_id"] == "string.length"
     assert contracts["LEAST"]["type_rule"] == "INFERRED"
     assert contracts["LEAST"]["fixed_return_type"] is None
 
@@ -34,6 +40,7 @@ def test_contracts_include_dialect_coercion_graph() -> None:
     payload = inspect_sql_contracts("SELECT 1", "postgresql")
 
     assert payload["catalog_digest"] == DEFAULT_CATALOG.digest
+    assert payload["operation_catalog_digest"] == DEFAULT_OPERATION_CATALOG.digest
     assert payload["source"] == "SQLGLOT_EXPRESSION_METADATA"
     assert payload["sqlglot_version"]
     assert isinstance(payload["coercions"], list)
