@@ -9,10 +9,12 @@ import sqlglot
 
 from sql_connectome.connectome import (
     DEFAULT_CATALOG,
+    DEFAULT_EXPRESSION_BINDING_PROBES,
     DEFAULT_EXPRESSION_REGISTRY,
     dialect_semantic_profile,
     dialect_type_graph,
     list_dialects,
+    probe_expression_dialect_bindings,
 )
 from sql_connectome.receipts import canonical_digest
 
@@ -41,6 +43,7 @@ def build_snapshot() -> dict[str, object]:
 
         semantic_profile: dict[str, object] | None = None
         type_graph_summary: dict[str, object] | None = None
+        expression_binding_summary: dict[str, object] | None = None
         if parser_dialect:
             semantic_profile = dialect_semantic_profile(dialect_id, parser_dialect)
             type_graph = dialect_type_graph(
@@ -52,6 +55,23 @@ def build_snapshot() -> dict[str, object]:
                 "implicit_coercion_count": len(type_graph["implicit_coercions"]),
                 "type_graph_digest": canonical_digest(type_graph),
             }
+            expression_bindings = probe_expression_dialect_bindings(
+                dialect_id=dialect_id,
+                parser_dialect=parser_dialect,
+                catalog_digest=DEFAULT_CATALOG.digest,
+            )
+            expression_binding_summary = {
+                "probe_count": expression_bindings["probe_count"],
+                "state_counts": expression_bindings["state_counts"],
+                "roundtrip_bound_count": len(
+                    expression_bindings["roundtrip_bound_semantic_ids"]
+                ),
+                "probe_set_digest": expression_bindings["probe_set_digest"],
+                "semantic_registry_digest": expression_bindings[
+                    "semantic_registry_digest"
+                ],
+                "binding_digest": canonical_digest(expression_bindings),
+            }
 
         dialects.append(
             {
@@ -59,6 +79,7 @@ def build_snapshot() -> dict[str, object]:
                 "parser_dialect": parser_dialect,
                 "semantic_profile": semantic_profile,
                 "type_graph_summary": type_graph_summary,
+                "expression_binding_summary": expression_binding_summary,
             }
         )
 
@@ -78,6 +99,11 @@ def build_snapshot() -> dict[str, object]:
             "admission": "SOURCE_CONTROLLED_DEFAULT",
             "digest": DEFAULT_EXPRESSION_REGISTRY.digest,
             "entry_count": len(DEFAULT_EXPRESSION_REGISTRY.entries),
+        },
+        "expression_binding_probes": {
+            "admission": "SOURCE_CONTROLLED_DEFAULT",
+            "digest": DEFAULT_EXPRESSION_BINDING_PROBES.digest,
+            "probe_count": len(DEFAULT_EXPRESSION_BINDING_PROBES.probes),
         },
         "dialects": dialects,
         "rewrite_rules": rewrites,
