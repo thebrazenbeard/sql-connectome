@@ -24,6 +24,16 @@ def test_compare_dialects_reports_bounded_evidence_without_equivalence_claim() -
     assert isinstance(result["semantic_flags"]["differences"], list)
     assert result["type_graphs"]["source"]["evidence_ceiling"] == "DEPENDENCY_METADATA"
     assert result["type_graphs"]["target"]["evidence_ceiling"] == "DEPENDENCY_METADATA"
+
+    bindings = result["expression_bindings"]
+    assert bindings["source"]["evidence_ceiling"] == "DEPENDENCY_BEHAVIOR"
+    assert bindings["target"]["evidence_ceiling"] == "DEPENDENCY_BEHAVIOR"
+    assert len(bindings["source"]["probe_set_digest"]) == 64
+    assert len(bindings["target"]["probe_set_digest"]) == 64
+    assert isinstance(bindings["roundtrip_bound"]["shared"], list)
+    assert isinstance(bindings["roundtrip_bound"]["source_only"], list)
+    assert isinstance(bindings["roundtrip_bound"]["target_only"], list)
+
     assert len(result["catalog_digest"]) == 64
     assert result["behavioral_equivalence"] == "NOT_ESTABLISHED"
     assert result["compatibility_score"] is None
