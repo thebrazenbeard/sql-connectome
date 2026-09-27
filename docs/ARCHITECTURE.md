@@ -18,7 +18,7 @@ The semantic plane owns:
 
 1. **Dialect genomes** — version-aware dialect identities and capability bundles.
 2. **Semantic IR** — graph-shaped representation that may retain dialect-specific semantics.
-3. **Type/coercion graph** — canonical semantic type families, dialect coercion evidence, and explicit type-projection fidelity.
+3. **Type/coercion graph** — canonical semantic type families, dialect coercion evidence, explicit type-projection fidelity, and digest-bound explicit type identities embedded in semantic IR nodes.
 4. **Expression semantic registry** — stable source-controlled identities for admitted functions/operators plus explicit query-scoped unknowns and links to known semantic-risk rules.
 5. **Capability graph** — explicit feature support rather than family-name inference.
 6. **Rewrite knowledge** — target-dependent transformations with declared fidelity.
