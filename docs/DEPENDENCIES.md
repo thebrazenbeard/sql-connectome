@@ -165,3 +165,16 @@ engine conformance result, and absence of an edge is represented as unknown rath
 Explicit source type nodes are separately rendered through the target adapter and compared at the
 canonical-family and parameter level. Known admitted representation rules such as VARIANT-to-JSON
 remain lossy even when target SQL generation succeeds.
+
+
+### Expression dialect binding probes
+
+SQL Connectome uses the pinned SQLGlot parser and generator as dependency evidence for a
+source-controlled set of registered expression semantics. Each probe is parsed in one declared
+dialect, checked for the expected normalized expression class, rendered back through that dialect,
+and reparsed.
+
+A `ROUNDTRIP_BOUND` result is version-bound dependency behavior. It is not database-engine
+conformance, execution evidence, or behavioral equivalence. Probe-set and per-dialect binding
+digests are carried into conformance artifacts so a SQLGlot upgrade cannot silently change this
+evidence surface.
