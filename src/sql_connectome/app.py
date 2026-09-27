@@ -10,6 +10,7 @@ from .connectome import (
     bind_sql_text,
     compare_dialects,
     expression_registry_manifest,
+    inspect_expression_bindings,
     inspect_expression_registry,
     inspect_sql_contracts,
     inspect_type_system,
@@ -93,6 +94,17 @@ def post_connectome_translation_plan(request: TranslationPlanRequest) -> dict[st
 
 
 
+
+
+@app.get(
+    "/v1/connectome/expression-bindings",
+    dependencies=[Depends(require_bearer)],
+)
+def get_connectome_expression_bindings(dialect: str) -> dict[str, object]:
+    try:
+        return inspect_expression_bindings(dialect)
+    except (KeyError, SQLTextError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.get(
