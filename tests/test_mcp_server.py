@@ -15,6 +15,8 @@ EXPECTED_TOOLS = {
     "probe_sql_dialect",
     "parse_sql",
     "expression_contracts",
+    "operation_catalog",
+    "operation_graph",
     "bind_sql",
     "translation_plan",
     "transpile_sql",
@@ -81,6 +83,23 @@ def test_semantic_mcp_tool_roundtrip() -> None:
             )
             assert contracts.is_error is False
             assert contracts.structured_content is not None
+
+            operation_catalog_result = await client.call_tool(
+                "operation_catalog",
+                {},
+            )
+            assert operation_catalog_result.is_error is False
+            assert operation_catalog_result.structured_content is not None
+
+            operation_graph_result = await client.call_tool(
+                "operation_graph",
+                {
+                    "sql": "SELECT COUNT(*), COALESCE(a, 0) FROM t",
+                    "dialect": "postgresql",
+                },
+            )
+            assert operation_graph_result.is_error is False
+            assert operation_graph_result.structured_content is not None
 
             type_graph_result = await client.call_tool(
                 "type_graph",
