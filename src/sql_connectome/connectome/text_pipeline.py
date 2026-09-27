@@ -11,6 +11,7 @@ from sqlglot.errors import ParseError, UnsupportedError
 
 from .catalog import DEFAULT_CATALOG, DEFAULT_PARSER_ADAPTERS, ConnectomeCatalog
 from .contracts import expression_contracts
+from .expression_bindings import probe_expression_dialect_bindings
 from .expression_registry import DEFAULT_EXPRESSION_REGISTRY
 from .expression_registry import (
     inspect_expression_semantics as _inspect_expression_semantics,
@@ -397,6 +398,19 @@ def parse_sql_text(
         catalog_digest=catalog.digest,
     )
 
+
+
+def inspect_expression_bindings(
+    dialect: str,
+    *,
+    catalog: ConnectomeCatalog = DEFAULT_CATALOG,
+) -> dict[str, object]:
+    dialect_id, parser_dialect = _dialect_adapter(dialect, catalog=catalog)
+    return probe_expression_dialect_bindings(
+        dialect_id=dialect_id,
+        parser_dialect=parser_dialect,
+        catalog_digest=catalog.digest,
+    )
 
 
 def inspect_expression_registry(
