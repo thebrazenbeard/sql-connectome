@@ -33,6 +33,28 @@ Each entry binds a semantic ID to the current normalized expression class plus:
 
 The registry is immutable at runtime and has a canonical digest.
 
+## IR binding
+
+The parser projects the registry directly into the semantic IR.
+
+For a registered expression node, IR attributes include:
+
+- `semantic_state=REGISTERED`;
+- `semantic_id`;
+- `semantic_kind`;
+- `semantic_family`;
+- `semantic_risk_codes`.
+
+For an unregistered function node, the IR preserves:
+
+- `semantic_state=UNREGISTERED`;
+- `semantic_id=null`;
+- the source function name when available.
+
+The IR envelope also carries the expression-registry schema and digest in
+`semantic_extensions`, and the digest is repeated in parser provenance. This binds the meaning of
+node-level semantic IDs to the exact source-controlled registry version used for parsing.
+
 ## Query-scoped inventory
 
 The query inventory parses one declared-dialect statement and reports only function expressions and

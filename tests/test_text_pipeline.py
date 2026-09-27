@@ -2,6 +2,7 @@ import pytest
 
 from sql_connectome.connectome import (
     DEFAULT_CATALOG,
+    DEFAULT_EXPRESSION_REGISTRY,
     SQLTextError,
     parse_sql_text,
     transpile_sql_text,
@@ -26,6 +27,18 @@ def test_parse_postgresql_into_semantic_ir() -> None:
     assert ir["side_effects"] == []
     assert ir["nodes"]
     assert ir["roots"] == ["n0"]
+    assert (
+        ir["semantic_extensions"]["expression_semantic_registry_digest"]
+        == DEFAULT_EXPRESSION_REGISTRY.digest
+    )
+    assert f"expression-registry:{DEFAULT_EXPRESSION_REGISTRY.digest}" in ir["provenance"]
+
+    count_nodes = [node for node in ir["nodes"] if node["kind"] == "COUNT"]
+    assert len(count_nodes) == 1
+    count_attributes = count_nodes[0]["attributes"]
+    assert count_attributes["semantic_state"] == "REGISTERED"
+    assert count_attributes["semantic_id"] == "aggregate.count"
+    assert count_attributes["semantic_family"] == "aggregate"
 
 
 def test_parse_bigquery_qualify_extracts_analytical_capabilities() -> None:
@@ -81,3 +94,21 @@ def test_lossy_translation_requires_explicit_opt_in() -> None:
             "snowflake",
             "postgresql",
         )
+
+
+
+def test_parse_preserves_unregistered_function_identity() -> None:
+    analysis = parse_sql_text(
+        "SELECT mystery_function(value) FROM events",
+        "postgresql",
+    )
+
+    payload = analysis.as_dict()
+    nodes = payload["ir"]["nodes"]
+    anonymous = [node for node in nodes if node["kind"] == "ANONYMOUS"]
+
+    assert len(anonymous) == 1
+    attributes = anonymous[0]["attributes"]
+    assert attributes["semantic_state"] == "UNREGISTERED"
+    assert attributes["semantic_id"] is None
+    assert attributes["semantic_source_name"] == "mystery_function"

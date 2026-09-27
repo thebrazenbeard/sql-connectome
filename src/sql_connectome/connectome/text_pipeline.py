@@ -185,6 +185,40 @@ def _semantic_dimensions(capabilities: frozenset[str]) -> frozenset[SemanticDime
     return frozenset(dimensions)
 
 
+def _expression_semantic_attributes(
+    node: exp.Expression,
+) -> list[tuple[str, Any]]:
+    expression_class = node.__class__.__name__
+    semantic = DEFAULT_EXPRESSION_REGISTRY.resolve_class(expression_class)
+
+    if semantic is not None:
+        return [
+            ("semantic_state", "REGISTERED"),
+            ("semantic_id", semantic.semantic_id),
+            ("semantic_kind", semantic.kind.value),
+            ("semantic_family", semantic.family),
+            ("semantic_risk_codes", semantic.known_risk_codes),
+        ]
+
+    if isinstance(node, exp.Func):
+        if isinstance(node, exp.Anonymous):
+            source_name = node.name
+        else:
+            sql_name = getattr(node, "sql_name", None)
+            source_name = (
+                str(sql_name())
+                if callable(sql_name)
+                else expression_class
+            )
+        return [
+            ("semantic_state", "UNREGISTERED"),
+            ("semantic_id", None),
+            ("semantic_source_name", source_name),
+        ]
+
+    return []
+
+
 def _expression_graph(expression: exp.Expression) -> tuple[
     tuple[str, ...],
     tuple[IRNode, ...],
@@ -201,6 +235,7 @@ def _expression_graph(expression: exp.Expression) -> tuple[
     ) -> str:
         node_id = f"n{len(nodes)}"
         attributes: list[tuple[str, Any]] = [("expression_key", node.key)]
+        attributes.extend(_expression_semantic_attributes(node))
 
         if isinstance(node, exp.Table):
             attributes.append(("name", node.name))
@@ -336,9 +371,20 @@ def parse_sql_text(
         input_relations=_input_relations(expression),
         output_fields=_output_fields(expression),
         side_effects=_side_effects(expression),
+        semantic_extensions=(
+            (
+                "expression_semantic_registry_digest",
+                DEFAULT_EXPRESSION_REGISTRY.digest,
+            ),
+            (
+                "expression_semantic_registry_schema",
+                "SQL_CONNECTOME_EXPRESSION_SEMANTIC_REGISTRY_V1",
+            ),
+        ),
         provenance=(
             f"parser:sqlglot:{sqlglot.__version__}",
             f"dialect:{dialect_id}:{genome.version_selector}",
+            f"expression-registry:{DEFAULT_EXPRESSION_REGISTRY.digest}",
         ),
     )
     ir.validate_graph()

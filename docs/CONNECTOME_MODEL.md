@@ -323,6 +323,10 @@ integer division or division-by-zero behavior differs.
 
 The registry is deliberately incomplete. Absence means `UNREGISTERED`, not unsupported.
 
+Parsed semantic IR nodes now carry the registered semantic identity/state directly, while the IR
+envelope binds the exact registry digest in semantic extensions and provenance. This makes the
+function/operator layer part of the core graph rather than a sidecar lookup result.
+
 See `EXPRESSION_SEMANTICS.md`.
 
 ## Query-scoped expression contracts
