@@ -9,6 +9,8 @@ from .connectome import (
     SQLTextError,
     bind_sql_text,
     compare_dialects,
+    inspect_operation_catalog,
+    inspect_operation_graph,
     inspect_sql_contracts,
     inspect_type_system,
     list_dialects,
@@ -91,6 +93,19 @@ def post_connectome_translation_plan(request: TranslationPlanRequest) -> dict[st
 
 
 
+
+
+@app.get("/v1/connectome/operation-catalog", dependencies=[Depends(require_bearer)])
+def get_connectome_operation_catalog() -> dict[str, object]:
+    return inspect_operation_catalog()
+
+
+@app.post("/v1/connectome/operation-graph", dependencies=[Depends(require_bearer)])
+def post_connectome_operation_graph(request: SQLParseRequest) -> dict[str, object]:
+    try:
+        return inspect_operation_graph(request.sql, request.dialect)
+    except (KeyError, SQLTextError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.get("/v1/connectome/type-graph", dependencies=[Depends(require_bearer)])
