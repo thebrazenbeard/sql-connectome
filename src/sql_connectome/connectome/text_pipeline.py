@@ -13,6 +13,12 @@ from .catalog import DEFAULT_CATALOG, DEFAULT_PARSER_ADAPTERS, ConnectomeCatalog
 from .contracts import expression_contracts
 from .ir import IREdge, IRNode, SQLSemanticIR
 from .model import SemanticDimension, TranslationFidelity
+from .operations import (
+    DEFAULT_OPERATION_CATALOG,
+    OperationCatalog,
+    operation_catalog_payload,
+    operation_graph,
+)
 from .planner import plan_translation
 from .semantics import assess_expression_semantics, combined_fidelity
 from .type_system import (
@@ -354,6 +360,7 @@ def inspect_sql_contracts(
     dialect: str,
     *,
     catalog: ConnectomeCatalog = DEFAULT_CATALOG,
+    operation_catalog: OperationCatalog = DEFAULT_OPERATION_CATALOG,
 ) -> dict[str, object]:
     text = _bounded_text(sql)
     dialect_id, parser_dialect = _dialect_adapter(dialect, catalog=catalog)
@@ -362,6 +369,34 @@ def inspect_sql_contracts(
         expression,
         dialect_id=dialect_id,
         parser_dialect=parser_dialect,
+        operation_catalog=operation_catalog,
+    )
+    result["catalog_digest"] = catalog.digest
+    return result
+
+
+def inspect_operation_catalog(
+    *,
+    operation_catalog: OperationCatalog = DEFAULT_OPERATION_CATALOG,
+) -> dict[str, object]:
+    return operation_catalog_payload(operation_catalog)
+
+
+def inspect_operation_graph(
+    sql: str,
+    dialect: str,
+    *,
+    catalog: ConnectomeCatalog = DEFAULT_CATALOG,
+    operation_catalog: OperationCatalog = DEFAULT_OPERATION_CATALOG,
+) -> dict[str, object]:
+    text = _bounded_text(sql)
+    dialect_id, parser_dialect = _dialect_adapter(dialect, catalog=catalog)
+    expression = _parse_single_expression(text, parser_dialect)
+    result = operation_graph(
+        expression,
+        dialect_id=dialect_id,
+        parser_dialect=parser_dialect,
+        operation_catalog=operation_catalog,
     )
     result["catalog_digest"] = catalog.digest
     return result
