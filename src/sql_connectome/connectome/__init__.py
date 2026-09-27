@@ -10,6 +10,7 @@ from .expression_registry import (
     ExpressionSemantic,
     ExpressionSemanticKind,
     ExpressionSemanticRegistry,
+    expression_registry_manifest,
 )
 from .ir import IREdge, IRNode, SQLSemanticIR, TranslationLoss
 from .model import (
@@ -59,6 +60,7 @@ __all__ = [
     "DEFAULT_CATALOG",
     "inspect_expression_registry",
     "ExpressionSemanticRegistry",
+    "expression_registry_manifest",
     "ExpressionSemanticKind",
     "ExpressionSemantic",
     "DEFAULT_EXPRESSION_REGISTRY",
