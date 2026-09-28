@@ -5,7 +5,8 @@ from enum import StrEnum
 
 from sql_connectome.receipts import canonical_digest
 
-from .model import AppliedRewrite, TranslationPlan
+from .model import AppliedRewrite, RewriteRule, TranslationPlan
+from .registry import DEFAULT_REWRITE_RULES
 
 
 class RewriteQualification(StrEnum):
@@ -40,6 +41,19 @@ class GovernedRewrite:
             "unresolved_semantics": list(self.unresolved_semantics),
             "behavioral_equivalence": self.behavioral_equivalence,
         }
+
+
+def _rule_digest(rule: RewriteRule) -> str:
+    return canonical_digest(
+        {
+            "name": rule.name,
+            "source_capability": rule.source_capability,
+            "target_capabilities": sorted(rule.target_capabilities),
+            "target_dialects": sorted(rule.target_dialects),
+            "fidelity": rule.fidelity.value,
+            "description": rule.description,
+        }
+    )
 
 
 _RULE_GOVERNANCE: dict[str, dict[str, tuple[str, ...] | str]] = {
@@ -99,6 +113,24 @@ def _govern(
             observed_evidence=(),
             preconditions=(),
             unresolved_semantics=("no governed rewrite record",),
+        )
+
+    canonical_rule = next(
+        (item for item in DEFAULT_REWRITE_RULES if item.name == rewrite.rule_name),
+        None,
+    )
+    expected_digest = _rule_digest(canonical_rule) if canonical_rule is not None else None
+    if rewrite.rule_definition_digest != expected_digest:
+        return GovernedRewrite(
+            rewrite_id=f"{rewrite.rule_name}@DEFINITION_MISMATCH",
+            rule_name=rewrite.rule_name,
+            source_capability=rewrite.source_capability,
+            rule_version="DEFINITION_MISMATCH",
+            qualification=RewriteQualification.UNQUALIFIED,
+            required_evidence=(),
+            observed_evidence=(),
+            preconditions=(),
+            unresolved_semantics=("rewrite definition does not match governed version",),
         )
 
     unresolved = tuple(record["unresolved"])
