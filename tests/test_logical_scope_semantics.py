@@ -120,3 +120,19 @@ def test_top_level_field_references_bind_stable_field_ids():
     reference = next(item for item in expressions if item["kind"] == "FIELD_REFERENCE")
     assert reference["field_id"] is not None
     assert reference["field_id"].startswith("field:read:")
+
+
+def test_shadowed_alias_does_not_become_outer_reference():
+    result = bind_sql_text(
+        "SELECT id FROM users u WHERE EXISTS "
+        "(SELECT 1 FROM orders u WHERE u.user_id = u.user_id)",
+        "postgresql",
+        SCHEMA,
+    )
+    nested = [
+        item
+        for item in result["logical_semantics"]["plan"]["expressions"]
+        if item["scope_id"] == "scope:subquery:0"
+    ]
+    assert nested
+    assert all(item["outer_scope_id"] is None for item in nested)
