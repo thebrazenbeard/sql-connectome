@@ -1,6 +1,7 @@
 from sql_connectome.connectome.logical_plan import (
     CardinalityBounds,
     CardinalityCertainty,
+    LogicalExpression,
     LogicalField,
     LogicalPlan,
     LogicalRelation,
@@ -52,3 +53,31 @@ def test_logical_schema_rejects_duplicate_field_identity():
     field = LogicalField("f", "id", LogicalType("INTEGER"))
     with pytest.raises(ValueError, match="DUPLICATE_LOGICAL_FIELD_ID"):
         LogicalSchema((field, field)).validate()
+
+
+def test_plan_rejects_dangling_field_reference():
+    schema = LogicalSchema(
+        (LogicalField("field:known", "id", LogicalType("INTEGER", "INT")),)
+    )
+    relation = LogicalRelation(
+        "relation:read:0",
+        "READ",
+        schema,
+        CardinalityBounds(),
+    )
+    expression = LogicalExpression(
+        "expression:0",
+        "FIELD_REFERENCE",
+        LogicalType("INTEGER", "INT"),
+        field_id="field:missing",
+    )
+    plan = LogicalPlan(
+        ("relation:read:0",),
+        (relation,),
+        "source",
+        "bound",
+        "schema",
+        expressions=(expression,),
+    )
+    with pytest.raises(ValueError, match="DANGLING_LOGICAL_FIELD_REFERENCE"):
+        plan.validate()
