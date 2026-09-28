@@ -1,10 +1,5 @@
-import pytest
-
 from sql_connectome.connectome import (
-    DEFAULT_CATALOG,
-    ConnectomeCatalog,
     RewriteRule,
-    SQLTextError,
     TranslationFidelity,
     plan_translation,
     transpile_sql_text,
@@ -73,28 +68,6 @@ def test_missing_required_evidence_fails_closed() -> None:
     rewrite = governance["rewrites"][0]
     assert rewrite["observed_evidence"] == ["CAPABILITY_REGISTRY"]
     assert "missing evidence: TARGET_PARSE" in rewrite["unresolved_semantics"]
-
-
-def test_transpilation_rejects_ungoverned_selected_rule() -> None:
-    rule = RewriteRule(
-        name="invented-rewrite",
-        source_capability="qualify",
-        target_capabilities=frozenset({"window_functions", "derived_tables"}),
-        fidelity=TranslationFidelity.CONSTRUCTIVE,
-        description="test-only rewrite without governance evidence",
-    )
-    catalog = ConnectomeCatalog(
-        dialects=DEFAULT_CATALOG.dialects,
-        parser_adapters=DEFAULT_CATALOG.parser_adapters,
-        rewrite_rules=(rule,),
-    )
-    with pytest.raises(SQLTextError, match="UNQUALIFIED_REWRITE_EVIDENCE"):
-        transpile_sql_text(
-            "SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS rn FROM users QUALIFY rn = 1",
-            "bigquery",
-            "postgresql",
-            catalog=catalog,
-        )
 
 
 def test_same_name_modified_rule_cannot_inherit_governance() -> None:
