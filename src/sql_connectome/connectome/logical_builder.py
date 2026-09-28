@@ -75,8 +75,27 @@ def build_logical_plan(
                 for item in plan.relations
             )
 
+        def renamed_expressions(
+            plan: LogicalPlan, prefix: str
+        ) -> tuple[LogicalExpression, ...]:
+            return tuple(
+                LogicalExpression(
+                    f"{prefix}:{item.expression_id}",
+                    item.kind,
+                    item.logical_type,
+                    item.nullability,
+                    f"{prefix}:{item.scope_id}" if item.scope_id else None,
+                    f"{prefix}:{item.outer_scope_id}" if item.outer_scope_id else None,
+                    item.source_sql,
+                    item.evidence,
+                )
+                for item in plan.expressions
+            )
+
         left_relations = renamed(left, "left")
         right_relations = renamed(right, "right")
+        left_expressions = renamed_expressions(left, "left")
+        right_expressions = renamed_expressions(right, "right")
         output = left_relations[-1].output_schema
         if len(output.fields) != len(right_relations[-1].output_schema.fields):
             raise ValueError("SET_OP_ARITY_MISMATCH")
@@ -96,7 +115,12 @@ def build_logical_plan(
             source_ir_digest,
             bound_ir_digest,
             schema_digest,
-            losses=("SET_OP_TYPE_RECONCILIATION_UNQUALIFIED_V1",),
+            expressions=left_expressions + right_expressions,
+            losses=(
+                *left.losses,
+                *right.losses,
+                "SET_OP_TYPE_RECONCILIATION_UNQUALIFIED_V1",
+            ),
         )
         plan.validate()
         return plan
