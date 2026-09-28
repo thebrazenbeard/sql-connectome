@@ -224,11 +224,18 @@ def build_logical_plan(
         )
         current_id = aggregate_id
 
-    nullable_tables = {
-        join.this.alias_or_name
-        for join in typed.args.get("joins") or ()
-        if (join.args.get("side") or "").upper() in {"LEFT", "FULL"}
-    }
+    nullable_tables: set[str] = set()
+    seen_tables = {table.alias_or_name}
+    for join in typed.args.get("joins") or ():
+        if not isinstance(join.this, exp.Table):
+            continue
+        joined_alias = join.this.alias_or_name
+        side = (join.args.get("side") or "").upper()
+        if side in {"LEFT", "FULL"}:
+            nullable_tables.add(joined_alias)
+        if side in {"RIGHT", "FULL"}:
+            nullable_tables.update(seen_tables)
+        seen_tables.add(joined_alias)
 
     projection_fields = []
     for index, projection in enumerate(typed.expressions):
