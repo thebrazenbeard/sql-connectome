@@ -136,3 +136,27 @@ def test_shadowed_alias_does_not_become_outer_reference():
     ]
     assert nested
     assert all(item["outer_scope_id"] is None for item in nested)
+
+
+def test_set_operation_namespaces_branch_field_identity():
+    result = bind_sql_text(
+        "SELECT id FROM users UNION ALL SELECT user_id AS id FROM orders",
+        "postgresql",
+        SCHEMA,
+    )
+    relations = result["logical_semantics"]["plan"]["relations"]
+    left_fields = {
+        field["field_id"]
+        for relation in relations
+        if relation["relation_id"].startswith("left:")
+        for field in relation["output_schema"]
+    }
+    right_fields = {
+        field["field_id"]
+        for relation in relations
+        if relation["relation_id"].startswith("right:")
+        for field in relation["output_schema"]
+    }
+    assert left_fields
+    assert right_fields
+    assert left_fields.isdisjoint(right_fields)
