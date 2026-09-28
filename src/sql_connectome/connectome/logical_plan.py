@@ -153,6 +153,16 @@ class LogicalPlan:
         expression_ids = [item.expression_id for item in self.expressions]
         if len(expression_ids) != len(set(expression_ids)):
             raise ValueError("DUPLICATE_LOGICAL_EXPRESSION_ID")
+        known_fields = {
+            field.field_id
+            for relation in self.relations
+            for field in relation.output_schema.fields
+        }
+        if any(
+            item.field_id is not None and item.field_id not in known_fields
+            for item in self.expressions
+        ):
+            raise ValueError("DANGLING_LOGICAL_FIELD_REFERENCE")
 
     def as_dict(self) -> dict[str, Any]:
         return {
