@@ -1,2 +1,6 @@
-Plan: docs/plans/2026-09-28-evidence-bearing-coercion-semantics.md
-Baseline: 129 passed, 21 skipped, 1 Windows POSIX-mode assertion failure in tests/test_runtime.py (pre-existing/environment-specific)
+Plan: docs/plans/2026-09-28-provider-neutral-engine-validation-v1.md
+Baseline: existing Windows POSIX permission-bit assertion failure only
+Task 1: complete
+Task 2: complete
+Task 3: complete
+Task 4: complete
