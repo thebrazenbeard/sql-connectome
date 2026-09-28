@@ -30,6 +30,7 @@ def qualify_translation_to_postgresql(
     combined_fidelity = str(translation["combined_fidelity"])
     expression_semantics = translation["expression_semantics"]
     type_semantics = translation["type_semantics"]
+    rewrite_governance = translation["rewrite_governance"]
     fidelity_components = translation["fidelity_components"]
     target_runtime = engine["runtime"]
 
@@ -39,6 +40,7 @@ def qualify_translation_to_postgresql(
     semantic_evidence_digest = canonical_digest(
         {
             "plan": plan,
+            "rewrite_governance": rewrite_governance,
             "expression_semantics": expression_semantics,
             "type_semantics": type_semantics,
             "combined_fidelity": combined_fidelity,
@@ -58,6 +60,8 @@ def qualify_translation_to_postgresql(
         "expression_semantic_fidelity": fidelity_components["expression_semantics"],
         "type_fidelity": fidelity_components["types"],
         "translation_fidelity": combined_fidelity,
+        "rewrite_qualification": rewrite_governance["qualification"],
+        "rewrite_governance_digest": rewrite_governance["digest"],
         "translation_fidelity_scope": "CAPABILITY_EXPRESSION_AND_TYPE_SEMANTICS",
         "expression_semantic_risk_count": expression_semantics["risk_count"],
         "type_semantic_risk_count": type_semantics["risk_count"],
@@ -76,6 +80,8 @@ def qualify_translation_to_postgresql(
             "expression_semantic_fidelity": fidelity_components["expression_semantics"],
             "type_fidelity": fidelity_components["types"],
             "translation_fidelity": combined_fidelity,
+            "rewrite_qualification": rewrite_governance["qualification"],
+            "rewrite_governance_digest": rewrite_governance["digest"],
             "translation_fidelity_scope": "CAPABILITY_EXPRESSION_AND_TYPE_SEMANTICS",
             "expression_semantic_risk_count": expression_semantics["risk_count"],
             "type_semantic_risk_count": type_semantics["risk_count"],
