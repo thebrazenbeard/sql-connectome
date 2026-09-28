@@ -18,7 +18,8 @@ def test_constructive_rewrite_has_versioned_governance_evidence() -> None:
     assert governance["qualification"] == "CONDITIONAL"
     rewrite = governance["rewrites"][0]
     assert rewrite["rewrite_id"] == "qualify-via-derived-table@1"
-    assert rewrite["evidence_basis"] == ["CAPABILITY_REGISTRY", "TARGET_PARSE"]
+    assert rewrite["required_evidence"] == ["CAPABILITY_REGISTRY", "TARGET_PARSE"]
+    assert rewrite["observed_evidence"] == ["CAPABILITY_REGISTRY", "TARGET_PARSE"]
     assert rewrite["behavioral_equivalence"] == "NOT_ESTABLISHED"
     assert governance["execution_authority"] == "NONE"
     assert len(governance["digest"]) == 64
@@ -38,7 +39,10 @@ def test_unknown_rewrite_rule_fails_closed_as_unqualified() -> None:
         {"qualify"},
         rewrite_rules=(rule,),
     )
-    governance = govern_translation_plan(plan)
+    governance = govern_translation_plan(
+        plan,
+        observed_evidence=frozenset({"CAPABILITY_REGISTRY", "TARGET_PARSE"}),
+    )
     assert governance["qualification"] == "UNQUALIFIED"
     assert governance["rewrites"][0]["rule_version"] == "UNVERSIONED"
     assert governance["rewrites"][0]["unresolved_semantics"] == [
@@ -52,3 +56,15 @@ def test_no_rewrite_plan_is_qualified_but_does_not_claim_equivalence() -> None:
     assert governance["qualification"] == "QUALIFIED"
     assert governance["rewrites"] == []
     assert governance["behavioral_equivalence"] == "NOT_ESTABLISHED"
+
+
+def test_missing_required_evidence_fails_closed() -> None:
+    result = plan_translation("bigquery", "postgresql", {"qualify"})
+    governance = govern_translation_plan(
+        result,
+        observed_evidence=frozenset({"CAPABILITY_REGISTRY"}),
+    )
+    assert governance["qualification"] == "UNQUALIFIED"
+    rewrite = governance["rewrites"][0]
+    assert rewrite["observed_evidence"] == ["CAPABILITY_REGISTRY"]
+    assert "missing evidence: TARGET_PARSE" in rewrite["unresolved_semantics"]
