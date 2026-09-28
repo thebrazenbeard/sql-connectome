@@ -132,3 +132,22 @@ def test_redundant_project_rewrite_refuses_schema_divergence() -> None:
     assert output is plan
     assert receipt.applicability is ApplicabilityState.NOT_APPLICABLE
     assert receipt.output_plan_digest is None
+
+
+def test_redundant_project_rewrite_refuses_changed_field_identity() -> None:
+    changed_identity = LogicalSchema(
+        (
+            LogicalField(
+                "field:project:a",
+                "a",
+                LogicalType("INTEGER", "INT"),
+                Nullability.NON_NULL,
+                ("source:a",),
+            ),
+        )
+    )
+    plan = _plan(project_schema=changed_identity)
+    output, receipt = apply_redundant_project_elimination(plan, "relation:project:0")
+    assert output is plan
+    assert receipt.applicability is ApplicabilityState.NOT_APPLICABLE
+    assert receipt.output_plan_digest is None
