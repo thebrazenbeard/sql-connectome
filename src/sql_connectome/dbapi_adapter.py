@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import sql_connectome.connectivity as connectivity
+
 from .engine_validation import NativeEngineError
 from .receipts import canonical_digest
 
