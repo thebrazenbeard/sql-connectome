@@ -161,10 +161,7 @@ def canonical_type_family(value: object) -> CanonicalTypeFamily:
 
 
 def _type_parameters(node: exp.DataType, parser_dialect: str) -> tuple[str, ...]:
-    return tuple(
-        parameter.sql(dialect=parser_dialect)
-        for parameter in node.expressions
-    )
+    return tuple(parameter.sql(dialect=parser_dialect) for parameter in node.expressions)
 
 
 def explicit_type_semantic(
@@ -217,10 +214,7 @@ def _coercion_fidelity(
     ):
         return TranslationFidelity.LOSSY, "BINARY_FLOAT_PRECISION_RISK"
 
-    if (
-        source_family is CanonicalTypeFamily.DATE
-        and target_family is CanonicalTypeFamily.TIMESTAMP
-    ):
+    if source_family is CanonicalTypeFamily.DATE and target_family is CanonicalTypeFamily.TIMESTAMP:
         return TranslationFidelity.CONSTRUCTIVE, "TEMPORAL_WIDENING"
 
     return TranslationFidelity.LOSSY, "CROSS_FAMILY_COERCION"
@@ -517,7 +511,6 @@ def assess_type_semantics(
     }
 
 
-
 def rewrite_type_representations(
     expression: exp.Expression,
     *,
@@ -553,3 +546,50 @@ def rewrite_type_representations(
         return node
 
     return expression.transform(rewrite, copy=True)
+
+
+def dependency_coercion_evidence(
+    *,
+    dialect_id: str,
+    parser_dialect: str,
+) -> tuple[Any, ...]:
+    from .coercion_semantics import (
+        CoercionContext,
+        CoercionEvidence,
+        CoercionScope,
+        EvidenceBasis,
+        QualificationState,
+        TypeIdentity,
+    )
+
+    graph = dialect_type_graph(
+        dialect_id=dialect_id,
+        parser_dialect=parser_dialect,
+    )
+    evidence: list[CoercionEvidence] = []
+    for edge in graph["implicit_coercions"]:
+        source_type = str(edge["source_type"])
+        target_type = str(edge["target_type"])
+        evidence.append(
+            CoercionEvidence(
+                evidence_id=f"sqlglot:{parser_dialect}:{source_type}->{target_type}",
+                source=TypeIdentity(source_type, str(edge["source_family"])),
+                target=TypeIdentity(target_type, str(edge["target_family"])),
+                scope=CoercionScope(
+                    engine="sqlglot",
+                    dialect=dialect_id,
+                    exact_version=sqlglot.__version__,
+                    context=CoercionContext.GENERIC_EXPRESSION,
+                ),
+                basis=EvidenceBasis.DEPENDENCY_METADATA,
+                qualification=QualificationState.SOURCE_BOUND,
+                provenance=(
+                    ("source", "SQLGLOT_COERCES_TO"),
+                    ("dependency_version", sqlglot.__version__),
+                    ("evidence_ceiling", "DEPENDENCY_METADATA"),
+                    ("fidelity_scope", "COERCION_SHAPE_ONLY"),
+                    ("missing_edge_meaning", "UNKNOWN_NOT_UNSUPPORTED"),
+                ),
+            )
+        )
+    return tuple(evidence)
