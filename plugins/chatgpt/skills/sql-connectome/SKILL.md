@@ -30,6 +30,7 @@ Preserve this separation:
 - Treat source IR and bound IR as separate evidence states; qualification/star expansion may change bound graph shape.
 - Target parser acceptance is not target-engine validation.
 - PostgreSQL EXPLAIN validation is not query execution.
+- PostgreSQL translation qualification binds capability, expression, type, semantic-IR, and engine receipt evidence; it still does not prove result equivalence.
 - DuckDB EXPLAIN validation is not query execution or cross-engine behavioral equivalence.
 - SQLite EXPLAIN QUERY PLAN validation is not query execution or cross-engine behavioral equivalence.
 - Read authority is not write authority.

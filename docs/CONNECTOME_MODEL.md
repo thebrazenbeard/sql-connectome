@@ -293,6 +293,33 @@ successful translation and target parse when the real target catalog cannot bind
 The qualification still reports `behavioral_equivalence=NOT_ESTABLISHED` and
 `query_executed=false`. Planning acceptance does not prove source/target result equality.
 
+### Qualification V2 provenance
+
+The PostgreSQL qualification receipt now binds all semantic fidelity components used to produce the
+generated SQL:
+
+- capability-plan fidelity;
+- expression-semantic fidelity and risk count;
+- explicit type fidelity and risk count;
+- the combined translation fidelity ceiling.
+
+The receipt also cross-binds:
+
+- canonical source SQL and generated target SQL digests;
+- source semantic-IR digest;
+- target semantic-IR digest after generated PostgreSQL is reparsed;
+- a digest over the complete semantic evidence bundle;
+- the exact PostgreSQL runtime identity digest;
+- the exact engine-validation receipt digest and PASS/FAIL status.
+
+The V2 fidelity scope is
+`CAPABILITY_EXPRESSION_AND_TYPE_SEMANTICS`.
+
+This closes a provenance gap in V1, whose label predated type fidelity and therefore named only
+capability and expression semantics even when type semantics contributed to the combined ceiling.
+
+See `TRANSLATION_QUALIFICATION.md`.
+
 
 ## Expression-level semantic conformance
 

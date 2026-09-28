@@ -26,7 +26,7 @@ The current MCP tool set exposes:
 - PostgreSQL read-only EXPLAIN validation;
 - hardened in-memory DuckDB EXPLAIN validation against caller-supplied schema context;
 - hardened in-memory SQLite EXPLAIN QUERY PLAN validation against caller-supplied schema context;
-- end-to-end translation-to-PostgreSQL qualification;
+- end-to-end translation-to-PostgreSQL qualification with V2 semantic/engine receipt cross-binding;
 - bounded PostgreSQL SELECT execution;
 - migration-state inspection;
 - Lantern current-cut reads.
