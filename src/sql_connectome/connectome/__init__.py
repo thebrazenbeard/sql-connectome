@@ -4,6 +4,26 @@ from .catalog import (
     DEFAULT_PARSER_ADAPTERS,
     ConnectomeCatalog,
 )
+from .coercion_semantics import (
+    ClaimLookupResult,
+    ClaimLookupState,
+    CoercionClaim,
+    CoercionContext,
+    CoercionEffects,
+    CoercionEvidence,
+    CoercionInvocation,
+    CoercionPermission,
+    CoercionScope,
+    EffectState,
+    EvidenceBasis,
+    QualificationState,
+    ReconciliationResult,
+    TypeIdentity,
+    coercion_semantics_manifest,
+    lookup_coercion_claim,
+    reconcile_coercion_evidence,
+)
+from .coercion_sources import postgresql_pg_cast_evidence
 from .compare import compare_dialects
 from .expression_registry import (
     DEFAULT_EXPRESSION_REGISTRY,
