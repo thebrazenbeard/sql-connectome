@@ -161,10 +161,7 @@ def canonical_type_family(value: object) -> CanonicalTypeFamily:
 
 
 def _type_parameters(node: exp.DataType, parser_dialect: str) -> tuple[str, ...]:
-    return tuple(
-        parameter.sql(dialect=parser_dialect)
-        for parameter in node.expressions
-    )
+    return tuple(parameter.sql(dialect=parser_dialect) for parameter in node.expressions)
 
 
 def explicit_type_semantic(
@@ -217,10 +214,7 @@ def _coercion_fidelity(
     ):
         return TranslationFidelity.LOSSY, "BINARY_FLOAT_PRECISION_RISK"
 
-    if (
-        source_family is CanonicalTypeFamily.DATE
-        and target_family is CanonicalTypeFamily.TIMESTAMP
-    ):
+    if source_family is CanonicalTypeFamily.DATE and target_family is CanonicalTypeFamily.TIMESTAMP:
         return TranslationFidelity.CONSTRUCTIVE, "TEMPORAL_WIDENING"
 
     return TranslationFidelity.LOSSY, "CROSS_FAMILY_COERCION"
@@ -517,7 +511,6 @@ def assess_type_semantics(
     }
 
 
-
 def rewrite_type_representations(
     expression: exp.Expression,
     *,
@@ -555,12 +548,11 @@ def rewrite_type_representations(
     return expression.transform(rewrite, copy=True)
 
 
-
 def dependency_coercion_evidence(
     *,
     dialect_id: str,
     parser_dialect: str,
-) -> tuple["CoercionEvidence", ...]:
+) -> tuple[Any, ...]:
     from .coercion_semantics import (
         CoercionContext,
         CoercionEvidence,

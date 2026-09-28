@@ -42,7 +42,6 @@ def test_evidence_schema_preserves_direction_native_metadata_and_unknown_effects
     assert evidence.digest() == evidence.digest()
 
 
-
 def _evidence(
     evidence_id: str, *, version: str | None, permission: CoercionPermission
 ) -> CoercionEvidence:
@@ -100,7 +99,6 @@ def test_reconciliation_is_order_independent_and_lookup_preserves_conflict() -> 
     assert unknown.state is ClaimLookupState.UNKNOWN
 
 
-
 def test_dependency_projection_is_non_behavioral_and_v1_graph_is_unchanged() -> None:
     from sql_connectome.connectome.type_system import (
         dependency_coercion_evidence,
@@ -118,4 +116,6 @@ def test_dependency_projection_is_non_behavioral_and_v1_graph_is_unchanged() -> 
     assert len(evidence) == len(graph["implicit_coercions"])
     assert all(item.basis is EvidenceBasis.DEPENDENCY_METADATA for item in evidence)
     assert all(item.qualification is QualificationState.SOURCE_BOUND for item in evidence)
-    assert all(dict(item.provenance)["evidence_ceiling"] == "DEPENDENCY_METADATA" for item in evidence)
+    assert all(
+        dict(item.provenance)["evidence_ceiling"] == "DEPENDENCY_METADATA" for item in evidence
+    )
