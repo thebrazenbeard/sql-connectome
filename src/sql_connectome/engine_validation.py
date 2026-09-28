@@ -101,6 +101,7 @@ def build_engine_validation_result(
         "native_error_digest": (
             canonical_digest(native_error.as_dict()) if native_error else None
         ),
+        "native_payload_digest": canonical_digest(native_payload),
     }
     return EngineValidationResult(
         runtime=runtime,

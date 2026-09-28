@@ -36,7 +36,17 @@ def validate_mariadb_readonly(
             status=ValidationStatus.UNAVAILABLE,
             validation_mode="EXPLAIN_FORMAT_JSON",
         )
-    cursor = connection.cursor()
+    try:
+        cursor = connection.cursor()
+    except Exception as exc:
+        return build_engine_validation_result(
+            runtime=EngineRuntimeIdentity("mariadb", "mariadb-v1"),
+            sql=sql,
+            schema_context=schema_context,
+            status=ValidationStatus.UNAVAILABLE,
+            validation_mode="EXPLAIN_FORMAT_JSON",
+            native_error=_native_error(exc),
+        )
     try:
         cursor.execute(
             "SELECT VERSION(), DATABASE(), @@SESSION.sql_mode, "

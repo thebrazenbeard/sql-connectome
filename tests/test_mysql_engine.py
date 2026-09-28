@@ -53,3 +53,14 @@ def test_mysql_unavailable_and_guarded() -> None:
     assert validate_mysql_readonly("SELECT 1", connection=None).status.value == "UNAVAILABLE"
     with pytest.raises(SQLRejected):
         validate_mysql_readonly("DELETE FROM orders", connection=FakeConnection())
+
+
+
+class BrokenConnection:
+    def cursor(self):
+        raise RuntimeError("runtime unavailable")
+
+
+def test_mysql_broken_connection_is_unavailable() -> None:
+    result = validate_mysql_readonly("SELECT 1", connection=BrokenConnection())
+    assert result.status.value == "UNAVAILABLE"

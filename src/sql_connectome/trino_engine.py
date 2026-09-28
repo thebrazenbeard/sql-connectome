@@ -35,7 +35,17 @@ def validate_trino_readonly(
             status=ValidationStatus.UNAVAILABLE,
             validation_mode="EXPLAIN_TYPE_VALIDATE",
         )
-    cursor = connection.cursor()
+    try:
+        cursor = connection.cursor()
+    except Exception as exc:
+        return build_engine_validation_result(
+            runtime=EngineRuntimeIdentity("trino", "trino-v1"),
+            sql=sql,
+            schema_context=schema_context,
+            status=ValidationStatus.UNAVAILABLE,
+            validation_mode="EXPLAIN_TYPE_VALIDATE",
+            native_error=_native_error(exc),
+        )
     try:
         cursor.execute("SELECT version(), current_catalog, current_schema")
         version, catalog, schema = cursor.fetchone()

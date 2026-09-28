@@ -70,3 +70,25 @@ def test_manifest_keeps_adapter_qualification_independent() -> None:
         for entry in manifest["adapters"].values()
     )
     assert "family_qualification" not in manifest
+
+
+
+def test_receipt_binds_native_validation_payload() -> None:
+    runtime = EngineRuntimeIdentity("mysql", "mysql-v1", "8.4.0")
+    first = build_engine_validation_result(
+        runtime=runtime,
+        sql="SELECT 1",
+        schema_context=None,
+        status=ValidationStatus.PASS,
+        validation_mode="EXPLAIN_FORMAT_JSON",
+        native_payload={"plan": 1},
+    )
+    second = build_engine_validation_result(
+        runtime=runtime,
+        sql="SELECT 1",
+        schema_context=None,
+        status=ValidationStatus.PASS,
+        validation_mode="EXPLAIN_FORMAT_JSON",
+        native_payload={"plan": 2},
+    )
+    assert first.receipt != second.receipt
