@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, Iterable
+from typing import Any
 
 from .connectivity import ConnectionIdentity, EffectClass, connection_identity_digest
 from .receipts import canonical_digest
