@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 
+from sql_connectome.receipts import canonical_digest
+
 from .model import AppliedRewrite, DialectGenome, RewriteRule, TranslationFidelity, TranslationPlan
 from .registry import DEFAULT_DIALECTS, DEFAULT_REWRITE_RULES, resolve_dialect
 
@@ -64,6 +66,16 @@ def plan_translation(
                 rule_name=selected.name,
                 fidelity=selected.fidelity,
                 description=selected.description,
+                rule_definition_digest=canonical_digest(
+                    {
+                        "name": selected.name,
+                        "source_capability": selected.source_capability,
+                        "target_capabilities": sorted(selected.target_capabilities),
+                        "target_dialects": sorted(selected.target_dialects),
+                        "fidelity": selected.fidelity.value,
+                        "description": selected.description,
+                    }
+                ),
             )
         )
 
