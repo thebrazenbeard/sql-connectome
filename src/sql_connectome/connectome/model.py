@@ -78,6 +78,7 @@ class AppliedRewrite:
     rule_name: str
     fidelity: TranslationFidelity
     description: str
+    rule_definition_digest: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,6 +108,7 @@ class TranslationPlan:
                     "rule_name": rewrite.rule_name,
                     "fidelity": rewrite.fidelity.value,
                     "description": rewrite.description,
+                    "rule_definition_digest": rewrite.rule_definition_digest,
                 }
                 for rewrite in self.rewrites
             ],
