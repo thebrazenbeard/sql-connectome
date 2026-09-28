@@ -6,6 +6,8 @@ from typing import Any
 
 from sql_connectome.receipts import canonical_digest
 
+from .logical_plan import LogicalPlan, logical_plan_digest
+
 
 class ApplicabilityState(StrEnum):
     APPLICABLE = "APPLICABLE"
@@ -107,9 +109,6 @@ def rewrite_application_digest(application: RewriteApplication) -> str:
     return canonical_digest(application.as_dict())
 
 
-from .logical_plan import LogicalPlan, logical_plan_digest
-
-
 REDUNDANT_PROJECT_ELIMINATION_V1 = RewriteDefinition(
     rewrite_id="redundant-project-elimination",
     version="1",
@@ -142,7 +141,8 @@ REDUNDANT_PROJECT_ELIMINATION_V1 = RewriteDefinition(
     ),
     counterexamples=(
         "projection reorders fields",
-        "projection changes field identity, type, nullability, provenance, multiplicity, or cardinality",
+        "projection changes field identity, type, nullability, provenance, "
+        "multiplicity, or cardinality",
     ),
     semantic_loss_delta=("REDUNDANT_PROJECT_ELIMINATION_STRUCTURAL_V1",),
     authority_ceiling=QualificationState.STRUCTURAL_ONLY,
