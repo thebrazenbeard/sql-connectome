@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import collections.abc
 from dataclasses import dataclass
 from typing import Any
 
@@ -80,7 +79,7 @@ class DBAPIAdapter:
     engine_version: str | None
     transport_implementation: str
     transport_version: str | None
-    connect: collections.abc.Callable[[], Any]
+    connect: Any
     catalog: str | None = None
     endpoint_identity: str | None = None
     session_facts: tuple[tuple[str, str], ...] = ()
