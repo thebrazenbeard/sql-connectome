@@ -131,6 +131,10 @@ REDUNDANT_PROJECT_ELIMINATION_V1 = RewriteDefinition(
             "IDENTICAL_RELATION_PROPERTIES",
             "scope, multiplicity, and cardinality must match",
         ),
+        RewritePrecondition(
+            "NO_PROJECT_EXPRESSION_AMBIGUITY",
+            "V1 requires projected field identities to already exist on the input",
+        ),
     ),
     postconditions=("ROOT_OR_INPUT_REFERENCES_REPLACED_WITH_PROJECT_INPUT",),
     evidence=(
@@ -247,6 +251,18 @@ def apply_redundant_project_elimination(
             preconditions=tuple(checks),
         )
     checks.append(("IDENTICAL_RELATION_PROPERTIES", "PASS"))
+
+    input_field_ids = {field.field_id for field in input_relation.output_schema.fields}
+    project_field_ids = {field.field_id for field in project.output_schema.fields}
+    if project_field_ids != input_field_ids:
+        checks.append(("NO_PROJECT_EXPRESSION_AMBIGUITY", "FAIL"))
+        return plan, _application(
+            definition,
+            plan,
+            applicability=ApplicabilityState.NOT_APPLICABLE,
+            preconditions=tuple(checks),
+        )
+    checks.append(("NO_PROJECT_EXPRESSION_AMBIGUITY", "PASS"))
 
     rewritten_relations = []
     for relation in plan.relations:
