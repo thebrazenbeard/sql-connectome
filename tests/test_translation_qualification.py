@@ -146,6 +146,7 @@ def test_semantic_evidence_digest_binds_translation_evidence() -> None:
     expected = canonical_digest(
         {
             "plan": result["translation"]["plan"],
+            "rewrite_governance": result["translation"]["rewrite_governance"],
             "expression_semantics": result["translation"]["expression_semantics"],
             "type_semantics": result["translation"]["type_semantics"],
             "combined_fidelity": result["translation"]["combined_fidelity"],
@@ -153,3 +154,17 @@ def test_semantic_evidence_digest_binds_translation_evidence() -> None:
     )
     assert result["qualification"]["semantic_evidence_digest"] == expected
     assert result["receipt"]["subject"]["semantic_evidence_digest"] == expected
+
+
+def test_rewrite_governance_is_bound_into_qualification_receipt() -> None:
+    result = qualify_translation_to_postgresql(
+        settings(),
+        "SELECT version, ROW_NUMBER() OVER (ORDER BY version) AS rn "
+        "FROM sql_connectome.schema_migrations QUALIFY rn = 1",
+        "bigquery",
+    )
+    qualification = result["qualification"]
+    governance = result["translation"]["rewrite_governance"]
+    assert qualification["rewrite_qualification"] == "CONDITIONAL"
+    assert qualification["rewrite_governance_digest"] == governance["digest"]
+    assert result["receipt"]["subject"]["rewrite_governance_digest"] == governance["digest"]
