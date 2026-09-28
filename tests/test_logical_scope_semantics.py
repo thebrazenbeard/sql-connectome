@@ -75,3 +75,28 @@ def test_set_operation_type_reconciliation_is_not_overclaimed():
     )
     losses = result["logical_semantics"]["plan"]["losses"]
     assert "SET_OP_TYPE_RECONCILIATION_UNQUALIFIED_V1" in losses
+
+
+def test_multiple_subqueries_get_distinct_scope_ids():
+    result = bind_sql_text(
+        "SELECT id FROM users u WHERE EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id) "
+        "AND EXISTS (SELECT 1 FROM orders o2 WHERE o2.user_id = u.id)",
+        "postgresql",
+        SCHEMA,
+    )
+    scopes = [
+        item["scope_id"]
+        for item in result["logical_semantics"]["plan"]["relations"]
+        if item["kind"] == "SUBQUERY"
+    ]
+    assert scopes == ["scope:subquery:0", "scope:subquery:1"]
+
+
+def test_join_and_subquery_detail_losses_are_explicit():
+    result = bind_sql_text(
+        "SELECT users.id FROM users JOIN orders ON users.id = orders.user_id",
+        "postgresql",
+        SCHEMA,
+    )
+    losses = set(result["logical_semantics"]["plan"]["losses"])
+    assert "JOIN_PREDICATE_AND_TYPE_DETAIL_NOT_MODELED_V1" in losses
