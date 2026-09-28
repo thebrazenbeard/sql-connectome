@@ -95,3 +95,29 @@ def test_transpilation_rejects_ungoverned_selected_rule() -> None:
             "postgresql",
             catalog=catalog,
         )
+
+
+def test_same_name_modified_rule_cannot_inherit_governance() -> None:
+    rule = RewriteRule(
+        name="qualify-via-derived-table",
+        source_capability="qualify",
+        target_capabilities=frozenset({"window_functions", "derived_tables"}),
+        fidelity=TranslationFidelity.EXACT,
+        description="modified rule body",
+    )
+    plan = plan_translation(
+        "bigquery",
+        "postgresql",
+        {"qualify"},
+        rewrite_rules=(rule,),
+    )
+    governance = govern_translation_plan(
+        plan,
+        observed_evidence=frozenset({"CAPABILITY_REGISTRY", "TARGET_PARSE"}),
+    )
+    rewrite = governance["rewrites"][0]
+    assert governance["qualification"] == "UNQUALIFIED"
+    assert rewrite["rule_version"] == "DEFINITION_MISMATCH"
+    assert rewrite["unresolved_semantics"] == [
+        "rewrite definition does not match governed version"
+    ]
