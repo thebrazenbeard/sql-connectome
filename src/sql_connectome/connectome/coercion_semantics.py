@@ -271,3 +271,19 @@ def lookup_coercion_claim(
         ),
         evidence_ids=evidence_ids,
     )
+
+
+
+def coercion_semantics_manifest(
+    evidence: tuple[CoercionEvidence, ...] | list[CoercionEvidence],
+) -> dict[str, object]:
+    reconciled = reconcile_coercion_evidence(evidence)
+    return {
+        "schema": "SQL_CONNECTOME_COERCION_SEMANTICS_V1",
+        "reconciler": "SQL_CONNECTOME_COERCION_RECONCILER_V1",
+        "evidence_set_digest": reconciled.digest,
+        "evidence_count": len(reconciled.evidence),
+        "behavioral_equivalence": "NOT_ESTABLISHED",
+        "unknown_policy": "PRESERVE",
+        "conflict_policy": "CONTRADICTED",
+    }

@@ -119,3 +119,19 @@ def test_dependency_projection_is_non_behavioral_and_v1_graph_is_unchanged() -> 
     assert all(
         dict(item.provenance)["evidence_ceiling"] == "DEPENDENCY_METADATA" for item in evidence
     )
+
+
+
+def test_manifest_is_deterministic_and_evidence_bound() -> None:
+    from sql_connectome.connectome.coercion_semantics import coercion_semantics_manifest
+
+    first = coercion_semantics_manifest(())
+    second = coercion_semantics_manifest(())
+    assert first == second
+    assert first["schema"] == "SQL_CONNECTOME_COERCION_SEMANTICS_V1"
+    assert first["reconciler"] == "SQL_CONNECTOME_COERCION_RECONCILER_V1"
+    assert first["behavioral_equivalence"] == "NOT_ESTABLISHED"
+
+    evidence = _evidence("manifest-evidence", version="17", permission=CoercionPermission.ALLOWED)
+    changed = coercion_semantics_manifest((evidence,))
+    assert changed["evidence_set_digest"] != first["evidence_set_digest"]
