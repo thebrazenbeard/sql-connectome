@@ -5,10 +5,10 @@ from typing import Any
 
 from .connectivity import (
     ConnectionIdentity,
-    connection_identity_digest,
     ConnectivityExecutionResult,
     EffectClass,
     ProtectedEffectError,
+    connection_identity_digest,
 )
 from .engine_validation import NativeEngineError
 from .receipts import canonical_digest
