@@ -44,6 +44,7 @@ from .model import (
 from .planner import list_dialects, plan_translation
 from .probe import DialectCandidate, probe_sql_dialects
 from .registry import DEFAULT_DIALECTS, DEFAULT_REWRITE_RULES, resolve_dialect
+from .rewrite_governance import GovernedRewrite, RewriteQualification, govern_translation_plan
 from .semantics import (
     SemanticRisk,
     assess_expression_semantics,
@@ -90,6 +91,9 @@ __all__ = [
     "reconcile_coercion_evidence",
     "postgresql_pg_cast_evidence",
     "AppliedRewrite",
+    "GovernedRewrite",
+    "RewriteQualification",
+    "govern_translation_plan",
     "inspect_type_system",
     "dialect_type_graph",
     "canonical_type_family",
