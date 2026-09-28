@@ -26,7 +26,7 @@ class ADBCAdapter:
 
     def open_session(self) -> DBAPISession:
         if self.connect is None:
-            raise RuntimeError("ADBC transport is unavailable; provide an explicit connection factory")
+            raise RuntimeError(\n                "ADBC transport is unavailable; provide an explicit connection factory"\n            )
         connection = self.connect()
         identity = ConnectionIdentity(
             provider=self.provider,
