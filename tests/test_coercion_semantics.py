@@ -123,7 +123,6 @@ def test_dependency_projection_is_non_behavioral_and_v1_graph_is_unchanged() -> 
     )
 
 
-
 def test_manifest_is_deterministic_and_evidence_bound() -> None:
     from sql_connectome.connectome.coercion_semantics import coercion_semantics_manifest
 
@@ -139,36 +138,6 @@ def test_manifest_is_deterministic_and_evidence_bound() -> None:
     assert changed["evidence_set_digest"] != first["evidence_set_digest"]
 
 
-
-def test_lookup_is_bound_to_source_and_target_identity() -> None:
-    from sql_connectome.connectome.coercion_semantics import (
-        ClaimLookupState,
-        lookup_coercion_claim,
-        reconcile_coercion_evidence,
-    )
-
-    wanted = _evidence("wanted", version="17", permission=CoercionPermission.ALLOWED)
-    unrelated = CoercionEvidence(
-        evidence_id="unrelated",
-        source=TypeIdentity("TEXT", "STRING"),
-        target=TypeIdentity("INT", "INTEGER"),
-        scope=wanted.scope,
-        basis=EvidenceBasis.ENGINE_CATALOG,
-        qualification=QualificationState.QUALIFIED,
-        permission=CoercionPermission.REJECTED,
-        invocation=CoercionInvocation.ENGINE_SELECTED,
-    )
-    result = lookup_coercion_claim(
-        reconcile_coercion_evidence((wanted, unrelated)),
-        wanted.source,
-        wanted.target,
-        wanted.scope,
-    )
-    assert result.state is ClaimLookupState.QUALIFIED
-    assert result.evidence_ids == ("wanted",)
-
-
-
 def test_lookup_is_bound_to_source_and_target_identity() -> None:
     from sql_connectome.connectome.coercion_semantics import (
         ClaimLookupState,
@@ -203,6 +172,35 @@ def test_lookup_is_bound_to_source_and_target_identity() -> None:
         lookup_coercion_claim,
         reconcile_coercion_evidence,
     )
+
+    wanted = _evidence("wanted", version="17", permission=CoercionPermission.ALLOWED)
+    unrelated = CoercionEvidence(
+        evidence_id="unrelated",
+        source=TypeIdentity("TEXT", "STRING"),
+        target=TypeIdentity("INT", "INTEGER"),
+        scope=wanted.scope,
+        basis=EvidenceBasis.ENGINE_CATALOG,
+        qualification=QualificationState.QUALIFIED,
+        permission=CoercionPermission.REJECTED,
+        invocation=CoercionInvocation.ENGINE_SELECTED,
+    )
+    result = lookup_coercion_claim(
+        reconcile_coercion_evidence((wanted, unrelated)),
+        wanted.source,
+        wanted.target,
+        wanted.scope,
+    )
+    assert result.state is ClaimLookupState.QUALIFIED
+    assert result.evidence_ids == ("wanted",)
+
+
+def test_lookup_is_bound_to_source_and_target_identity() -> None:
+    from sql_connectome.connectome.coercion_semantics import (
+        ClaimLookupState,
+        lookup_coercion_claim,
+        reconcile_coercion_evidence,
+    )
+
     wanted = _evidence("wanted", version="17", permission=CoercionPermission.ALLOWED)
     unrelated = CoercionEvidence(
         evidence_id="unrelated",
