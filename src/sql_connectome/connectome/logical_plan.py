@@ -91,6 +91,7 @@ class LogicalExpression:
     outer_scope_id: str | None = None
     source_sql: str | None = None
     evidence: tuple[str, ...] = ()
+    field_id: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -102,6 +103,7 @@ class LogicalExpression:
             "outer_scope_id": self.outer_scope_id,
             "source_sql": self.source_sql,
             "evidence": list(self.evidence),
+            "field_id": self.field_id,
         }
 
 
