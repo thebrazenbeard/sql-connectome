@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
+from collections.abc import Callable
 
 from .connectivity import (
     ConnectionIdentity,
@@ -28,7 +28,7 @@ class DBAPISession:
     connection: Any
     identity: ConnectionIdentity
 
-    def __enter__(self) -> "DBAPISession":
+    def __enter__(self) -> DBAPISession:
         return self
 
     def __exit__(self, exc_type: object, exc: object, traceback: object) -> None:
