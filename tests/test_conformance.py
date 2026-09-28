@@ -82,3 +82,28 @@ def test_nondeterministic_policy_is_inconclusive() -> None:
         ComparisonPolicy(ComparisonMode.ORDERED, allow_nondeterminism=True),
     )
     assert result.state is ComparisonState.INCONCLUSIVE
+
+
+def test_sqlite_and_duckdb_execute_same_seed_bound_case_independently() -> None:
+    from sql_connectome.conformance_runners import DuckDBRunner, SQLiteRunner
+
+    case = _case()
+    sqlite_result = SQLiteRunner().execute(case, case.source_sql)
+    duckdb_result = DuckDBRunner().execute(case, case.source_sql)
+    assert sqlite_result.rows == ((1,), (2,), (2,))
+    assert duckdb_result.rows == ((1,), (2,), (2,))
+    assert sqlite_result.runtime.engine == "sqlite"
+    assert duckdb_result.runtime.engine == "duckdb"
+    assert execution_observation_digest(sqlite_result) != execution_observation_digest(
+        duckdb_result
+    )
+
+
+def test_runner_preserves_native_error() -> None:
+    from sql_connectome.conformance_runners import SQLiteRunner
+
+    case = _case()
+    result = SQLiteRunner().execute(case, "SELECT missing FROM t")
+    assert result.rows is None
+    assert result.native_error is not None
+    assert result.native_error.error_class
