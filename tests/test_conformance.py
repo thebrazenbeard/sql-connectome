@@ -59,3 +59,26 @@ def test_bag_comparison_preserves_multiplicity() -> None:
         left, missing_duplicate, ComparisonPolicy(ComparisonMode.BAG)
     )
     assert mismatch.state is ComparisonState.MISMATCH
+
+
+def test_ordered_and_set_comparison_are_distinct() -> None:
+    runtime = EngineRuntimeIdentity("sqlite", "sqlite-conformance-v1")
+    left = ExecutionObservation(runtime, "case", "left", rows=((1,), (2,), (2,)))
+    reordered = ExecutionObservation(runtime, "case", "right", rows=((2,), (1,), (2,)))
+    assert compare_observations(
+        left, reordered, ComparisonPolicy(ComparisonMode.ORDERED)
+    ).state is ComparisonState.MISMATCH
+    assert compare_observations(
+        left, reordered, ComparisonPolicy(ComparisonMode.SET)
+    ).state is ComparisonState.MATCH
+
+
+def test_nondeterministic_policy_is_inconclusive() -> None:
+    runtime = EngineRuntimeIdentity("sqlite", "sqlite-conformance-v1")
+    observation = ExecutionObservation(runtime, "case", "sql", rows=((1,),))
+    result = compare_observations(
+        observation,
+        observation,
+        ComparisonPolicy(ComparisonMode.ORDERED, allow_nondeterminism=True),
+    )
+    assert result.state is ComparisonState.INCONCLUSIVE
