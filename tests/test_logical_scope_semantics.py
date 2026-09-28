@@ -112,3 +112,11 @@ def test_set_operation_preserves_branch_expression_evidence():
     ids = {item["expression_id"] for item in expressions}
     assert any(value.startswith("left:") for value in ids)
     assert any(value.startswith("right:") for value in ids)
+
+
+def test_top_level_field_references_bind_stable_field_ids():
+    result = bind_sql_text("SELECT id FROM users", "postgresql", SCHEMA)
+    expressions = result["logical_semantics"]["plan"]["expressions"]
+    reference = next(item for item in expressions if item["kind"] == "FIELD_REFERENCE")
+    assert reference["field_id"] is not None
+    assert reference["field_id"].startswith("field:read:")
