@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from .connectivity import ConnectionIdentity, EffectClass
-from .session_attestation import SessionAttestation, validate_session_attestation
 from .cross_bound_receipts import (
     CrossBoundReceipt,
     CurrentnessState,
     TransitionKind,
     make_cross_bound_receipt,
 )
+from .session_attestation import SessionAttestation, validate_session_attestation
 
 
 def understand_receipt(
