@@ -54,3 +54,23 @@ def test_join_is_a_first_class_relation():
     kinds = [item["kind"] for item in result["logical_semantics"]["plan"]["relations"]]
     assert "JOIN" in kinds
 
+
+
+def test_right_join_null_extends_left_output():
+    schema = {
+        "users": {"id": "INT"},
+        "orders": {"user_id": "INT", "total": "DECIMAL"},
+    }
+    result = bind_sql_text(
+        "SELECT users.id, orders.total FROM users RIGHT JOIN orders "
+        "ON users.id = orders.user_id",
+        "postgresql",
+        schema,
+    )
+    project = next(
+        item
+        for item in result["logical_semantics"]["plan"]["relations"]
+        if item["kind"] == "PROJECT"
+    )
+    fields = {field["name"]: field for field in project["output_schema"]}
+    assert fields["id"]["nullability"] == "NULLABLE"
