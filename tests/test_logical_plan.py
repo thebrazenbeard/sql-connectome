@@ -1,3 +1,5 @@
+import pytest
+
 from sql_connectome.connectome.logical_plan import (
     CardinalityBounds,
     CardinalityCertainty,
