@@ -21,7 +21,8 @@ class GovernedRewrite:
     source_capability: str
     rule_version: str
     qualification: RewriteQualification
-    evidence_basis: tuple[str, ...]
+    required_evidence: tuple[str, ...]
+    observed_evidence: tuple[str, ...]
     preconditions: tuple[str, ...]
     unresolved_semantics: tuple[str, ...]
     behavioral_equivalence: str = "NOT_ESTABLISHED"
@@ -33,7 +34,8 @@ class GovernedRewrite:
             "source_capability": self.source_capability,
             "rule_version": self.rule_version,
             "qualification": self.qualification.value,
-            "evidence_basis": list(self.evidence_basis),
+            "required_evidence": list(self.required_evidence),
+            "observed_evidence": list(self.observed_evidence),
             "preconditions": list(self.preconditions),
             "unresolved_semantics": list(self.unresolved_semantics),
             "behavioral_equivalence": self.behavioral_equivalence,
@@ -81,7 +83,10 @@ _RULE_GOVERNANCE: dict[str, dict[str, tuple[str, ...] | str]] = {
 }
 
 
-def _govern(rewrite: AppliedRewrite) -> GovernedRewrite:
+def _govern(
+    rewrite: AppliedRewrite,
+    observed_evidence: frozenset[str],
+) -> GovernedRewrite:
     record = _RULE_GOVERNANCE.get(rewrite.rule_name)
     if record is None:
         return GovernedRewrite(
@@ -90,17 +95,23 @@ def _govern(rewrite: AppliedRewrite) -> GovernedRewrite:
             source_capability=rewrite.source_capability,
             rule_version="UNVERSIONED",
             qualification=RewriteQualification.UNQUALIFIED,
-            evidence_basis=(),
+            required_evidence=(),
+            observed_evidence=(),
             preconditions=(),
             unresolved_semantics=("no governed rewrite record",),
         )
 
     unresolved = tuple(record["unresolved"])
-    qualification = (
-        RewriteQualification.CONDITIONAL
-        if unresolved
-        else RewriteQualification.QUALIFIED
-    )
+    required = tuple(record["evidence"])
+    observed = tuple(item for item in required if item in observed_evidence)
+    missing = tuple(item for item in required if item not in observed_evidence)
+    if missing:
+        qualification = RewriteQualification.UNQUALIFIED
+        unresolved = unresolved + tuple(f"missing evidence: {item}" for item in missing)
+    elif unresolved:
+        qualification = RewriteQualification.CONDITIONAL
+    else:
+        qualification = RewriteQualification.QUALIFIED
     version = str(record["version"])
     return GovernedRewrite(
         rewrite_id=f"{rewrite.rule_name}@{version}",
@@ -108,14 +119,19 @@ def _govern(rewrite: AppliedRewrite) -> GovernedRewrite:
         source_capability=rewrite.source_capability,
         rule_version=version,
         qualification=qualification,
-        evidence_basis=tuple(record["evidence"]),
+        required_evidence=required,
+        observed_evidence=observed,
         preconditions=tuple(record["preconditions"]),
         unresolved_semantics=unresolved,
     )
 
 
-def govern_translation_plan(plan: TranslationPlan) -> dict[str, object]:
-    rewrites = tuple(_govern(item) for item in plan.rewrites)
+def govern_translation_plan(
+    plan: TranslationPlan,
+    *,
+    observed_evidence: frozenset[str] = frozenset(),
+) -> dict[str, object]:
+    rewrites = tuple(_govern(item, observed_evidence) for item in plan.rewrites)
     qualification = (
         RewriteQualification.UNQUALIFIED
         if any(item.qualification is RewriteQualification.UNQUALIFIED for item in rewrites)
