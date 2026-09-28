@@ -1,8 +1,8 @@
 import pytest
 
 from sql_connectome.connectome import (
-    ConnectomeCatalog,
     DEFAULT_CATALOG,
+    ConnectomeCatalog,
     RewriteRule,
     SQLTextError,
     TranslationFidelity,
