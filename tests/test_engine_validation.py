@@ -56,3 +56,17 @@ def test_native_error_survives_neutral_envelope() -> None:
         "code": "1054",
         "sqlstate": "42S22",
     }
+
+
+
+def test_manifest_keeps_adapter_qualification_independent() -> None:
+    from sql_connectome.engine_validation import engine_validation_manifest
+
+    manifest = engine_validation_manifest()
+    assert manifest["schema"] == "SQL_CONNECTOME_ENGINE_VALIDATION_MANIFEST_V1"
+    assert set(manifest["adapters"]) == {"mysql", "mariadb", "trino"}
+    assert all(
+        entry["qualification"] == "PROTOCOL_TESTED"
+        for entry in manifest["adapters"].values()
+    )
+    assert "family_qualification" not in manifest

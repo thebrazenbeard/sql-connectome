@@ -112,3 +112,32 @@ def build_engine_validation_result(
         native_error=native_error,
         receipt=canonical_digest(receipt_payload),
     )
+
+
+
+def engine_validation_manifest() -> dict[str, Any]:
+    adapters = {
+        "mysql": {
+            "adapter_id": "mysql-v1",
+            "validation_mode": "EXPLAIN_FORMAT_JSON",
+            "qualification": "PROTOCOL_TESTED",
+            "behavioral_equivalence": "NOT_ESTABLISHED",
+        },
+        "mariadb": {
+            "adapter_id": "mariadb-v1",
+            "validation_mode": "EXPLAIN_FORMAT_JSON",
+            "qualification": "PROTOCOL_TESTED",
+            "behavioral_equivalence": "NOT_ESTABLISHED",
+        },
+        "trino": {
+            "adapter_id": "trino-v1",
+            "validation_mode": "EXPLAIN_TYPE_VALIDATE",
+            "qualification": "PROTOCOL_TESTED",
+            "behavioral_equivalence": "NOT_ESTABLISHED",
+        },
+    }
+    payload = {
+        "schema": "SQL_CONNECTOME_ENGINE_VALIDATION_MANIFEST_V1",
+        "adapters": adapters,
+    }
+    return {**payload, "digest": canonical_digest(payload)}
