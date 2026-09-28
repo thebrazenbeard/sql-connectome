@@ -387,6 +387,14 @@ def build_logical_plan(
         losses.append("DISTINCT_NOT_DERIVED_V1")
     if any(isinstance(node, exp.Window) for node in typed.walk()):
         losses.append("WINDOW_NOT_DERIVED_V1")
+    if typed.args.get("joins"):
+        losses.append("JOIN_PREDICATE_AND_TYPE_DETAIL_NOT_MODELED_V1")
+    if has_aggregate:
+        losses.append("AGGREGATE_EXPRESSION_DETAIL_NOT_MODELED_V1")
+    if nested_selects:
+        losses.append("SUBQUERY_PREDICATE_DETAIL_NOT_MODELED_V1")
+    if any(item.field_id is None for item in expressions):
+        losses.append("UNRESOLVED_FIELD_REFERENCE_ID_V1")
 
     plan = LogicalPlan(
         roots=(current_id,),
