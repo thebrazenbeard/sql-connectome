@@ -19,6 +19,7 @@ from .expression_registry import (
 from .ir import IREdge, IRNode, SQLSemanticIR
 from .model import SemanticDimension, TranslationFidelity
 from .planner import plan_translation
+from .rewrite_governance import govern_translation_plan
 from .semantics import assess_expression_semantics, combined_fidelity
 from .type_system import (
     assess_type_semantics,
@@ -521,6 +522,7 @@ def transpile_sql_text(
         dialects=catalog.dialects,
         rewrite_rules=catalog.rewrite_rules,
     )
+    rewrite_governance = govern_translation_plan(plan)
 
     if plan.fidelity is TranslationFidelity.UNREPRESENTABLE:
         unresolved = ",".join(sorted(plan.unresolved_capabilities))
@@ -579,6 +581,7 @@ def transpile_sql_text(
         "target_sql": generated,
         "target_parse": target.as_dict(),
         "plan": plan.as_dict(),
+        "rewrite_governance": rewrite_governance,
         "expression_semantics": expression_semantics,
         "type_semantics": type_semantics,
         "fidelity_components": {
