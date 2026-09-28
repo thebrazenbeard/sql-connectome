@@ -4,7 +4,9 @@ from .receptor_capabilities import KNOWN_LOSS_MARKERS, SUPPORTED_CONSTRUCTS
 from .receptors import ExternalPlan, MappingState, ReceptorMapping, external_plan_digest
 
 
-def map_external_plan(plan: ExternalPlan, *, logical_plan_digest: str | None = None) -> ReceptorMapping:
+def map_external_plan(
+    plan: ExternalPlan, *, logical_plan_digest: str | None = None
+) -> ReceptorMapping:
     supported_set = SUPPORTED_CONSTRUCTS[plan.language]
     supported = tuple(item for item in plan.constructs if item in supported_set)
     unsupported = tuple(item for item in plan.constructs if item not in supported_set)
