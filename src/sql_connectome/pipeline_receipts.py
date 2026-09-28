@@ -7,6 +7,7 @@ from .cross_bound_receipts import (
     TransitionKind,
     make_cross_bound_receipt,
 )
+from .session_attestation import SessionAttestation, validate_session_attestation
 
 
 def understand_receipt(
@@ -77,8 +78,15 @@ def execute_receipt(
     connection_identity: ConnectionIdentity,
     authorization_receipt: str | None = None,
     currentness: CurrentnessState = CurrentnessState.UNKNOWN,
+    session_attestation: SessionAttestation | None = None,
     **kwargs: object,
 ) -> CrossBoundReceipt:
+    evidence_refs = tuple(kwargs.pop("evidence_refs", ()))
+    if currentness is CurrentnessState.CURRENT:
+        if session_attestation is None:
+            raise ValueError("CURRENT execution requires session re-attestation")
+        validate_session_attestation(session_attestation, connection_identity)
+        evidence_refs = (*evidence_refs, f"session-attestation:{session_attestation.digest()}")
     return make_cross_bound_receipt(
         TransitionKind.EXECUTE,
         input_digests=(input_digest,),
@@ -88,5 +96,6 @@ def execute_receipt(
         connection_identity=connection_identity,
         authorization_receipt=authorization_receipt,
         currentness=currentness,
+        evidence_refs=evidence_refs,
         **kwargs,
     )

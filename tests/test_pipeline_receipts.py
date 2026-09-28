@@ -8,6 +8,7 @@ from sql_connectome.pipeline_receipts import (
     validate_receipt,
 )
 from sql_connectome.receipts import make_receipt
+from sql_connectome.session_attestation import attest_session_identity
 
 
 def test_complete_pipeline_forms_valid_receipt_dag() -> None:
@@ -24,6 +25,7 @@ def test_complete_pipeline_forms_valid_receipt_dag() -> None:
         catalog="main",
         session_facts=(("mode", "isolated"),),
     )
+    attestation = attest_session_identity(identity, identity, mechanism="test-reobserve")
     execute = execute_receipt(
         "validated",
         "result",
@@ -31,6 +33,7 @@ def test_complete_pipeline_forms_valid_receipt_dag() -> None:
         effect=EffectClass.READ_ONLY,
         connection_identity=identity,
         currentness=CurrentnessState.CURRENT,
+        session_attestation=attestation,
     )
     validate_receipt_chain(bind, (understand,))
     validate_receipt_chain(translate, (bind,))
@@ -43,3 +46,16 @@ def test_legacy_receipt_schema_remains_unchanged() -> None:
     receipt = make_receipt("legacy", {"value": 1}, issued_at="2026-01-01T00:00:00+00:00")
     assert receipt["schema"] == "SQL_CONNECTOME_RECEIPT_V1"
     assert receipt["kind"] == "legacy"
+
+
+def test_current_execution_fails_closed_without_reattestation() -> None:
+    identity = ConnectionIdentity("sqlite", "sqlite", "3", "dbapi", "sqlite3", catalog="main")
+    try:
+        execute_receipt(
+            "validated", "result", upstream=(), effect=EffectClass.READ_ONLY,
+            connection_identity=identity, currentness=CurrentnessState.CURRENT,
+        )
+    except ValueError as exc:
+        assert "re-attestation" in str(exc)
+    else:
+        raise AssertionError("CURRENT execution must require re-attestation")
