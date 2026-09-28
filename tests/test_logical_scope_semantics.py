@@ -100,3 +100,15 @@ def test_join_and_subquery_detail_losses_are_explicit():
     )
     losses = set(result["logical_semantics"]["plan"]["losses"])
     assert "JOIN_PREDICATE_AND_TYPE_DETAIL_NOT_MODELED_V1" in losses
+
+
+def test_set_operation_preserves_branch_expression_evidence():
+    result = bind_sql_text(
+        "SELECT id FROM users UNION ALL SELECT user_id AS id FROM orders",
+        "postgresql",
+        SCHEMA,
+    )
+    expressions = result["logical_semantics"]["plan"]["expressions"]
+    ids = {item["expression_id"] for item in expressions}
+    assert any(value.startswith("left:") for value in ids)
+    assert any(value.startswith("right:") for value in ids)
