@@ -11,6 +11,8 @@ from sql_connectome.receipts import canonical_digest
 
 from .catalog import DEFAULT_CATALOG, ConnectomeCatalog
 from .ir import SQLSemanticIR
+from .logical_builder import build_logical_plan
+from .logical_plan import logical_plan_digest
 from .text_pipeline import (
     SQLTextAnalysis,
     SQLTextError,
@@ -220,6 +222,15 @@ def bind_sql_text(
         type_annotation=type_annotation,
     )
 
+    logical_plan = build_logical_plan(
+        typed,
+        dialect_id=dialect_id,
+        source_ir_digest=source_ir_digest,
+        bound_ir_digest=bound_ir_digest,
+        schema_digest=schema_digest,
+    )
+    logical_payload = logical_plan.as_dict()
+
     return {
         "schema": "SQL_CONNECTOME_STATIC_BINDING_V1",
         "catalog_digest": connectome_catalog.digest,
@@ -252,6 +263,18 @@ def bind_sql_text(
             "behavioral_equivalence": "NOT_ESTABLISHED",
             "authority": "STATIC_ANALYSIS_ONLY",
             "ir": bound_ir_payload,
+        },
+        "logical_semantics": {
+            "schema": "SQL_CONNECTOME_LOGICAL_SEMANTICS_V1",
+            "plan_digest": logical_plan_digest(logical_plan),
+            "source_ir_digest": source_ir_digest,
+            "bound_ir_digest": bound_ir_digest,
+            "schema_digest": schema_digest,
+            "coverage": "RELATIONAL_SELECT_V1",
+            "authority": "STATIC_ANALYSIS_ONLY",
+            "engine_validation": "NOT_RUN",
+            "behavioral_equivalence": "NOT_ESTABLISHED",
+            "plan": logical_payload,
         },
         "source": source_analysis.as_dict(),
     }
