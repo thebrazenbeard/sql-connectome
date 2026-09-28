@@ -88,6 +88,7 @@ def build_logical_plan(
                     f"{prefix}:{item.outer_scope_id}" if item.outer_scope_id else None,
                     item.source_sql,
                     item.evidence,
+                    item.field_id,
                 )
                 for item in plan.expressions
             )
@@ -342,6 +343,17 @@ def build_logical_plan(
             and (column.table in outer_aliases or bool(outer_aliases))
         )
         nested_scope_index = (\n            next(\n                (i for i, candidate in enumerate(nested_selects) if candidate is owner),\n                0,\n            )\n            if is_nested\n            else None\n        )\n        scope_id = (\n            f"scope:subquery:{nested_scope_index}"\n            if is_nested\n            else "scope:select:0"\n        )
+        field_id = next(
+            (
+                field.field_id
+                for relation in relations
+                if relation.kind == "READ"
+                for field in relation.output_schema.fields
+                if field.name == column.name
+                and f"bound-expression:{column.sql()}" in field.provenance
+            ),
+            None,
+        )
         expressions.append(
             LogicalExpression(
                 expression_id=f"expression:column:{index}:{column.sql()}",
@@ -352,6 +364,7 @@ def build_logical_plan(
                 outer_scope_id="scope:select:0" if correlated else None,
                 source_sql=column.sql(),
                 evidence=("bound-column-reference",),
+                field_id=field_id,
             )
         )
 
