@@ -105,3 +105,188 @@ def rewrite_definition_digest(definition: RewriteDefinition) -> str:
 
 def rewrite_application_digest(application: RewriteApplication) -> str:
     return canonical_digest(application.as_dict())
+
+
+from .logical_plan import LogicalPlan, logical_plan_digest
+
+
+REDUNDANT_PROJECT_ELIMINATION_V1 = RewriteDefinition(
+    rewrite_id="redundant-project-elimination",
+    version="1",
+    consumes=("PROJECT", "INPUT_RELATION"),
+    produces=("INPUT_RELATION",),
+    preconditions=(
+        RewritePrecondition(
+            "PROJECT_KIND",
+            "target relation must be PROJECT",
+        ),
+        RewritePrecondition(
+            "SINGLE_INPUT",
+            "project must have exactly one input relation",
+        ),
+        RewritePrecondition(
+            "IDENTICAL_OUTPUT_SCHEMA",
+            "project and input schemas must match field-for-field",
+        ),
+        RewritePrecondition(
+            "IDENTICAL_RELATION_PROPERTIES",
+            "scope, multiplicity, and cardinality must match",
+        ),
+    ),
+    postconditions=("ROOT_OR_INPUT_REFERENCES_REPLACED_WITH_PROJECT_INPUT",),
+    evidence=(
+        RewriteEvidence(
+            "static-structural-rule",
+            "docs/specs/2026-09-28-governed-semantic-rewrite-hyperedges-v1-design.md",
+        ),
+    ),
+    counterexamples=(
+        "projection reorders fields",
+        "projection changes field identity, type, nullability, provenance, multiplicity, or cardinality",
+    ),
+    semantic_loss_delta=("REDUNDANT_PROJECT_ELIMINATION_STRUCTURAL_V1",),
+    authority_ceiling=QualificationState.STRUCTURAL_ONLY,
+    provenance=("sql-connectome-step-5",),
+)
+
+
+def _application(
+    definition: RewriteDefinition,
+    plan: LogicalPlan,
+    *,
+    applicability: ApplicabilityState,
+    preconditions: tuple[tuple[str, str], ...],
+    output: LogicalPlan | None = None,
+    postconditions: tuple[tuple[str, str], ...] = (),
+    evidence: tuple[str, ...] = (),
+) -> RewriteApplication:
+    return RewriteApplication(
+        rewrite_id=definition.rewrite_id,
+        rewrite_version=definition.version,
+        definition_digest=rewrite_definition_digest(definition),
+        input_plan_digest=logical_plan_digest(plan),
+        output_plan_digest=logical_plan_digest(output) if output is not None else None,
+        applicability=applicability,
+        qualification=QualificationState.STRUCTURAL_ONLY,
+        evaluated_preconditions=preconditions,
+        evaluated_postconditions=postconditions,
+        evidence=evidence,
+        semantic_loss_delta=definition.semantic_loss_delta if output is not None else (),
+    )
+
+
+def apply_redundant_project_elimination(
+    plan: LogicalPlan,
+    relation_id: str,
+) -> tuple[LogicalPlan, RewriteApplication]:
+    plan.validate()
+    definition = REDUNDANT_PROJECT_ELIMINATION_V1
+    relations = {relation.relation_id: relation for relation in plan.relations}
+    project = relations.get(relation_id)
+    checks: list[tuple[str, str]] = []
+
+    if project is None:
+        checks.append(("PROJECT_KIND", "UNRESOLVED"))
+        return plan, _application(
+            definition,
+            plan,
+            applicability=ApplicabilityState.UNRESOLVED,
+            preconditions=tuple(checks),
+        )
+    if project.kind != "PROJECT":
+        checks.append(("PROJECT_KIND", "FAIL"))
+        return plan, _application(
+            definition,
+            plan,
+            applicability=ApplicabilityState.NOT_APPLICABLE,
+            preconditions=tuple(checks),
+        )
+    checks.append(("PROJECT_KIND", "PASS"))
+
+    if len(project.inputs) != 1:
+        checks.append(("SINGLE_INPUT", "FAIL"))
+        return plan, _application(
+            definition,
+            plan,
+            applicability=ApplicabilityState.NOT_APPLICABLE,
+            preconditions=tuple(checks),
+        )
+    checks.append(("SINGLE_INPUT", "PASS"))
+
+    input_relation = relations.get(project.inputs[0])
+    if input_relation is None:
+        checks.append(("IDENTICAL_OUTPUT_SCHEMA", "UNRESOLVED"))
+        return plan, _application(
+            definition,
+            plan,
+            applicability=ApplicabilityState.UNRESOLVED,
+            preconditions=tuple(checks),
+        )
+
+    if project.output_schema != input_relation.output_schema:
+        checks.append(("IDENTICAL_OUTPUT_SCHEMA", "FAIL"))
+        return plan, _application(
+            definition,
+            plan,
+            applicability=ApplicabilityState.NOT_APPLICABLE,
+            preconditions=tuple(checks),
+        )
+    checks.append(("IDENTICAL_OUTPUT_SCHEMA", "PASS"))
+
+    same_properties = (
+        project.scope_id == input_relation.scope_id
+        and project.multiplicity == input_relation.multiplicity
+        and project.cardinality == input_relation.cardinality
+    )
+    if not same_properties:
+        checks.append(("IDENTICAL_RELATION_PROPERTIES", "FAIL"))
+        return plan, _application(
+            definition,
+            plan,
+            applicability=ApplicabilityState.NOT_APPLICABLE,
+            preconditions=tuple(checks),
+        )
+    checks.append(("IDENTICAL_RELATION_PROPERTIES", "PASS"))
+
+    rewritten_relations = []
+    for relation in plan.relations:
+        if relation.relation_id == project.relation_id:
+            continue
+        if project.relation_id in relation.inputs:
+            relation = type(relation)(
+                relation.relation_id,
+                relation.kind,
+                relation.output_schema,
+                relation.cardinality,
+                tuple(
+                    input_relation.relation_id if item == project.relation_id else item
+                    for item in relation.inputs
+                ),
+                relation.scope_id,
+                relation.multiplicity,
+            )
+        rewritten_relations.append(relation)
+
+    output = LogicalPlan(
+        roots=tuple(
+            input_relation.relation_id if root == project.relation_id else root
+            for root in plan.roots
+        ),
+        relations=tuple(rewritten_relations),
+        source_ir_digest=plan.source_ir_digest,
+        bound_ir_digest=plan.bound_ir_digest,
+        schema_digest=plan.schema_digest,
+        expressions=plan.expressions,
+        losses=(*plan.losses, *definition.semantic_loss_delta),
+    )
+    output.validate()
+    post = (("ROOT_OR_INPUT_REFERENCES_REPLACED_WITH_PROJECT_INPUT", "PASS"),)
+    return output, _application(
+        definition,
+        plan,
+        applicability=ApplicabilityState.APPLICABLE,
+        preconditions=tuple(checks),
+        output=output,
+        postconditions=post,
+        evidence=("deterministic-structural-identity-check",),
+    )
