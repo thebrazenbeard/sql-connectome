@@ -3,29 +3,23 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from .connectivity import (
-    ConnectionIdentity,
-    ConnectivityExecutionResult,
-    EffectClass,
-    ProtectedEffectError,
-    connection_identity_digest,
-)
+from . import connectivity
 from .engine_validation import NativeEngineError
 from .receipts import canonical_digest
 
 
 _PROTECTED = {
-    EffectClass.MUTATING,
-    EffectClass.DDL,
-    EffectClass.TRANSACTION_CONTROL,
-    EffectClass.UNKNOWN,
+    connectivity.EffectClass.MUTATING,
+    connectivity.EffectClass.DDL,
+    connectivity.EffectClass.TRANSACTION_CONTROL,
+    connectivity.EffectClass.UNKNOWN,
 }
 
 
 @dataclass(slots=True)
 class DBAPISession:
     connection: Any
-    identity: ConnectionIdentity
+    identity: connectivity.ConnectionIdentity
 
     def __enter__(self) -> DBAPISession:
         return self
@@ -37,12 +31,12 @@ class DBAPISession:
         self,
         sql: str,
         *,
-        effect: EffectClass,
+        effect: connectivity.EffectClass,
         upstream_receipts: tuple[str, ...] = (),
         authorization_receipt: str | None = None,
-    ) -> ConnectivityExecutionResult:
+    ) -> connectivity.ConnectivityExecutionResult:
         if effect in _PROTECTED and not authorization_receipt:
-            raise ProtectedEffectError(
+            raise connectivity.ProtectedEffectError(
                 f"{effect.value} requires an external authorization receipt"
             )
         try:
@@ -60,8 +54,8 @@ class DBAPISession:
             rows = None
             columns = ()
             error = NativeEngineError(type(exc).__name__, str(exc))
-        return ConnectivityExecutionResult(
-            connection_identity_digest=connection_identity_digest(self.identity),
+        return connectivity.ConnectivityExecutionResult(
+            connectivity.connection_identity_digest=connectivity.connection_identity_digest(self.identity),
             sql_digest=canonical_digest({"sql": sql}),
             effect=effect,
             rows=rows,
@@ -87,7 +81,7 @@ class DBAPIAdapter:
 
     def open_session(self) -> DBAPISession:
         connection = self.connect()
-        identity = ConnectionIdentity(
+        identity = connectivity.ConnectionIdentity(
             provider=self.provider,
             engine=self.engine,
             engine_version=self.engine_version,
