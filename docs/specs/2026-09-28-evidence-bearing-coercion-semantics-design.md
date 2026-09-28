@@ -39,6 +39,8 @@ Qualification states are `PROPOSED`, `SOURCE_BOUND`, `HOSTILE_REVIEWED`, `BEHAVI
 
 Reconciliation is deterministic over an explicit evidence set. It emits the evidence-set digest, reconciler/schema version, resulting claim, unresolved conflicts, evidence ceiling, and currentness status. Stronger evidence does not delete weaker evidence. Conflicting engine probes prevent `QUALIFIED` unless the conflict is scoped by version/session/context or explicitly remains unresolved.
 
+Claim lookup is deterministic and specificity-aware. Exact engine version/session/context predicates outrank broader predicates only when both are evidence-supported; broader claims never overwrite narrower contradictory claims. If multiple equally specific qualified claims conflict, lookup returns `CONTRADICTED` rather than choosing one. If no qualified claim matches, lookup returns `UNKNOWN`. Callers must explicitly choose whether unknown/contradicted results block an effect, request more evidence, or remain descriptive; the semantic layer itself never invents a fallback.
+
 The public V2 type graph is a projection of reconciled claims plus raw dependency observations. V1 remains readable during migration. Consumers must be able to distinguish raw observation, reconciled claim, and derived topology.
 
 ## Hostile-review protocol
@@ -88,4 +90,4 @@ This step does not add MySQL/MariaDB execution adapters, a logical relational pl
 
 ## Acceptance
 
-The design is ready for implementation planning only after hostile review findings are dispositioned, an independent-model review is attempted and recorded, and the schema can encode the cross-engine falsification cases without treating PostgreSQL terminology as universal truth.
+The design is ready for implementation planning only after hostile review findings are dispositioned, an independent-model review is attempted and recorded, and the schema can encode the cross-engine falsification cases without treating PostgreSQL terminology as universal truth. Unknown and contradictory lookup behavior must be deterministic and non-deadlocking.
