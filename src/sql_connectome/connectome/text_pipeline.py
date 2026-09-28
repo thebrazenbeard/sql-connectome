@@ -522,8 +522,6 @@ def transpile_sql_text(
         dialects=catalog.dialects,
         rewrite_rules=catalog.rewrite_rules,
     )
-    rewrite_governance = govern_translation_plan(plan)
-
     if plan.fidelity is TranslationFidelity.UNREPRESENTABLE:
         unresolved = ",".join(sorted(plan.unresolved_capabilities))
         raise SQLTextError(f"UNREPRESENTABLE_TRANSLATION:{unresolved}")
@@ -574,6 +572,13 @@ def transpile_sql_text(
         raise SQLTextError(f"TRANSPILER_REJECTED:{exc}") from exc
 
     target = parse_sql_text(generated, target_id, catalog=catalog)
+    observed_rewrite_evidence = {"CAPABILITY_REGISTRY", "TARGET_PARSE"}
+    if type_semantics["risk_count"]:
+        observed_rewrite_evidence.add("TYPE_SEMANTICS")
+    rewrite_governance = govern_translation_plan(
+        plan,
+        observed_evidence=frozenset(observed_rewrite_evidence),
+    )
 
     return {
         "catalog_digest": catalog.digest,
