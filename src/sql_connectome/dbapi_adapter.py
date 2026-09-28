@@ -3,9 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from . import connectivity
 from .engine_validation import NativeEngineError
 from .receipts import canonical_digest
+from . import connectivity
 
 
 _PROTECTED = {
