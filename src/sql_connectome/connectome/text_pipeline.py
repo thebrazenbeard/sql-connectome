@@ -581,9 +581,6 @@ def transpile_sql_text(
         plan,
         observed_evidence=frozenset(observed_rewrite_evidence),
     )
-    if rewrite_governance["qualification"] == "UNQUALIFIED":
-        raise SQLTextError("UNQUALIFIED_REWRITE_EVIDENCE")
-
     return {
         "catalog_digest": catalog.digest,
         "source": source.as_dict(),
