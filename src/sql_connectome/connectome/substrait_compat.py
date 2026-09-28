@@ -42,9 +42,25 @@ _CORE_RELATIONS = {
 
 def inspect_substrait_compatibility(plan: dict[str, Any]) -> SubstraitCompatibility:
     findings: list[CompatibilityFinding] = []
+    for loss in plan.get("losses", ()):
+        findings.append(
+            CompatibilityFinding(
+                f"loss:{loss}",
+                CompatibilityState.UNKNOWN,
+                "logical-plan derivation records unresolved semantic loss",
+            )
+        )
     for relation in plan["relations"]:
         kind = relation["kind"]
-        if kind in {"SUBQUERY", "LATERAL"}:
+        if kind in {"JOIN", "SET_OP"}:
+            findings.append(
+                CompatibilityFinding(
+                    f"relation:{kind}",
+                    CompatibilityState.EXTENSION_REQUIRED,
+                    "V1 plan lacks operator detail for exact Substrait equivalence",
+                )
+            )
+        elif kind in {"SUBQUERY", "LATERAL"}:
             findings.append(
                 CompatibilityFinding(
                     f"relation:{kind}",

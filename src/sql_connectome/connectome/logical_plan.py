@@ -82,6 +82,30 @@ class CardinalityBounds:
 
 
 @dataclass(frozen=True, slots=True)
+class LogicalExpression:
+    expression_id: str
+    kind: str
+    logical_type: LogicalType
+    nullability: Nullability = Nullability.UNKNOWN
+    scope_id: str | None = None
+    outer_scope_id: str | None = None
+    source_sql: str | None = None
+    evidence: tuple[str, ...] = ()
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "expression_id": self.expression_id,
+            "kind": self.kind,
+            "logical_type": self.logical_type.as_dict(),
+            "nullability": self.nullability.value,
+            "scope_id": self.scope_id,
+            "outer_scope_id": self.outer_scope_id,
+            "source_sql": self.source_sql,
+            "evidence": list(self.evidence),
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class LogicalRelation:
     relation_id: str
     kind: str
@@ -110,6 +134,8 @@ class LogicalPlan:
     source_ir_digest: str
     bound_ir_digest: str
     schema_digest: str
+    expressions: tuple[LogicalExpression, ...] = ()
+    losses: tuple[str, ...] = ()
 
     def validate(self) -> None:
         ids = [relation.relation_id for relation in self.relations]
@@ -122,12 +148,17 @@ class LogicalPlan:
             relation.output_schema.validate()
             if any(item not in known for item in relation.inputs):
                 raise ValueError("DANGLING_LOGICAL_INPUT")
+        expression_ids = [item.expression_id for item in self.expressions]
+        if len(expression_ids) != len(set(expression_ids)):
+            raise ValueError("DUPLICATE_LOGICAL_EXPRESSION_ID")
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "schema": "SQL_CONNECTOME_LOGICAL_PLAN_V1",
             "roots": list(self.roots),
             "relations": [relation.as_dict() for relation in self.relations],
+            "expressions": [expression.as_dict() for expression in self.expressions],
+            "losses": list(self.losses),
             "source_ir_digest": self.source_ir_digest,
             "bound_ir_digest": self.bound_ir_digest,
             "schema_digest": self.schema_digest,

@@ -5,6 +5,7 @@ from sqlglot import exp
 from .logical_plan import (
     CardinalityBounds,
     CardinalityCertainty,
+    LogicalExpression,
     LogicalField,
     LogicalPlan,
     LogicalRelation,
@@ -95,6 +96,7 @@ def build_logical_plan(
             source_ir_digest,
             bound_ir_digest,
             schema_digest,
+            losses=("SET_OP_TYPE_RECONCILIATION_UNQUALIFIED_V1",),
         )
         plan.validate()
         return plan
@@ -108,31 +110,70 @@ def build_logical_plan(
     if table is None:
         raise ValueError("LOGICAL_PLAN_READ_SOURCE_REQUIRED")
 
-    read_fields = tuple(
-        _field(f"field:read:{index}:{column.name}", column.name, column)
-        for index, column in enumerate(typed.find_all(exp.Column))
-        if column.table == table.alias_or_name
-    )
-    if not read_fields:
-        read_fields = tuple(
-            _field(f"field:read:{index}:{column.name}", column.name, column)
-            for index, column in enumerate(typed.find_all(exp.Column))
+    def read_relation(source: exp.Table, index: int) -> LogicalRelation:
+        alias = source.alias_or_name
+        fields = tuple(
+            _field(f"field:read:{index}:{field_index}:{column.name}", column.name, column)
+            for field_index, column in enumerate(typed.find_all(exp.Column))
+            if column.table == alias
         )
-    current_id = "relation:read:0"
-    relations.append(
-        LogicalRelation(
-            current_id,
+        if not fields and index == 0:
+            fields = tuple(
+                _field(f"field:read:{index}:{field_index}:{column.name}", column.name, column)
+                for field_index, column in enumerate(typed.find_all(exp.Column))
+                if not column.table
+            )
+        return LogicalRelation(
+            f"relation:read:{index}",
             "READ",
-            LogicalSchema(read_fields),
+            LogicalSchema(fields),
             CardinalityBounds(certainty=CardinalityCertainty.UNKNOWN),
             scope_id="scope:select:0",
         )
-    )
+
+    first_read = read_relation(table, 0)
+    relations.append(first_read)
+    current_id = first_read.relation_id
+
+    for join_index, join in enumerate(typed.args.get("joins") or ()): 
+        join_table = join.this if isinstance(join.this, exp.Table) else None
+        if join_table is None:
+            raise ValueError("LOGICAL_PLAN_JOIN_SOURCE_UNREPRESENTABLE")
+        right_read = read_relation(join_table, join_index + 1)
+        relations.append(right_read)
+        side = (join.args.get("side") or "").upper()
+        current_relation = next(item for item in relations if item.relation_id == current_id)
+        left_fields = list(current_relation.output_schema.fields)
+        right_fields = list(right_read.output_schema.fields)
+        if side in {"RIGHT", "FULL"}:
+            left_fields = [
+                LogicalField(f.field_id, f.name, f.logical_type, Nullability.NULLABLE, f.provenance)
+                for f in left_fields
+            ]
+        if side in {"LEFT", "FULL"}:
+            right_fields = [
+                LogicalField(f.field_id, f.name, f.logical_type, Nullability.NULLABLE, f.provenance)
+                for f in right_fields
+            ]
+        join_id = f"relation:join:{join_index}"
+        relations.append(
+            LogicalRelation(
+                join_id,
+                "JOIN",
+                LogicalSchema(tuple(left_fields + right_fields)),
+                CardinalityBounds(certainty=CardinalityCertainty.UNKNOWN),
+                inputs=(current_id, right_read.relation_id),
+                scope_id="scope:select:0",
+            )
+        )
+        current_id = join_id
 
     where_clause = typed.args.get("where")
     nested_selects = list(where_clause.find_all(exp.Select)) if where_clause is not None else []
+    subquery_ids: list[str] = []
     for index, _nested in enumerate(nested_selects):
         subquery_id = f"relation:subquery:{index}"
+        subquery_ids.append(subquery_id)
         relations.append(
             LogicalRelation(
                 subquery_id,
@@ -146,13 +187,14 @@ def build_logical_plan(
 
     if where_clause is not None:
         filter_id = "relation:filter:0"
+        current_relation = next(item for item in relations if item.relation_id == current_id)
         relations.append(
             LogicalRelation(
                 filter_id,
                 "FILTER",
-                relations[0].output_schema,
-                relations[0].cardinality,
-                inputs=(current_id,),
+                current_relation.output_schema,
+                current_relation.cardinality,
+                inputs=(current_id, *subquery_ids),
                 scope_id="scope:select:0",
             )
         )
@@ -248,12 +290,56 @@ def build_logical_plan(
         )
         current_id = limit_id
 
+    outer_aliases = {table.alias_or_name} | {
+        join.this.alias_or_name
+        for join in typed.args.get("joins") or ()
+        if isinstance(join.this, exp.Table)
+    }
+    expressions: list[LogicalExpression] = []
+    for index, column in enumerate(typed.find_all(exp.Column)):
+        owner = column.find_ancestor(exp.Select)
+        is_nested = owner is not None and owner is not typed
+        nested_aliases = (
+            {item.alias_or_name for item in owner.find_all(exp.Table)}
+            if is_nested and owner is not None
+            else set()
+        )
+        correlated = (
+            is_nested
+            and bool(column.table)
+            and column.table not in nested_aliases
+            and (column.table in outer_aliases or bool(outer_aliases))
+        )
+        scope_id = "scope:subquery:0" if is_nested else "scope:select:0"
+        expressions.append(
+            LogicalExpression(
+                expression_id=f"expression:column:{index}:{column.sql()}",
+                kind="FIELD_REFERENCE",
+                logical_type=_logical_type(column),
+                nullability=Nullability.UNKNOWN,
+                scope_id=scope_id,
+                outer_scope_id="scope:select:0" if correlated else None,
+                source_sql=column.sql(),
+                evidence=("bound-column-reference",),
+            )
+        )
+
+    losses: list[str] = []
+    if typed.args.get("order") is not None:
+        losses.append("SORT_NOT_DERIVED_V1")
+    if typed.args.get("distinct") is not None:
+        losses.append("DISTINCT_NOT_DERIVED_V1")
+    if any(isinstance(node, exp.Window) for node in typed.walk()):
+        losses.append("WINDOW_NOT_DERIVED_V1")
+
     plan = LogicalPlan(
         roots=(current_id,),
         relations=tuple(relations),
         source_ir_digest=source_ir_digest,
         bound_ir_digest=bound_ir_digest,
         schema_digest=schema_digest,
+        expressions=tuple(expressions),
+        losses=tuple(losses),
     )
     plan.validate()
     return plan

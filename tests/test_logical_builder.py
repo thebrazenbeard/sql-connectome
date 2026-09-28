@@ -1,4 +1,4 @@
-from sql_connectome.connectome import bind_sql_text
+﻿from sql_connectome.connectome import bind_sql_text
 
 SCHEMA = {"users": {"id": "INT", "name": "TEXT", "active": "BOOLEAN"}}
 
@@ -42,3 +42,15 @@ def test_left_join_null_extends_right_output():
     )
     fields = {field["name"]: field for field in project["output_schema"]}
     assert fields["total"]["nullability"] == "NULLABLE"
+
+
+def test_join_is_a_first_class_relation():
+    schema = {"users": {"id": "INT"}, "orders": {"user_id": "INT"}}
+    result = bind_sql_text(
+        "SELECT users.id FROM users JOIN orders ON users.id = orders.user_id",
+        "postgresql",
+        schema,
+    )
+    kinds = [item["kind"] for item in result["logical_semantics"]["plan"]["relations"]]
+    assert "JOIN" in kinds
+

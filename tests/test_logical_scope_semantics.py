@@ -45,3 +45,33 @@ def test_correlated_exists_is_not_silently_flattened():
     assert any(item["kind"] == "SUBQUERY" for item in relations)
     subquery = next(item for item in relations if item["kind"] == "SUBQUERY")
     assert subquery["scope_id"] != "scope:select:0"
+    filter_relation = next(item for item in relations if item["kind"] == "FILTER")
+    assert subquery["relation_id"] in filter_relation["inputs"]
+    correlated = [
+        item
+        for item in result["logical_semantics"]["plan"]["expressions"]
+        if item["outer_scope_id"] == "scope:select:0"
+    ]
+    assert correlated
+    assert any(item["kind"] == "FIELD_REFERENCE" for item in correlated)
+
+
+def test_unimplemented_relational_semantics_are_explicit_losses():
+    result = bind_sql_text(
+        "SELECT DISTINCT id FROM users ORDER BY id",
+        "postgresql",
+        SCHEMA,
+    )
+    losses = set(result["logical_semantics"]["plan"]["losses"])
+    assert "DISTINCT_NOT_DERIVED_V1" in losses
+    assert "SORT_NOT_DERIVED_V1" in losses
+
+
+def test_set_operation_type_reconciliation_is_not_overclaimed():
+    result = bind_sql_text(
+        "SELECT id FROM users UNION ALL SELECT user_id AS id FROM orders",
+        "postgresql",
+        SCHEMA,
+    )
+    losses = result["logical_semantics"]["plan"]["losses"]
+    assert "SET_OP_TYPE_RECONCILIATION_UNQUALIFIED_V1" in losses
