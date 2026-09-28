@@ -1,0 +1,32 @@
+from __future__ import annotations
+
+from .receptors import ReceptorLanguage
+
+COMMON_RELATIONAL = frozenset({"SCAN", "FILTER", "PROJECT", "JOIN", "AGGREGATE"})
+
+SUPPORTED_CONSTRUCTS = {
+    ReceptorLanguage.PRQL: COMMON_RELATIONAL,
+    ReceptorLanguage.CYPHER: frozenset({"SCAN", "FILTER", "PROJECT"}),
+    ReceptorLanguage.SPARQL: frozenset({"SCAN", "FILTER", "PROJECT"}),
+    ReceptorLanguage.DATAFRAME: COMMON_RELATIONAL,
+}
+
+KNOWN_LOSS_MARKERS = {
+    ReceptorLanguage.PRQL: {
+        "COMPILER_EXTENSION": "PRQL_COMPILER_EXTENSION_UNMODELED_V1",
+    },
+    ReceptorLanguage.CYPHER: {
+        "VARIABLE_LENGTH_PATH": "CYPHER_PATH_SEMANTICS_UNMODELED_V1",
+        "OPTIONAL_MATCH": "CYPHER_OPTIONAL_MATCH_UNMODELED_V1",
+    },
+    ReceptorLanguage.SPARQL: {
+        "ENTAILMENT": "SPARQL_ENTAILMENT_UNMODELED_V1",
+        "NAMED_GRAPH": "SPARQL_DATASET_SEMANTICS_UNMODELED_V1",
+        "PROPERTY_PATH": "SPARQL_PROPERTY_PATH_UNMODELED_V1",
+    },
+    ReceptorLanguage.DATAFRAME: {
+        "INDEX": "DATAFRAME_INDEX_SEMANTICS_UNMODELED_V1",
+        "ORDER": "DATAFRAME_ORDER_SEMANTICS_UNMODELED_V1",
+        "NA_POLICY": "DATAFRAME_NULL_SEMANTICS_UNMODELED_V1",
+    },
+}
