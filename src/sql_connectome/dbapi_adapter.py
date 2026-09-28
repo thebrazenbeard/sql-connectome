@@ -55,7 +55,7 @@ class DBAPISession:
             columns = ()
             error = NativeEngineError(type(exc).__name__, str(exc))
         return connectivity.ConnectivityExecutionResult(
-            connectivity.connection_identity_digest=connectivity.connection_identity_digest(self.identity),
+            connection_identity_digest=connectivity.connection_identity_digest(self.identity),
             sql_digest=canonical_digest({"sql": sql}),
             effect=effect,
             rows=rows,
