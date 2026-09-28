@@ -4,9 +4,8 @@ from dataclasses import dataclass
 from typing import Any
 
 import sql_connectome.connectivity as connectivity
-
-from .engine_validation import NativeEngineError
-from .receipts import canonical_digest
+from sql_connectome.engine_validation import NativeEngineError
+from sql_connectome.receipts import canonical_digest
 
 
 _PROTECTED = {
