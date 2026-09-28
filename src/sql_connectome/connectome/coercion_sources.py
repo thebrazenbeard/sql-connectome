@@ -13,7 +13,6 @@ from .coercion_semantics import (
     TypeIdentity,
 )
 
-
 _CONTEXT = {
     "i": (CoercionContext.GENERIC_EXPRESSION, CoercionInvocation.IMPLICIT),
     "a": (CoercionContext.ASSIGNMENT, CoercionInvocation.ENGINE_SELECTED),
