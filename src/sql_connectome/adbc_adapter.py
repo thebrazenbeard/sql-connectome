@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any\nfrom collections.abc import Callable
+from typing import Any
 
 from .connectivity import ConnectionIdentity
 from .dbapi_adapter import DBAPISession
@@ -26,7 +27,9 @@ class ADBCAdapter:
 
     def open_session(self) -> DBAPISession:
         if self.connect is None:
-            raise RuntimeError(\n                "ADBC transport is unavailable; provide an explicit connection factory"\n            )
+            raise RuntimeError(
+                "ADBC transport is unavailable; provide an explicit connection factory"
+            )
         connection = self.connect()
         identity = ConnectionIdentity(
             provider=self.provider,
