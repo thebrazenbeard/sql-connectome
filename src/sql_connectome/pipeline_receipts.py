@@ -9,7 +9,9 @@ from .cross_bound_receipts import (
 )
 
 
-def understand_receipt(\n    input_digest: str, output_digest: str, **kwargs: object\n) -> CrossBoundReceipt:
+def understand_receipt(
+    input_digest: str, output_digest: str, **kwargs: object
+) -> CrossBoundReceipt:
     return make_cross_bound_receipt(
         TransitionKind.UNDERSTAND,
         input_digests=(input_digest,),
