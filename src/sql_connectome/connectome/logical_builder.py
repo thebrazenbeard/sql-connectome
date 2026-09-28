@@ -310,7 +310,7 @@ def build_logical_plan(
             and column.table not in nested_aliases
             and (column.table in outer_aliases or bool(outer_aliases))
         )
-        scope_id = "scope:subquery:0" if is_nested else "scope:select:0"
+        nested_scope_index = (\n            next(\n                (i for i, candidate in enumerate(nested_selects) if candidate is owner),\n                0,\n            )\n            if is_nested\n            else None\n        )\n        scope_id = (\n            f"scope:subquery:{nested_scope_index}"\n            if is_nested\n            else "scope:select:0"\n        )
         expressions.append(
             LogicalExpression(
                 expression_id=f"expression:column:{index}:{column.sql()}",
