@@ -62,11 +62,26 @@ def build_logical_plan(
 
         def renamed(plan: LogicalPlan, prefix: str) -> tuple[LogicalRelation, ...]:
             mapping = {item.relation_id: f"{prefix}:{item.relation_id}" for item in plan.relations}
+
+            def schema_with_prefixed_fields(schema: LogicalSchema) -> LogicalSchema:
+                return LogicalSchema(
+                    tuple(
+                        LogicalField(
+                            f"{prefix}:{field.field_id}",
+                            field.name,
+                            field.logical_type,
+                            field.nullability,
+                            field.provenance,
+                        )
+                        for field in schema.fields
+                    )
+                )
+
             return tuple(
                 LogicalRelation(
                     mapping[item.relation_id],
                     item.kind,
-                    item.output_schema,
+                    schema_with_prefixed_fields(item.output_schema),
                     item.cardinality,
                     tuple(mapping[value] for value in item.inputs),
                     f"{prefix}:{item.scope_id}" if item.scope_id else None,
@@ -88,7 +103,7 @@ def build_logical_plan(
                     f"{prefix}:{item.outer_scope_id}" if item.outer_scope_id else None,
                     item.source_sql,
                     item.evidence,
-                    item.field_id,
+                    f"{prefix}:{item.field_id}" if item.field_id else None,
                 )
                 for item in plan.expressions
             )
