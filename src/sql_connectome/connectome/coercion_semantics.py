@@ -230,12 +230,16 @@ def _specificity(scope: CoercionScope) -> int:
 
 def lookup_coercion_claim(
     reconciled: ReconciliationResult,
+    source: TypeIdentity,
+    target: TypeIdentity,
     scope: CoercionScope,
 ) -> ClaimLookupResult:
     qualified = [
         item
         for item in reconciled.evidence
         if item.qualification is QualificationState.QUALIFIED
+        and item.source == source
+        and item.target == target
         and _scope_matches(item.scope, scope)
     ]
     if not qualified:
