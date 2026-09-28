@@ -572,9 +572,11 @@ def transpile_sql_text(
         raise SQLTextError(f"TRANSPILER_REJECTED:{exc}") from exc
 
     target = parse_sql_text(generated, target_id, catalog=catalog)
-    observed_rewrite_evidence = {"CAPABILITY_REGISTRY", "TARGET_PARSE"}
-    if type_semantics["risk_count"]:
-        observed_rewrite_evidence.add("TYPE_SEMANTICS")
+    observed_rewrite_evidence = {
+        "CAPABILITY_REGISTRY",
+        "TARGET_PARSE",
+        "TYPE_SEMANTICS",
+    }
     rewrite_governance = govern_translation_plan(
         plan,
         observed_evidence=frozenset(observed_rewrite_evidence),
