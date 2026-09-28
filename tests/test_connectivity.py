@@ -83,3 +83,31 @@ def test_native_execution_error_is_preserved() -> None:
         result = session.execute("SELECT missing", effect=EffectClass.READ_ONLY)
     assert result.native_error is not None
     assert result.rows is None
+
+
+def test_adbc_is_optional_and_factory_injected() -> None:
+    from sql_connectome.adbc_adapter import ADBCAdapter
+
+    unavailable = ADBCAdapter(
+        provider="example",
+        engine="example",
+        engine_version=None,
+        transport_implementation="adbc-example",
+        transport_version=None,
+    )
+    assert unavailable.available is False
+    with pytest.raises(RuntimeError):
+        unavailable.open_session()
+
+    available = ADBCAdapter(
+        provider="sqlite",
+        engine="sqlite",
+        engine_version=sqlite3.sqlite_version,
+        transport_implementation="adbc-test-double",
+        transport_version="1",
+        connect=lambda: sqlite3.connect(":memory:"),
+    )
+    with available.open_session() as session:
+        result = session.execute("SELECT 1", effect=EffectClass.READ_ONLY)
+        assert session.identity.transport_family == "adbc"
+        assert result.rows == ((1,),)
