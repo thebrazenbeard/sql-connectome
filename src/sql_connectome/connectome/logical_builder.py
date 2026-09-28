@@ -340,7 +340,7 @@ def build_logical_plan(
             is_nested
             and bool(column.table)
             and column.table not in nested_aliases
-            and (column.table in outer_aliases or bool(outer_aliases))
+            and column.table in outer_aliases
         )
         nested_scope_index = (\n            next(\n                (i for i, candidate in enumerate(nested_selects) if candidate is owner),\n                0,\n            )\n            if is_nested\n            else None\n        )\n        scope_id = (\n            f"scope:subquery:{nested_scope_index}"\n            if is_nested\n            else "scope:select:0"\n        )
         field_id = next(
