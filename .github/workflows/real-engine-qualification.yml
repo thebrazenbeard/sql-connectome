@@ -57,3 +57,29 @@ jobs:
       - run: pip install -e '.[dev]'
       - name: Qualify real MySQL and MariaDB adapters
         run: pytest -q tests/test_real_mysql_family_integration.py
+
+  trino:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      trino:
+        image: trinodb/trino:477
+        ports:
+          - 8080:8080
+        options: >-
+          --health-cmd "curl -f http://localhost:8080/v1/info"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      SQL_CONNECTOME_TRINO_HOST: 127.0.0.1
+      SQL_CONNECTOME_TRINO_PORT: "8080"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e '.[dev]' 'trino>=0.336,<1'
+      - name: Qualify real Trino adapter
+        run: pytest -q tests/test_real_trino_integration.py
