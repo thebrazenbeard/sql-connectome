@@ -3,6 +3,7 @@ import pytest
 from sql_connectome.occurrence_envelope import (
     InMemoryReplayGuard,
     OccurrenceEnvelope,
+    SQLiteReplayGuard,
     TrustPolicy,
     occurrence_payload_digest,
     verify_occurrence,
@@ -72,3 +73,13 @@ def test_replay_guard_rejects_same_occurrence_twice() -> None:
     verify_occurrence(item, policy=TrustPolicy(), replay_guard=guard)
     with pytest.raises(ValueError, match="replay"):
         verify_occurrence(item, policy=TrustPolicy(), replay_guard=guard)
+
+
+def test_sqlite_replay_guard_survives_process_restart(tmp_path) -> None:
+    path = tmp_path / "replay.sqlite3"
+    item = envelope()
+    first = SQLiteReplayGuard(path)
+    verify_occurrence(item, policy=TrustPolicy(), replay_guard=first)
+    second = SQLiteReplayGuard(path)
+    with pytest.raises(ValueError, match="replay"):
+        verify_occurrence(item, policy=TrustPolicy(), replay_guard=second)
