@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import sqlite3
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Protocol
 
 from .receipts import canonical_digest
@@ -53,6 +55,27 @@ class ReplayGuard(Protocol):
 class TrustPolicy:
     require_signature: bool = False
     allowed_signers: tuple[str, ...] = ()
+
+
+class SQLiteReplayGuard:
+    def __init__(self, path: str | Path) -> None:
+        self.path = str(path)
+        with sqlite3.connect(self.path) as conn:
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS replay_guard "
+                "(occurrence_digest TEXT PRIMARY KEY)"
+            )
+
+    def accept_once(self, occurrence_digest: str) -> bool:
+        try:
+            with sqlite3.connect(self.path) as conn:
+                conn.execute(
+                    "INSERT INTO replay_guard (occurrence_digest) VALUES (?)",
+                    (occurrence_digest,),
+                )
+            return True
+        except sqlite3.IntegrityError:
+            return False
 
 
 class InMemoryReplayGuard:
