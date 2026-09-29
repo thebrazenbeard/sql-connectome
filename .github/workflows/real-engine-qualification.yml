@@ -1,0 +1,59 @@
+name: Real Engine Qualification
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 10 * * 4"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mysql-family:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: mysql-root
+          MYSQL_DATABASE: app
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h localhost -pmysql-root"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ROOT_PASSWORD: mariadb-root
+          MARIADB_DATABASE: app
+        ports:
+          - 3307:3306
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      SQL_CONNECTOME_MYSQL_HOST: 127.0.0.1
+      SQL_CONNECTOME_MYSQL_PORT: "3306"
+      SQL_CONNECTOME_MYSQL_PASSWORD: mysql-root
+      SQL_CONNECTOME_MARIADB_HOST: 127.0.0.1
+      SQL_CONNECTOME_MARIADB_PORT: "3307"
+      SQL_CONNECTOME_MARIADB_PASSWORD: mariadb-root
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e '.[dev]'
+      - name: Qualify real MySQL and MariaDB adapters
+        run: pytest -q tests/test_real_mysql_family_integration.py
