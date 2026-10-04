@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 
+from .feature_families import feature_family_manifest
 from .model import AppliedRewrite, DialectGenome, RewriteRule, TranslationFidelity, TranslationPlan
 from .registry import DEFAULT_DIALECTS, DEFAULT_REWRITE_RULES, resolve_dialect
 
@@ -101,6 +102,7 @@ def list_dialects(
                 dimension.value for dimension in genome.semantic_dimensions
             ),
             "coverage": genome.coverage.as_dict(),
+            "feature_family_coverage": feature_family_manifest(genome),
             "notes": list(genome.notes),
         }
         for genome in sorted(registry.values(), key=lambda item: item.dialect_id)

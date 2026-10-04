@@ -32,6 +32,13 @@ from .expression_registry import (
     ExpressionSemanticRegistry,
     expression_registry_manifest,
 )
+from .feature_families import (
+    CAPABILITY_FEATURE_FAMILY,
+    STANDARD_PART_FAMILIES,
+    SQLFeatureFamily,
+    SQLStandardPart,
+    feature_family_manifest,
+)
 from .ir import IREdge, IRNode, SQLSemanticIR, TranslationLoss
 from .model import (
     AppliedRewrite,
@@ -95,6 +102,11 @@ __all__ = [
     "reconcile_coercion_evidence",
     "postgresql_pg_cast_evidence",
     "AppliedRewrite",
+    "CAPABILITY_FEATURE_FAMILY",
+    "STANDARD_PART_FAMILIES",
+    "SQLFeatureFamily",
+    "SQLStandardPart",
+    "feature_family_manifest",
     "BehavioralCoverage",
     "DialectCoverage",
     "ParserCoverage",
