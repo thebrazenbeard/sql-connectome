@@ -8,6 +8,7 @@ from sqlglot.dialects import Dialect
 
 from sql_connectome.receipts import canonical_digest
 
+from .feature_families import feature_family_manifest
 from .model import DialectGenome, RewriteRule
 from .registry import DEFAULT_DIALECTS, DEFAULT_REWRITE_RULES
 
@@ -116,6 +117,7 @@ class ConnectomeCatalog:
                     dimension.value for dimension in genome.semantic_dimensions
                 ),
                 "coverage": genome.coverage.as_dict(),
+                "feature_family_coverage": feature_family_manifest(genome),
                 "notes": list(genome.notes),
             }
             for genome in sorted(

@@ -52,3 +52,16 @@ A dialect capability should advance only when evidence justifies the stronger st
 The standing invariant remains:
 
 `UNDERSTAND != BIND != TRANSLATE != VALIDATE != EXECUTE != AUTHORIZE`
+
+
+## SQL feature families
+
+Dialect maturity and SQL feature coverage answer different questions. Dialect maturity says how strongly the dialect itself is qualified. Feature-family coverage says which portions of the SQL language SQL Connectome currently models for that dialect.
+
+The V1 feature-family universe includes relational query semantics, data definition, data modification, type systems, constraints, transactions/locking, procedural routines, session control, security/authorization, metadata/schemata, external-data federation, JSON/document semantics, XML, nested collections, analytics, geospatial, property graphs, multidimensional data, vectors, streaming/incremental semantics, and administration.
+
+Current capabilities are assigned to exactly one primary feature family. The default catalog test fails if an admitted capability has no family assignment.
+
+SQL:2023 module alignment is kept separately from dialect capabilities. In particular, SQL/PSM anchors procedural routines, SQL/MED external-data federation, SQL/Schemata metadata/schema surfaces, SQL/XML XML semantics, SQL/MDA multidimensional arrays, and SQL/PGQ property-graph queries. Framework, CLI, OLB, and Java binding parts remain visible without being falsely represented as ordinary SQL statement families.
+
+A feature-family state of `NOT_MODELED` means precisely that: the catalog does not currently claim semantic coverage for that family. It does not mean the underlying database product lacks the feature.
