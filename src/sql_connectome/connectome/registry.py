@@ -1,6 +1,16 @@
 from __future__ import annotations
 
-from .model import DialectGenome, RewriteRule, SemanticDimension, TranslationFidelity
+from .model import (
+    BehavioralCoverage,
+    DialectCoverage,
+    DialectGenome,
+    ParserCoverage,
+    RewriteRule,
+    SemanticCoverage,
+    SemanticDimension,
+    TranslationCoverage,
+    TranslationFidelity,
+)
 
 
 def _genome(
@@ -12,6 +22,7 @@ def _genome(
     dimensions: set[SemanticDimension],
     aliases: set[str] | None = None,
     notes: tuple[str, ...] = (),
+    coverage: DialectCoverage | None = None,
 ) -> DialectGenome:
     return DialectGenome(
         dialect_id=dialect_id,
@@ -22,7 +33,38 @@ def _genome(
         semantic_dimensions=frozenset(dimensions),
         aliases=frozenset(aliases or set()),
         notes=notes,
+        coverage=coverage or DialectCoverage(),
     )
+
+
+_NATIVE_MODELED = DialectCoverage(
+    parser=ParserCoverage.NATIVE_DIALECT,
+    semantics=SemanticCoverage.MODELED_CAPABILITIES,
+    translation=TranslationCoverage.CAPABILITY_PLANNING,
+)
+_NATIVE_REAL_DIFFERENTIAL = DialectCoverage(
+    parser=ParserCoverage.NATIVE_DIALECT,
+    semantics=SemanticCoverage.MODELED_CAPABILITIES,
+    translation=TranslationCoverage.CAPABILITY_PLANNING,
+    behavior=BehavioralCoverage.REAL_ENGINE_DIFFERENTIAL,
+)
+_NATIVE_EMBEDDED_DIFFERENTIAL = DialectCoverage(
+    parser=ParserCoverage.NATIVE_DIALECT,
+    semantics=SemanticCoverage.MODELED_CAPABILITIES,
+    translation=TranslationCoverage.CAPABILITY_PLANNING,
+    behavior=BehavioralCoverage.EMBEDDED_ENGINE_DIFFERENTIAL,
+)
+_NATIVE_RELATIONAL_BASELINE = DialectCoverage(
+    parser=ParserCoverage.NATIVE_DIALECT,
+    semantics=SemanticCoverage.RELATIONAL_BASELINE,
+    translation=TranslationCoverage.CAPABILITY_PLANNING,
+)
+_COMPAT_REAL_RELATIONAL = DialectCoverage(
+    parser=ParserCoverage.COMPATIBILITY_ADAPTER,
+    semantics=SemanticCoverage.RELATIONAL_BASELINE,
+    translation=TranslationCoverage.CAPABILITY_PLANNING,
+    behavior=BehavioralCoverage.REAL_ENGINE_DIFFERENTIAL,
+)
 
 
 # This is deliberately a conservative bootstrap registry, not a conformance matrix.
@@ -57,6 +99,7 @@ DEFAULT_DIALECTS: dict[str, DialectGenome] = {
             SemanticDimension.PROCEDURAL,
         },
         {"postgres", "pgsql"},
+        coverage=_NATIVE_REAL_DIFFERENTIAL,
     ),
     "duckdb": _genome(
         "duckdb",
@@ -85,6 +128,7 @@ DEFAULT_DIALECTS: dict[str, DialectGenome] = {
             SemanticDimension.ANALYTICAL,
             SemanticDimension.TRANSACTIONAL,
         },
+        coverage=_NATIVE_EMBEDDED_DIFFERENTIAL,
     ),
     "sqlite": _genome(
         "sqlite",
@@ -105,6 +149,7 @@ DEFAULT_DIALECTS: dict[str, DialectGenome] = {
             SemanticDimension.ANALYTICAL,
             SemanticDimension.TRANSACTIONAL,
         },
+        coverage=_NATIVE_EMBEDDED_DIFFERENTIAL,
     ),
     "mysql": _genome(
         "mysql",
@@ -128,6 +173,7 @@ DEFAULT_DIALECTS: dict[str, DialectGenome] = {
             SemanticDimension.TRANSACTIONAL,
             SemanticDimension.PROCEDURAL,
         },
+        coverage=_NATIVE_REAL_DIFFERENTIAL,
     ),
     "bigquery": _genome(
         "bigquery",
@@ -157,6 +203,7 @@ DEFAULT_DIALECTS: dict[str, DialectGenome] = {
             SemanticDimension.PROCEDURAL,
         },
         {"googlesql"},
+        coverage=_NATIVE_MODELED,
     ),
     "snowflake": _genome(
         "snowflake",
@@ -190,6 +237,7 @@ DEFAULT_DIALECTS: dict[str, DialectGenome] = {
             SemanticDimension.TRANSACTIONAL,
             SemanticDimension.PROCEDURAL,
         },
+        coverage=_NATIVE_MODELED,
     ),
     "tsql": _genome(
         "tsql",
@@ -217,6 +265,7 @@ DEFAULT_DIALECTS: dict[str, DialectGenome] = {
             SemanticDimension.PROCEDURAL,
         },
         {"sqlserver", "mssql"},
+        coverage=_NATIVE_MODELED,
     ),
     "oracle": _genome(
         "oracle",
@@ -245,6 +294,7 @@ DEFAULT_DIALECTS: dict[str, DialectGenome] = {
             SemanticDimension.TRANSACTIONAL,
             SemanticDimension.PROCEDURAL,
         },
+        coverage=_NATIVE_MODELED,
     ),
     "trino": _genome(
         "trino",
@@ -272,45 +322,109 @@ DEFAULT_DIALECTS: dict[str, DialectGenome] = {
             SemanticDimension.FEDERATED,
         },
         {"presto-compatible"},
+        coverage=_NATIVE_REAL_DIFFERENTIAL,
+    ),
+    "mariadb": _genome(
+        "mariadb",
+        "mysql-family",
+        "MariaDB",
+        "11.x",
+        {"relational_select"},
+        {SemanticDimension.RELATIONAL},
+        notes=(
+            "Uses the SQLGlot MySQL parser as a compatibility adapter; "
+            "MariaDB-specific syntax and semantics require separate qualification.",
+        ),
+        coverage=_COMPAT_REAL_RELATIONAL,
     ),
 }
+
+NON_SQL_SQLGLOT_DIALECTS = frozenset({"dax", "prql", "tableau"})
 
 # SQLGlot-backed parser coverage can be broader than our admitted semantic capability coverage.
 # These genomes intentionally begin with only relational SELECT semantics. Dialect-specific
 # capabilities are added separately as evidence and tests justify them.
-_BASELINE_SQLGLOT_DIALECTS: dict[str, tuple[str, str, set[str]]] = {
-    "athena": ("presto-family", "Amazon Athena SQL", set()),
-    "clickhouse": ("clickhouse", "ClickHouse SQL", set()),
-    "databricks": ("spark-family", "Databricks SQL", set()),
-    "doris": ("mysql-family", "Apache Doris SQL", set()),
-    "dremio": ("dremio", "Dremio SQL", set()),
-    "drill": ("drill", "Apache Drill SQL", set()),
-    "druid": ("druid", "Apache Druid SQL", set()),
-    "dune": ("dune", "DuneSQL", set()),
-    "exasol": ("exasol", "Exasol SQL", set()),
-    "fabric": ("transact-sql", "Microsoft Fabric SQL", set()),
-    "hive": ("hive", "Apache HiveQL", {"hiveql"}),
-    "materialize": ("postgres-family", "Materialize SQL", set()),
-    "presto": ("presto", "Presto SQL", set()),
-    "redshift": ("postgres-family", "Amazon Redshift SQL", set()),
-    "risingwave": ("postgres-family", "RisingWave SQL", set()),
-    "singlestore": ("mysql-family", "SingleStore SQL", {"memsql"}),
-    "spark": ("spark-family", "Apache Spark SQL", {"sparksql"}),
-    "starrocks": ("mysql-family", "StarRocks SQL", set()),
-    "teradata": ("teradata", "Teradata SQL", set()),
+_BASELINE_SQLGLOT_DIALECTS: dict[str, tuple[str, str, str, set[str]]] = {
+    "athena": ("presto-family", "Amazon Athena SQL", "current", set()),
+    "clickhouse": ("clickhouse", "ClickHouse SQL", "current", set()),
+    "databricks": ("spark-family", "Databricks SQL", "current", set()),
+    "doris": ("mysql-family", "Apache Doris SQL", "current", set()),
+    "dremio": ("dremio", "Dremio SQL", "current", set()),
+    "drill": ("drill", "Apache Drill SQL", "current", set()),
+    "druid": ("druid", "Apache Druid SQL", "current", set()),
+    "dune": ("dune", "DuneSQL", "current", set()),
+    "exasol": ("exasol", "Exasol SQL", "current", set()),
+    "fabric": ("transact-sql", "Microsoft Fabric SQL", "current", set()),
+    "hive": ("hive", "Apache HiveQL", "current", {"hiveql"}),
+    "materialize": ("postgres-family", "Materialize SQL", "current", set()),
+    "presto": ("presto", "Presto SQL", "current", set()),
+    "redshift": ("postgres-family", "Amazon Redshift SQL", "current", set()),
+    "risingwave": ("postgres-family", "RisingWave SQL", "current", set()),
+    "singlestore": ("mysql-family", "SingleStore SQL", "current", {"memsql"}),
+    "solr": ("calcite-search", "Apache Solr SQL", "current", set()),
+    "spark": ("spark-family", "Apache Spark SQL", "3+", {"sparksql"}),
+    "spark2": ("spark-family", "Apache Spark SQL", "2.x", set()),
+    "starrocks": ("mysql-family", "StarRocks SQL", "current", set()),
+    "teradata": ("teradata", "Teradata SQL", "current", set()),
 }
 
-for _dialect_id, (_family, _engine, _aliases) in _BASELINE_SQLGLOT_DIALECTS.items():
+for _dialect_id, (
+    _family,
+    _engine,
+    _version_selector,
+    _aliases,
+) in _BASELINE_SQLGLOT_DIALECTS.items():
     DEFAULT_DIALECTS[_dialect_id] = _genome(
         _dialect_id,
         _family,
         _engine,
-        "current",
+        _version_selector,
         {"relational_select"},
         {SemanticDimension.RELATIONAL},
         _aliases,
         notes=(
             "Bootstrap SQLGlot parser coverage; dialect-specific capability coverage is partial.",
+        ),
+        coverage=_NATIVE_RELATIONAL_BASELINE,
+    )
+
+
+_KNOWN_UNPARSED_SQL_DIALECTS: dict[
+    str,
+    tuple[str, str, str, set[str]],
+] = {
+    "cockroachdb": ("postgres-family", "CockroachDB SQL", "current", {"cockroach"}),
+    "db2": ("db2", "IBM Db2 SQL", "12.1.x", {"ibm-db2"}),
+    "firebird": ("firebird", "Firebird SQL", "5.x", set()),
+    "impala": ("hive-family", "Apache Impala SQL", "current", {"apache-impala"}),
+    "sap_hana": ("sap-hana", "SAP HANA SQL", "2.0 SPS 08", {"hana"}),
+    "tidb": ("mysql-family", "TiDB SQL", "8.x", set()),
+    "vertica": ("vertica", "Vertica SQL", "26.2.x", set()),
+    "yugabyte_ysql": (
+        "postgres-family",
+        "YugabyteDB YSQL",
+        "2025.1+",
+        {"ysql"},
+    ),
+}
+
+for _dialect_id, (
+    _family,
+    _engine,
+    _version_selector,
+    _aliases,
+) in _KNOWN_UNPARSED_SQL_DIALECTS.items():
+    DEFAULT_DIALECTS[_dialect_id] = _genome(
+        _dialect_id,
+        _family,
+        _engine,
+        _version_selector,
+        set(),
+        set(),
+        _aliases,
+        notes=(
+            "Known SQL dialect from official vendor documentation; parser, semantic, "
+            "translation, and behavioral support are not yet established.",
         ),
     )
 

@@ -39,6 +39,45 @@ class TranslationFidelity(StrEnum):
         }[self]
 
 
+class ParserCoverage(StrEnum):
+    NOT_AVAILABLE = "NOT_AVAILABLE"
+    COMPATIBILITY_ADAPTER = "COMPATIBILITY_ADAPTER"
+    NATIVE_DIALECT = "NATIVE_DIALECT"
+
+
+class SemanticCoverage(StrEnum):
+    NOT_ESTABLISHED = "NOT_ESTABLISHED"
+    RELATIONAL_BASELINE = "RELATIONAL_BASELINE"
+    MODELED_CAPABILITIES = "MODELED_CAPABILITIES"
+
+
+class TranslationCoverage(StrEnum):
+    NOT_ESTABLISHED = "NOT_ESTABLISHED"
+    CAPABILITY_PLANNING = "CAPABILITY_PLANNING"
+
+
+class BehavioralCoverage(StrEnum):
+    NOT_ESTABLISHED = "NOT_ESTABLISHED"
+    EMBEDDED_ENGINE_DIFFERENTIAL = "EMBEDDED_ENGINE_DIFFERENTIAL"
+    REAL_ENGINE_DIFFERENTIAL = "REAL_ENGINE_DIFFERENTIAL"
+
+
+@dataclass(frozen=True, slots=True)
+class DialectCoverage:
+    parser: ParserCoverage = ParserCoverage.NOT_AVAILABLE
+    semantics: SemanticCoverage = SemanticCoverage.NOT_ESTABLISHED
+    translation: TranslationCoverage = TranslationCoverage.NOT_ESTABLISHED
+    behavior: BehavioralCoverage = BehavioralCoverage.NOT_ESTABLISHED
+
+    def as_dict(self) -> dict[str, str]:
+        return {
+            "parser": self.parser.value,
+            "semantics": self.semantics.value,
+            "translation": self.translation.value,
+            "behavior": self.behavior.value,
+        }
+
+
 @dataclass(frozen=True, slots=True)
 class DialectGenome:
     dialect_id: str
@@ -49,6 +88,7 @@ class DialectGenome:
     semantic_dimensions: frozenset[SemanticDimension]
     aliases: frozenset[str] = field(default_factory=frozenset)
     notes: tuple[str, ...] = ()
+    coverage: DialectCoverage = field(default_factory=DialectCoverage)
 
     def supports(self, capability: CapabilityId) -> bool:
         return capability in self.capabilities

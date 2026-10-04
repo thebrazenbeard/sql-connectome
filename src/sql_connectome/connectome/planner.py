@@ -100,6 +100,7 @@ def list_dialects(
             "semantic_dimensions": sorted(
                 dimension.value for dimension in genome.semantic_dimensions
             ),
+            "coverage": genome.coverage.as_dict(),
             "notes": list(genome.notes),
         }
         for genome in sorted(registry.values(), key=lambda item: item.dialect_id)
