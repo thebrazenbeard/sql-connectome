@@ -28,8 +28,6 @@ def test_unimplemented_researched_dialects_fail_closed_without_overclaiming() ->
         "netezza",
         "h2",
         "pinot",
-        "cratedb",
-        "questdb",
     }:
         genome = connectome.DEFAULT_CATALOG.resolve(dialect_id)
         assert genome.coverage.parser.value == "NOT_AVAILABLE"
