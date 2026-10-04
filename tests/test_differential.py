@@ -83,7 +83,20 @@ def test_default_corpus_is_source_controlled_and_bounded() -> None:
 
     assert payload["corpus_origin"] == "DEFAULT_SOURCE_CONTROLLED"
     assert payload["evidence_scope"] == "FIXED_SOURCE_CONTROLLED_PROBES_ONLY"
-    assert payload["probe_count"] >= 6
+    assert payload["probe_count"] >= 16
+    tags = {
+        tag
+        for result in payload["results"]
+        for tag in result["probe"]["tags"]
+    }
+    assert {
+        "nulls",
+        "precision",
+        "join",
+        "cardinality",
+        "duplicates",
+        "three-valued-logic",
+    } <= tags
     assert payload["postgresql_included"] is False
     assert all(
         result["behavioral_equivalence"] == "NOT_ESTABLISHED"
