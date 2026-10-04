@@ -112,6 +112,8 @@ class SQLTextAnalysis:
     parser_dialect: str
     parser_version: str
     catalog_digest: str
+    admitted_capabilities: frozenset[str]
+    unadmitted_capabilities: frozenset[str]
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -121,6 +123,15 @@ class SQLTextAnalysis:
                 "engine": "sqlglot",
                 "version": self.parser_version,
                 "dialect": self.parser_dialect,
+            },
+            "semantic_admission": {
+                "state": (
+                    "FULLY_ADMITTED"
+                    if not self.unadmitted_capabilities
+                    else "UNADMITTED_CAPABILITIES_PRESENT"
+                ),
+                "admitted_capabilities": sorted(self.admitted_capabilities),
+                "unadmitted_capabilities": sorted(self.unadmitted_capabilities),
             },
             "ir": _ir_as_dict(self.ir),
         }
@@ -377,19 +388,10 @@ def parse_sql_text(
     genome = catalog.dialects[dialect_id]
     expression = _parse_single_expression(text, parser_dialect)
     capabilities = _extract_capabilities(expression, text)
-
-    # This validates that every capability we claim to have observed is admitted
-    # by the declared source dialect genome.
-    try:
-        plan_translation(
-            dialect_id,
-            dialect_id,
-            capabilities,
-            dialects=catalog.dialects,
-            rewrite_rules=catalog.rewrite_rules,
-        )
-    except ValueError as exc:
-        raise SQLTextError(str(exc)) from exc
+    admitted_capabilities = frozenset(
+        capability for capability in capabilities if genome.supports(capability)
+    )
+    unadmitted_capabilities = frozenset(capabilities - admitted_capabilities)
 
     source_type_graph_digest = type_graph_digest(
         dialect_id=dialect_id,
@@ -432,6 +434,18 @@ def parse_sql_text(
                 "type_semantic_coverage",
                 "EXPLICIT_TYPES_ONLY",
             ),
+            (
+                "source_semantic_capability_admission",
+                (
+                    "FULLY_ADMITTED"
+                    if not unadmitted_capabilities
+                    else "UNADMITTED_CAPABILITIES_PRESENT"
+                ),
+            ),
+            (
+                "source_unadmitted_capabilities",
+                tuple(sorted(unadmitted_capabilities)),
+            ),
         ),
         provenance=(
             f"parser:sqlglot:{sqlglot.__version__}",
@@ -448,6 +462,8 @@ def parse_sql_text(
         parser_dialect=parser_dialect,
         parser_version=sqlglot.__version__,
         catalog_digest=catalog.digest,
+        admitted_capabilities=admitted_capabilities,
+        unadmitted_capabilities=unadmitted_capabilities,
     )
 
 
@@ -514,13 +530,16 @@ def transpile_sql_text(
     target_id, target_adapter = _dialect_adapter(target_dialect, catalog=catalog)
     source_id, source_adapter = _dialect_adapter(source_dialect, catalog=catalog)
 
-    plan = plan_translation(
-        source_id,
-        target_id,
-        source.ir.required_capabilities,
-        dialects=catalog.dialects,
-        rewrite_rules=catalog.rewrite_rules,
-    )
+    try:
+        plan = plan_translation(
+            source_id,
+            target_id,
+            source.ir.required_capabilities,
+            dialects=catalog.dialects,
+            rewrite_rules=catalog.rewrite_rules,
+        )
+    except ValueError as exc:
+        raise SQLTextError(str(exc)) from exc
 
     if plan.fidelity is TranslationFidelity.UNREPRESENTABLE:
         unresolved = ",".join(sorted(plan.unresolved_capabilities))

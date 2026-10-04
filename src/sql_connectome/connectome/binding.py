@@ -145,6 +145,10 @@ def bind_sql_text(
         catalog=connectome_catalog,
     )
 
+    if source_analysis.unadmitted_capabilities:
+        joined = ",".join(sorted(source_analysis.unadmitted_capabilities))
+        raise SQLTextError(f"BINDING_SOURCE_CAPABILITY_NOT_ADMITTED:{joined}")
+
     if "relational_select" not in source_analysis.ir.required_capabilities:
         raise SQLTextError("BINDING_ONLY_RELATIONAL_QUERY_SUPPORTED")
 

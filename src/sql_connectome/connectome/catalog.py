@@ -16,6 +16,8 @@ _DEFAULT_PARSER_ADAPTERS = {
     "athena": "athena",
     "bigquery": "bigquery",
     "clickhouse": "clickhouse",
+    "cockroachdb": "postgres",
+    "cratedb": "postgres",
     "databricks": "databricks",
     "doris": "doris",
     "dremio": "dremio",
@@ -32,6 +34,7 @@ _DEFAULT_PARSER_ADAPTERS = {
     "oracle": "oracle",
     "postgresql": "postgres",
     "presto": "presto",
+    "questdb": "postgres",
     "redshift": "redshift",
     "risingwave": "risingwave",
     "singlestore": "singlestore",
@@ -44,8 +47,10 @@ _DEFAULT_PARSER_ADAPTERS = {
     "sqlite": "sqlite",
     "starrocks": "starrocks",
     "teradata": "teradata",
+    "tidb": "mysql",
     "trino": "trino",
     "tsql": "tsql",
+    "yugabyte_ysql": "postgres",
 }
 
 DEFAULT_PARSER_ADAPTERS: Mapping[str, str] = MappingProxyType(
