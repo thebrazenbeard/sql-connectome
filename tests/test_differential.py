@@ -1,6 +1,10 @@
 import pytest
 
-from sql_connectome.differential import DifferentialProbe, run_differential_conformance
+from sql_connectome.differential import (
+    DEFAULT_PROBES,
+    DifferentialProbe,
+    run_differential_conformance,
+)
 
 ADDITION = DifferentialProbe(
     probe_id="test_integer_addition",
@@ -102,3 +106,27 @@ def test_default_corpus_is_source_controlled_and_bounded() -> None:
         result["behavioral_equivalence"] == "NOT_ESTABLISHED"
         for result in payload["results"]
     )
+
+
+def test_external_dbapi_engine_participates_in_same_matrix() -> None:
+    import sqlite3
+
+    connection = sqlite3.connect(":memory:")
+    try:
+        payload = run_differential_conformance(
+            probes=(DEFAULT_PROBES[0],),
+            dbapi_engines={
+                "external-sqlite": (
+                    connection,
+                    {"engine": "sqlite", "source": "dbapi-test"},
+                )
+            },
+        )
+    finally:
+        connection.close()
+
+    assert payload["dbapi_engines_included"] == ["external-sqlite"]
+    engines = payload["results"][0]["engines"]
+    external = next(item for item in engines if item["engine"] == "external-sqlite")
+    assert external["status"] == "PASS"
+    assert external["value_projection"] == [[{"numeric": "3"}]]
