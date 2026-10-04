@@ -130,3 +130,24 @@ def test_external_dbapi_engine_participates_in_same_matrix() -> None:
     external = next(item for item in engines if item["engine"] == "external-sqlite")
     assert external["status"] == "PASS"
     assert external["value_projection"] == [[{"numeric": "3"}]]
+
+
+def test_pairwise_evidence_preserves_engine_specific_divergence() -> None:
+    payload = run_differential_conformance(probes=(ADDITION, DIVISION))
+    by_id = _results_by_id(payload)
+
+    addition_pair = by_id["test_integer_addition"]["pairwise_evidence"][0]
+    assert addition_pair == {
+        "left_engine": "duckdb",
+        "right_engine": "sqlite",
+        "execution": "BOTH_PASS",
+        "value": "AGREE",
+        "type": "AGREE",
+    }
+
+    division_pair = by_id["test_integer_division"]["pairwise_evidence"][0]
+    assert division_pair["left_engine"] == "duckdb"
+    assert division_pair["right_engine"] == "sqlite"
+    assert division_pair["execution"] == "BOTH_PASS"
+    assert division_pair["value"] == "DIVERGE"
+    assert division_pair["type"] == "DIVERGE"
