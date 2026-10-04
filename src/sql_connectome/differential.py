@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 import sqlite3
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, time
 from decimal import Decimal
@@ -363,6 +363,35 @@ def _run_postgresql_probe(
     )
 
 
+def run_dbapi_probe(
+    probe: DifferentialProbe,
+    *,
+    engine: str,
+    connection: Any,
+    runtime: dict[str, Any],
+) -> dict[str, object]:
+    statement = validate_readonly_sql(probe.sql)
+    cursor = connection.cursor()
+    try:
+        cursor.execute(statement)
+        rows = cursor.fetchmany(MAX_PROBE_ROWS + 1)
+        if len(rows) > MAX_PROBE_ROWS:
+            raise ValueError("DIFFERENTIAL_PROBE_ROW_LIMIT_EXCEEDED")
+        columns = [str(column[0]) for column in (cursor.description or ())]
+        return _engine_success(
+            engine=engine,
+            runtime=runtime,
+            columns=columns,
+            rows=rows,
+        )
+    except ValueError:
+        raise
+    except Exception as exc:
+        return _engine_error(engine=engine, runtime=runtime, exc=exc)
+    finally:
+        cursor.close()
+
+
 def _comparison_outcome(
     engine_results: list[dict[str, object]],
     projection_key: str,
@@ -395,6 +424,7 @@ def run_differential_conformance(
     settings: Settings | None = None,
     probes: Iterable[DifferentialProbe] = DEFAULT_PROBES,
     source_commit: str | None = None,
+    dbapi_engines: Mapping[str, tuple[Any, dict[str, Any]]] | None = None,
 ) -> dict[str, object]:
     corpus = tuple(probes)
     if not corpus:
@@ -441,6 +471,16 @@ def run_differential_conformance(
                 }
             )
 
+        for engine, (connection, runtime) in (dbapi_engines or {}).items():
+            engines.append(
+                run_dbapi_probe(
+                    probe,
+                    engine=engine,
+                    connection=connection,
+                    runtime=runtime,
+                )
+            )
+
         participating = [
             result for result in engines if result["status"] != "NOT_RUN"
         ]
@@ -466,6 +506,7 @@ def run_differential_conformance(
         "corpus_digest": canonical_digest([probe.as_dict() for probe in corpus]),
         "result_digest": canonical_digest(results),
         "postgresql_included": settings is not None,
+        "dbapi_engines_included": sorted((dbapi_engines or {}).keys()),
         "probe_count": len(corpus),
         "source_commit": source_commit,
         "corpus_origin": corpus_origin,
@@ -476,6 +517,7 @@ def run_differential_conformance(
         "source_commit": source_commit,
         "probe_count": len(corpus),
         "postgresql_included": settings is not None,
+        "dbapi_engines_included": sorted((dbapi_engines or {}).keys()),
         "corpus_origin": corpus_origin,
         "evidence_scope": evidence_scope,
         "generalization": "NOT_ESTABLISHED",
