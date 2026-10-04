@@ -215,3 +215,77 @@ def test_catalog_rejects_unknown_parser_adapter_at_admission() -> None:
             parser_adapters={"pgish": "definitely-not-a-dialect"},
             rewrite_rules=(),
         )
+
+
+def test_default_catalog_exposes_independent_coverage_maturity() -> None:
+    catalog = connectome.DEFAULT_CATALOG
+    manifest = catalog.manifest()
+    by_id = {row["dialect_id"]: row for row in manifest["dialects"]}
+
+    assert by_id["postgresql"]["coverage"] == {
+        "parser": "NATIVE_DIALECT",
+        "semantics": "MODELED_CAPABILITIES",
+        "translation": "CAPABILITY_PLANNING",
+        "behavior": "REAL_ENGINE_DIFFERENTIAL",
+    }
+    assert by_id["snowflake"]["coverage"]["behavior"] == "NOT_ESTABLISHED"
+    assert by_id["athena"]["coverage"]["semantics"] == "RELATIONAL_BASELINE"
+
+
+def test_all_current_sqlglot_surfaces_are_classified() -> None:
+    from sqlglot.dialects import Dialects
+
+    from sql_connectome.connectome.registry import NON_SQL_SQLGLOT_DIALECTS
+
+    builtins = {dialect.value for dialect in Dialects if dialect.value}
+    parser_backed = set(connectome.DEFAULT_CATALOG.parser_adapters.values())
+
+    assert builtins <= parser_backed | NON_SQL_SQLGLOT_DIALECTS
+
+
+def test_missing_sql_surfaces_are_admitted_without_overclaiming() -> None:
+    catalog = connectome.DEFAULT_CATALOG
+
+    mariadb = catalog.resolve("mariadb")
+    assert mariadb.family == "mysql-family"
+    assert catalog.parser_adapter("mariadb") == "mysql"
+    assert mariadb.coverage.parser.value == "COMPATIBILITY_ADAPTER"
+    assert mariadb.coverage.behavior.value == "REAL_ENGINE_DIFFERENTIAL"
+
+    spark2 = catalog.resolve("spark2")
+    assert catalog.parser_adapter("spark2") == "spark2"
+    assert spark2.version_selector == "2.x"
+
+    solr = catalog.resolve("solr")
+    assert catalog.parser_adapter("solr") == "solr"
+    assert solr.coverage.semantics.value == "RELATIONAL_BASELINE"
+
+
+def test_non_sql_sqlglot_surfaces_are_not_misrepresented_as_sql_dialects() -> None:
+    from sql_connectome.connectome.registry import NON_SQL_SQLGLOT_DIALECTS
+
+    assert {"dax", "prql", "tableau"} <= NON_SQL_SQLGLOT_DIALECTS
+    for dialect in ("dax", "prql", "tableau"):
+        with pytest.raises(KeyError, match="UNKNOWN_DIALECT"):
+            connectome.DEFAULT_CATALOG.resolve(dialect)
+
+
+def test_known_unparsed_sql_dialects_are_explicit_not_silently_absent() -> None:
+    catalog = connectome.DEFAULT_CATALOG
+    known = {
+        "cockroachdb",
+        "db2",
+        "firebird",
+        "impala",
+        "sap_hana",
+        "tidb",
+        "vertica",
+        "yugabyte_ysql",
+    }
+
+    for dialect_id in known:
+        genome = catalog.resolve(dialect_id)
+        assert genome.coverage.parser.value == "NOT_AVAILABLE"
+        assert genome.coverage.semantics.value == "NOT_ESTABLISHED"
+        with pytest.raises(KeyError, match="PARSER_ADAPTER_NOT_CONFIGURED"):
+            catalog.parser_adapter(dialect_id)

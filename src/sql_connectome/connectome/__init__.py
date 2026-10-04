@@ -35,9 +35,14 @@ from .expression_registry import (
 from .ir import IREdge, IRNode, SQLSemanticIR, TranslationLoss
 from .model import (
     AppliedRewrite,
+    BehavioralCoverage,
+    DialectCoverage,
     DialectGenome,
+    ParserCoverage,
     RewriteRule,
+    SemanticCoverage,
     SemanticDimension,
+    TranslationCoverage,
     TranslationFidelity,
     TranslationPlan,
 )
@@ -90,6 +95,11 @@ __all__ = [
     "reconcile_coercion_evidence",
     "postgresql_pg_cast_evidence",
     "AppliedRewrite",
+    "BehavioralCoverage",
+    "DialectCoverage",
+    "ParserCoverage",
+    "SemanticCoverage",
+    "TranslationCoverage",
     "inspect_type_system",
     "dialect_type_graph",
     "canonical_type_family",

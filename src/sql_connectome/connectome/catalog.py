@@ -26,6 +26,7 @@ _DEFAULT_PARSER_ADAPTERS = {
     "fabric": "fabric",
     "hive": "hive",
     "materialize": "materialize",
+    "mariadb": "mysql",
     "mysql": "mysql",
     "oracle": "oracle",
     "postgresql": "postgres",
@@ -34,7 +35,9 @@ _DEFAULT_PARSER_ADAPTERS = {
     "risingwave": "risingwave",
     "singlestore": "singlestore",
     "snowflake": "snowflake",
+    "solr": "solr",
     "spark": "spark",
+    "spark2": "spark2",
     "sqlite": "sqlite",
     "starrocks": "starrocks",
     "teradata": "teradata",
@@ -112,6 +115,7 @@ class ConnectomeCatalog:
                 "semantic_dimensions": sorted(
                     dimension.value for dimension in genome.semantic_dimensions
                 ),
+                "coverage": genome.coverage.as_dict(),
                 "notes": list(genome.notes),
             }
             for genome in sorted(
