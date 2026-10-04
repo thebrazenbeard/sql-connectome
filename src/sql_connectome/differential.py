@@ -419,6 +419,44 @@ def _execution_outcome(engine_results: list[dict[str, object]]) -> str:
     return "MIXED_PASS_ERROR"
 
 
+def _pairwise_evidence(engine_results: list[dict[str, object]]) -> list[dict[str, object]]:
+    pairs: list[dict[str, object]] = []
+    for index, left in enumerate(engine_results):
+        for right in engine_results[index + 1:]:
+            left_pass = left["status"] == "PASS"
+            right_pass = right["status"] == "PASS"
+            if left_pass and right_pass:
+                execution = "BOTH_PASS"
+                value = (
+                    "AGREE"
+                    if left["value_projection"] == right["value_projection"]
+                    else "DIVERGE"
+                )
+                types = (
+                    "AGREE"
+                    if left["type_projection"] == right["type_projection"]
+                    else "DIVERGE"
+                )
+            elif left_pass != right_pass:
+                execution = "PASS_ERROR_DIVERGENCE"
+                value = "NOT_COMPARABLE"
+                types = "NOT_COMPARABLE"
+            else:
+                execution = "BOTH_ERROR"
+                value = "NOT_COMPARABLE"
+                types = "NOT_COMPARABLE"
+            pairs.append(
+                {
+                    "left_engine": left["engine"],
+                    "right_engine": right["engine"],
+                    "execution": execution,
+                    "value": value,
+                    "type": types,
+                }
+            )
+    return pairs
+
+
 def run_differential_conformance(
     *,
     settings: Settings | None = None,
@@ -497,6 +535,7 @@ def run_differential_conformance(
                     participating,
                     "type_projection",
                 ),
+                "pairwise_evidence": _pairwise_evidence(participating),
                 "evidence_scope": evidence_scope,
                 "behavioral_equivalence": "NOT_ESTABLISHED",
             }
