@@ -37,6 +37,8 @@ _DEFAULT_PARSER_ADAPTERS = {
     "singlestore": "singlestore",
     "snowflake": "snowflake",
     "solr": "solr",
+    "spanner_googlesql": "bigquery",
+    "spanner_postgresql": "postgres",
     "spark": "spark",
     "spark2": "spark2",
     "sqlite": "sqlite",
