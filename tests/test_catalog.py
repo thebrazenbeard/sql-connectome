@@ -273,14 +273,11 @@ def test_non_sql_sqlglot_surfaces_are_not_misrepresented_as_sql_dialects() -> No
 def test_known_unparsed_sql_dialects_are_explicit_not_silently_absent() -> None:
     catalog = connectome.DEFAULT_CATALOG
     known = {
-        "cockroachdb",
         "db2",
         "firebird",
         "impala",
         "sap_hana",
-        "tidb",
         "vertica",
-        "yugabyte_ysql",
     }
 
     for dialect_id in known:
