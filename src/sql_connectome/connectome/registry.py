@@ -65,6 +65,9 @@ _COMPAT_REAL_RELATIONAL = DialectCoverage(
     translation=TranslationCoverage.CAPABILITY_PLANNING,
     behavior=BehavioralCoverage.REAL_ENGINE_DIFFERENTIAL,
 )
+_COMPAT_UNESTABLISHED = DialectCoverage(
+    parser=ParserCoverage.COMPATIBILITY_ADAPTER,
+)
 
 
 # This is deliberately a conservative bootstrap registry, not a conformance matrix.
@@ -337,9 +340,38 @@ DEFAULT_DIALECTS: dict[str, DialectGenome] = {
         ),
         coverage=_COMPAT_REAL_RELATIONAL,
     ),
+    "spanner_googlesql": _genome(
+        "spanner_googlesql",
+        "googlesql-family",
+        "Google Cloud Spanner GoogleSQL",
+        "current",
+        set(),
+        set(),
+        {"spanner-google-sql"},
+        notes=(
+            "Uses SQLGlot BigQuery only as a GoogleSQL-family compatibility parser. "
+            "Spanner-specific SQL and semantics remain unqualified.",
+        ),
+        coverage=_COMPAT_UNESTABLISHED,
+    ),
+    "spanner_postgresql": _genome(
+        "spanner_postgresql",
+        "postgres-family",
+        "Google Cloud Spanner PostgreSQL interface",
+        "current",
+        set(),
+        set(),
+        {"spanner-pg", "spanner-postgres"},
+        notes=(
+            "Uses SQLGlot PostgreSQL only as a compatibility parser. "
+            "Spanner documents a PostgreSQL subset plus Spanner extensions.",
+        ),
+        coverage=_COMPAT_UNESTABLISHED,
+    ),
 }
 
 NON_SQL_SQLGLOT_DIALECTS = frozenset({"dax", "prql", "tableau"})
+SQL_LIKE_NON_SQL_LANGUAGES = frozenset({"soql"})
 
 # SQLGlot-backed parser coverage can be broader than our admitted semantic capability coverage.
 # These genomes intentionally begin with only relational SELECT semantics. Dialect-specific
@@ -406,6 +438,14 @@ _KNOWN_UNPARSED_SQL_DIALECTS: dict[
         "2025.1+",
         {"ysql"},
     ),
+    "flink": ("calcite-streaming", "Apache Flink SQL", "current", {"flink-sql"}),
+    "ksqldb": ("streaming-sql", "ksqlDB SQL", "8.3+", {"ksql"}),
+    "informix": ("informix", "IBM Informix SQL", "15.0.x", set()),
+    "netezza": ("netezza", "IBM Netezza Performance Server SQL", "current", set()),
+    "h2": ("h2", "H2 SQL", "2.x", set()),
+    "pinot": ("calcite-analytics", "Apache Pinot SQL", "current", set()),
+    "cratedb": ("postgres-family", "CrateDB SQL", "current", {"crate"}),
+    "questdb": ("postgres-family", "QuestDB SQL", "current", set()),
 }
 
 for _dialect_id, (
