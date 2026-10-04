@@ -421,31 +421,59 @@ for _dialect_id, (
     )
 
 
-_KNOWN_UNPARSED_SQL_DIALECTS: dict[
+_COMPATIBILITY_PARSER_SQL_DIALECTS: dict[
     str,
     tuple[str, str, str, set[str]],
 ] = {
     "cockroachdb": ("postgres-family", "CockroachDB SQL", "current", {"cockroach"}),
-    "db2": ("db2", "IBM Db2 SQL", "12.1.x", {"ibm-db2"}),
-    "firebird": ("firebird", "Firebird SQL", "5.x", set()),
-    "impala": ("hive-family", "Apache Impala SQL", "current", {"apache-impala"}),
-    "sap_hana": ("sap-hana", "SAP HANA SQL", "2.0 SPS 08", {"hana"}),
     "tidb": ("mysql-family", "TiDB SQL", "8.x", set()),
-    "vertica": ("vertica", "Vertica SQL", "26.2.x", set()),
     "yugabyte_ysql": (
         "postgres-family",
         "YugabyteDB YSQL",
         "2025.1+",
         {"ysql"},
     ),
+    "cratedb": ("postgres-family", "CrateDB SQL", "current", {"crate"}),
+    "questdb": ("postgres-family", "QuestDB SQL", "current", set()),
+}
+
+for _dialect_id, (
+    _family,
+    _engine,
+    _version_selector,
+    _aliases,
+) in _COMPATIBILITY_PARSER_SQL_DIALECTS.items():
+    DEFAULT_DIALECTS[_dialect_id] = _genome(
+        _dialect_id,
+        _family,
+        _engine,
+        _version_selector,
+        set(),
+        set(),
+        _aliases,
+        notes=(
+            "Uses a documented compatibility-family parser only; dialect-specific "
+            "semantics, translation fidelity, and behavior remain unestablished.",
+        ),
+        coverage=_COMPAT_UNESTABLISHED,
+    )
+
+
+_KNOWN_UNPARSED_SQL_DIALECTS: dict[
+    str,
+    tuple[str, str, str, set[str]],
+] = {
+    "db2": ("db2", "IBM Db2 SQL", "12.1.x", {"ibm-db2"}),
+    "firebird": ("firebird", "Firebird SQL", "5.x", set()),
+    "impala": ("hive-family", "Apache Impala SQL", "current", {"apache-impala"}),
+    "sap_hana": ("sap-hana", "SAP HANA SQL", "2.0 SPS 08", {"hana"}),
+    "vertica": ("vertica", "Vertica SQL", "26.2.x", set()),
     "flink": ("calcite-streaming", "Apache Flink SQL", "current", {"flink-sql"}),
     "ksqldb": ("streaming-sql", "ksqlDB SQL", "8.3+", {"ksql"}),
     "informix": ("informix", "IBM Informix SQL", "15.0.x", set()),
     "netezza": ("netezza", "IBM Netezza Performance Server SQL", "current", set()),
     "h2": ("h2", "H2 SQL", "2.x", set()),
     "pinot": ("calcite-analytics", "Apache Pinot SQL", "current", set()),
-    "cratedb": ("postgres-family", "CrateDB SQL", "current", {"crate"}),
-    "questdb": ("postgres-family", "QuestDB SQL", "current", set()),
 }
 
 for _dialect_id, (

@@ -55,3 +55,21 @@ Primary evidence was current official documentation from Google Cloud Spanner,
 Apache Flink, Confluent ksqlDB, IBM Informix/Netezza, H2, Apache Pinot, CrateDB,
 QuestDB, and Salesforce. SQLFluff 4.3.0's documented dialect set was used as a
 cross-parser census, not as proof of vendor semantics.
+
+
+## Compatibility-parser follow-up
+
+A later source review found official compatibility claims strong enough to
+justify parser-family bridges for five additional catalog nodes:
+
+- CockroachDB -> PostgreSQL parser compatibility.
+- TiDB -> MySQL parser compatibility.
+- YugabyteDB YSQL -> PostgreSQL parser compatibility.
+- CrateDB -> PostgreSQL parser compatibility.
+- QuestDB -> PostgreSQL parser compatibility.
+
+These bridges advance only the parser axis to COMPATIBILITY_ADAPTER. They do
+not admit relational semantics, translation fidelity, or behavioral
+equivalence. Successful parsing therefore records any observed but unadmitted
+capabilities, while binding and translation continue to fail closed until
+separate semantic evidence is admitted.
