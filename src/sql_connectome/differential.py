@@ -73,10 +73,72 @@ DEFAULT_PROBES: tuple[DifferentialProbe, ...] = (
         tags=("string", "nulls"),
     ),
     DifferentialProbe(
+        probe_id="null_predicate_three_valued_logic",
+        sql="SELECT (NULL = NULL) AS value",
+        purpose="Expose three-valued NULL comparison semantics.",
+        tags=("nulls", "three-valued-logic"),
+    ),
+    DifferentialProbe(
+        probe_id="coalesce_mixed_null_integer",
+        sql="SELECT COALESCE(NULL, 7) AS value",
+        purpose="Compare NULL elimination and resulting scalar type.",
+        tags=("nulls", "coalesce", "types"),
+    ),
+    DifferentialProbe(
+        probe_id="case_null_branch",
+        sql="SELECT CASE WHEN NULL THEN 1 ELSE 2 END AS value",
+        purpose="Compare UNKNOWN predicate handling in CASE.",
+        tags=("nulls", "case", "three-valued-logic"),
+    ),
+    DifferentialProbe(
+        probe_id="decimal_division",
+        sql="SELECT CAST(5 AS DECIMAL(10,2)) / CAST(2 AS DECIMAL(10,2)) AS value",
+        purpose="Expose decimal division value and result-type differences.",
+        tags=("numeric", "decimal", "precision", "known-divergence-candidate"),
+    ),
+    DifferentialProbe(
+        probe_id="negative_round_half",
+        sql="SELECT ROUND(-2.5) AS value",
+        purpose="Expose negative half rounding behavior.",
+        tags=("numeric", "rounding", "known-divergence-candidate"),
+    ),
+    DifferentialProbe(
         probe_id="round_half",
         sql="SELECT ROUND(2.5) AS value",
         purpose="Compare scalar rounding of a positive half value.",
         tags=("numeric", "rounding"),
+    ),
+    DifferentialProbe(
+        probe_id="explicit_nulls_first",
+        sql="WITH t(x) AS (VALUES (1), (NULL), (2)) SELECT x FROM t ORDER BY x ASC NULLS FIRST",
+        purpose="Test explicit NULL ordering rather than engine defaults.",
+        tags=("ordering", "nulls", "explicit-semantics"),
+    ),
+    DifferentialProbe(
+        probe_id="duplicate_preserving_union_all",
+        sql="SELECT x FROM (SELECT 1 AS x UNION ALL SELECT 1 AS x) q ORDER BY x",
+        purpose="Verify duplicate-preserving set operation semantics.",
+        tags=("duplicates", "set-operation", "ordering"),
+    ),
+    DifferentialProbe(
+        probe_id="distinct_duplicate_elimination",
+        sql="SELECT DISTINCT x FROM (SELECT 1 AS x UNION ALL SELECT 1 AS x) q",
+        purpose="Verify explicit duplicate elimination semantics.",
+        tags=("duplicates", "distinct", "set-operation"),
+    ),
+    DifferentialProbe(
+        probe_id="left_join_null_extension",
+        sql=("WITH l(id) AS (VALUES (1), (2)), r(id) AS (VALUES (1)) "
+             "SELECT l.id, r.id AS rid FROM l LEFT JOIN r ON l.id = r.id ORDER BY l.id"),
+        purpose="Exercise outer-join cardinality and NULL extension.",
+        tags=("join", "cardinality", "nulls"),
+    ),
+    DifferentialProbe(
+        probe_id="join_duplicate_amplification",
+        sql=("WITH l(id) AS (VALUES (1), (1)), r(id) AS (VALUES (1), (1)) "
+             "SELECT COUNT(*) AS value FROM l JOIN r ON l.id = r.id"),
+        purpose="Detect accidental suppression of many-to-many join amplification.",
+        tags=("join", "cardinality", "duplicates"),
     ),
 )
 
