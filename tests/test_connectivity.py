@@ -1,3 +1,4 @@
+import platform
 import sqlite3
 
 import pytest
@@ -10,6 +11,8 @@ from sql_connectome.connectivity import (
 )
 from sql_connectome.dbapi_adapter import DBAPIAdapter
 
+SQLITE_TRANSPORT_VERSION = f"python-{platform.python_version()}"
+
 
 def test_connection_identity_digest_binds_transport_and_session_without_secret() -> None:
     identity = ConnectionIdentity(
@@ -18,7 +21,7 @@ def test_connection_identity_digest_binds_transport_and_session_without_secret()
         engine_version=sqlite3.sqlite_version,
         transport_family="dbapi",
         transport_implementation="sqlite3",
-        transport_version=sqlite3.version,
+        transport_version=SQLITE_TRANSPORT_VERSION,
         catalog=":memory:",
         session_facts=(("mode", "isolated"),),
     )
@@ -33,7 +36,7 @@ def test_dbapi_read_only_execution_binds_identity_and_upstream_receipts() -> Non
         engine="sqlite",
         engine_version=sqlite3.sqlite_version,
         transport_implementation="sqlite3",
-        transport_version=sqlite3.version,
+        transport_version=SQLITE_TRANSPORT_VERSION,
         connect=lambda: sqlite3.connect(":memory:"),
         catalog=":memory:",
     )
@@ -54,7 +57,7 @@ def test_protected_effect_requires_external_authorization_receipt() -> None:
         engine="sqlite",
         engine_version=sqlite3.sqlite_version,
         transport_implementation="sqlite3",
-        transport_version=sqlite3.version,
+        transport_version=SQLITE_TRANSPORT_VERSION,
         connect=lambda: sqlite3.connect(":memory:"),
         catalog=":memory:",
     )
@@ -75,7 +78,7 @@ def test_native_execution_error_is_preserved() -> None:
         engine="sqlite",
         engine_version=sqlite3.sqlite_version,
         transport_implementation="sqlite3",
-        transport_version=sqlite3.version,
+        transport_version=SQLITE_TRANSPORT_VERSION,
         connect=lambda: sqlite3.connect(":memory:"),
         catalog=":memory:",
     )

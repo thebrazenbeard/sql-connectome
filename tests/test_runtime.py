@@ -45,7 +45,8 @@ def test_project_ca_upgrades_connection_to_verify_full(
     assert query["sslrootcert"] == [str(ca_path)]
     assert query["application_name"] == ["test"]
     assert ca_path.read_bytes() == ca_bytes
-    assert ca_path.stat().st_mode & 0o777 == 0o600
+    if os.name == "posix":
+        assert ca_path.stat().st_mode & 0o777 == 0o600
 
 
 def test_invalid_project_ca_fails_closed(
