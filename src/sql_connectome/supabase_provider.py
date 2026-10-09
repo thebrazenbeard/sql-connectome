@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlsplit
 
 
 class SupabaseObservationError(ValueError):
@@ -54,6 +55,27 @@ def _optional_text(value: Mapping[str, Any], key: str) -> str | None:
     return raw.strip()
 
 
+
+def _safe_database_host(database: Mapping[str, Any]) -> str | None:
+    host = _optional_text(database, "host")
+    if host is None:
+        return None
+    if any(ch.isspace() or ord(ch) < 33 for ch in host) or any(
+        char in host for char in ("/", "\\", "?", "#", "@")
+    ):
+        raise SupabaseObservationError("database host must be a bare hostname or host:port")
+    try:
+        parsed = urlsplit("//" + host)
+        port = parsed.port
+    except ValueError as exc:
+        raise SupabaseObservationError("database host contains invalid port or IPv6 syntax") from exc
+    if not parsed.hostname or parsed.username or parsed.password:
+        raise SupabaseObservationError("database host contains unsupported authority components")
+    if port is not None and port < 1:
+        raise SupabaseObservationError("database host port must be positive")
+    return host
+
+
 def _lifecycle_state(provider_status: str) -> str:
     normalized = provider_status.strip().upper()
     if normalized == "ACTIVE_HEALTHY":
@@ -99,7 +121,7 @@ class SupabaseProjectObservation:
             postgres_engine=_required_text(database, "postgres_engine", scope="project.database"),
             database_version=_optional_text(database, "version"),
             release_channel=_optional_text(database, "release_channel"),
-            database_host=_optional_text(database, "host"),
+            database_host=_safe_database_host(database),
         )
 
     @property

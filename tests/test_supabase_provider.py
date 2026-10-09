@@ -125,3 +125,19 @@ def test_registration_is_a_proposal_not_provider_effect() -> None:
         "capabilities",
         "metadata",
     }
+
+@pytest.mark.parametrize(
+    "host",
+    [
+        "postgresql://reporter:example-secret@db.example-ref.supabase.co:5432/postgres",
+        "db.example-ref.supabase.co:example-secret",
+        "db.example-ref.supabase.co/path",
+        "db.example-ref.supabase.co\\npassword",
+        "db.example-ref.supabase.co?token=example",
+    ],
+)
+def test_supabase_observation_never_carries_credential_bearing_host_values(host: str) -> None:
+    value = project()
+    value["database"]["host"] = host
+    with pytest.raises(SupabaseObservationError, match="database host"):
+        SupabaseProjectObservation.from_management_project(value)
