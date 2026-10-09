@@ -55,7 +55,6 @@ def _optional_text(value: Mapping[str, Any], key: str) -> str | None:
     return raw.strip()
 
 
-
 def _safe_database_host(database: Mapping[str, Any]) -> str | None:
     host = _optional_text(database, "host")
     if host is None:
@@ -68,7 +67,9 @@ def _safe_database_host(database: Mapping[str, Any]) -> str | None:
         parsed = urlsplit("//" + host)
         port = parsed.port
     except ValueError as exc:
-        raise SupabaseObservationError("database host contains invalid port or IPv6 syntax") from exc
+        raise SupabaseObservationError(
+            "database host contains invalid port or IPv6 syntax"
+        ) from exc
     if not parsed.hostname or parsed.username or parsed.password:
         raise SupabaseObservationError("database host contains unsupported authority components")
     if port is not None and port < 1:
