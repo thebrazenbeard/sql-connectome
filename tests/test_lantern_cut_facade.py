@@ -66,7 +66,7 @@ def _call_cut(monkeypatch, facade_id):
 
 @pytest.mark.parametrize(
     "facade_id",
-    ["LANTERN_MATERIAL_CUT_V1", "BT2_MATERIAL_CUT_V0", "", None],
+    ["LANTERN_MATERIAL_CUT_V1", "BT2_MATERIAL_CUT_V0", "bt2_material_cut_v1", "BT2_MATERIAL_CUT_V1 ", "", None],
 )
 def test_lantern_current_cut_rejects_wrong_facade_before_payload(monkeypatch, facade_id):
     conn, settings = _call_cut(monkeypatch, facade_id)
