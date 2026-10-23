@@ -228,6 +228,8 @@ def lantern_current_cut(
                 if len(cuts) != 1:
                     raise ValueError("LANTERN_CUT_NOT_SINGULAR")
                 cut = cuts[0]
+                if cut.get("facade_id") != "BT2_MATERIAL_CUT_V1":
+                    raise ValueError("LANTERN_CUT_FACADE_MISMATCH")
                 payload = conn.execute(
                     """
                     SELECT material_id::text,
