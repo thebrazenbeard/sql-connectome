@@ -56,6 +56,7 @@ jobs:
           repository: thebrazenbeard/bt2
           ref: ba830cc2914813c3b4e76751f77b1cf3a132a5c4
           path: bt2-source
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Set up Python 3.12
