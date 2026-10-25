@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import atexit
 import base64
 import os
+import stat
+import tempfile
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
@@ -10,9 +13,77 @@ class RuntimeConfigurationError(RuntimeError):
     pass
 
 
+_owned_ca_files: dict[Path, tuple[int, int, int]] = {}
+
+
+def _cleanup_owned_ca_files() -> None:
+    """Remove only still-identical temporary CA files from this process."""
+    for path, (pid, device, inode) in list(_owned_ca_files.items()):
+        if pid != os.getpid():
+            continue
+        try:
+            current = path.lstat()
+            if (
+                stat.S_ISREG(current.st_mode)
+                and (current.st_dev, current.st_ino) == (device, inode)
+            ):
+                path.unlink()
+        except FileNotFoundError:
+            pass
+        finally:
+            _owned_ca_files.pop(path, None)
+
+
+atexit.register(_cleanup_owned_ca_files)
+
+
+def _write_private_ca(ca_bytes: bytes, ca_path: Path | None) -> Path:
+    if ca_path is None:
+        descriptor, name = tempfile.mkstemp(prefix="sql-connectome-ca-", suffix=".pem")
+        path = Path(name)
+        generated = True
+    else:
+        path = ca_path
+        # An explicit path must have an existing trusted parent directory.
+        # Never follow a pre-positioned target symlink or truncate an existing
+        # file. O_EXCL also closes the check/open race for the final component.
+        if any(parent.is_symlink() for parent in path.parents):
+            raise RuntimeConfigurationError("PROJECT_CA_PATH_UNSAFE")
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+        flags |= getattr(os, "O_BINARY", 0)
+        try:
+            descriptor = os.open(path, flags, 0o600)
+        except OSError as exc:
+            raise RuntimeConfigurationError("PROJECT_CA_PATH_UNSAFE") from exc
+        generated = False
+
+    created = os.fstat(descriptor)
+    try:
+        with os.fdopen(descriptor, "wb") as target:
+            if hasattr(os, "fchmod"):
+                os.fchmod(target.fileno(), 0o600)
+            target.write(ca_bytes)
+            target.flush()
+            os.fsync(target.fileno())
+    except Exception:
+        # We exclusively created the file; clean up a partial CA only if the
+        # original inode still occupies the path.
+        try:
+            current = path.lstat()
+            if (current.st_dev, current.st_ino) == (created.st_dev, created.st_ino):
+                path.unlink()
+        except FileNotFoundError:
+            pass
+        raise
+
+    if generated:
+        _owned_ca_files[path] = (os.getpid(), created.st_dev, created.st_ino)
+    return path
+
+
 def configure_database_environment(
     *,
-    ca_path: Path = Path("/tmp/sql-connectome-project-ca.pem"),
+    ca_path: Path | None = None,
 ) -> str:
     """Normalize managed-PostgreSQL environment variables.
 
@@ -41,9 +112,7 @@ def configure_database_environment(
     if not ca_bytes:
         raise RuntimeConfigurationError("PROJECT_CA_CERT_EMPTY")
 
-    ca_path.parent.mkdir(parents=True, exist_ok=True)
-    ca_path.write_bytes(ca_bytes)
-    ca_path.chmod(0o600)
+    private_ca_path = _write_private_ca(ca_bytes, ca_path)
 
     query = [
         (key, value)
@@ -53,7 +122,7 @@ def configure_database_environment(
     query.extend(
         [
             ("sslmode", "verify-full"),
-            ("sslrootcert", str(ca_path)),
+            ("sslrootcert", str(private_ca_path)),
         ]
     )
     secure_url = urlunsplit(

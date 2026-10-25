@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import re
 from typing import Any
+from urllib.parse import parse_qsl, urlsplit
 
 import psycopg
 from psycopg.rows import dict_row
@@ -13,6 +15,156 @@ from .receipts import canonical_digest, make_receipt
 
 class ProjectRegistryError(RuntimeError):
     pass
+
+
+_SECRET_FIELD_NAMES = frozenset(
+    {
+        "password",
+        "passwd",
+        "pwd",
+        "passphrase",
+        "secret",
+        "credentials",
+        "credential",
+        "privatekey",
+        "authorization",
+        "cookie",
+        "setcookie",
+        "token",
+        "accesstoken",
+        "refreshtoken",
+        "idtoken",
+        "authtoken",
+        "apikey",
+        "servicekey",
+        "servicerolekey",
+        "sslkey",
+        "jwt",
+        "dsn",
+        "databaseurl",
+        "databaseuri",
+        "connectionstring",
+        "connectionurl",
+        "connectionuri",
+    }
+)
+_DATABASE_SCHEMES = frozenset(
+    {
+        "postgres",
+        "postgresql",
+        "mysql",
+        "mariadb",
+        "mongodb",
+        "mongodb+srv",
+        "redis",
+        "rediss",
+        "amqp",
+        "amqps",
+        "mssql",
+        "sqlite",
+    }
+)
+_LIBPQ_DSN_FIELDS = frozenset(
+    {"host", "hostaddr", "port", "dbname", "user", "service", "sslmode", "application_name"}
+)
+_SENSITIVE_URL_PARAMETERS = frozenset(
+    {"key", "sig", "signature", "x-amz-signature", "x-goog-signature"}
+)
+
+
+def _secret_field_name(name: str) -> bool:
+    # Match camelCase, snake_case and hyphenated spellings without rejecting
+    # harmless metadata such as `token_count`, `project_key` or `api_version`.
+    words = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", name)
+    parts = [part.lower() for part in re.split(r"[^A-Za-z0-9]+", words) if part]
+    if not parts:
+        return False
+    compact = "".join(parts)
+    if compact in _SECRET_FIELD_NAMES:
+        return True
+    if "secret" in parts or compact.endswith(("secretkey", "token")):
+        return True
+    if any(compact.endswith(name) for name in ("password", "passwd", "passphrase", "secret")):
+        return True
+    if "privatekey" in compact:
+        return True
+    if any(
+        part in {
+            "password",
+            "passwd",
+            "passphrase",
+            "privatekey",
+            "pwd",
+            "credential",
+            "credentials",
+            "authorization",
+            "cookie",
+        }
+        for part in parts
+    ):
+        return True
+    has_sensitive_prefix = any(
+        part in {"private", "service", "access", "refresh", "auth", "api"} for part in parts
+    )
+    if has_sensitive_prefix and any(part in {"key", "token"} for part in parts):
+        return True
+    return False
+
+
+def _secret_string_value(value: str) -> bool:
+    if "-----BEGIN " in value.upper() and "PRIVATE KEY-----" in value.upper():
+        return True
+    if re.match(r"^\s*(?:bearer|basic)\s+\S+", value, re.IGNORECASE):
+        return True
+    # libpq also accepts keyword-value connection strings, not just URI DSNs.
+    # A single password/private-key assignment is sensitive on its own; two
+    # ordinary connection parameters identify an otherwise passwordless DSN.
+    assignments = [
+        key.lower() for key in re.findall(r"(?<!\S)([A-Za-z_][A-Za-z_0-9]*)\s*=", value)
+    ]
+    if any(_secret_field_name(key) for key in assignments):
+        return True
+    if sum(key in _LIBPQ_DSN_FIELDS for key in assignments) >= 2:
+        return True
+
+    try:
+        parsed = urlsplit(value)
+    except ValueError as exc:
+        raise ProjectRegistryError("CONTROL_PLANE_METADATA_INVALID") from exc
+    if parsed.scheme.lower() in _DATABASE_SCHEMES or parsed.scheme.lower().startswith(
+        ("postgresql+", "mysql+", "mariadb+")
+    ):
+        # Connection URIs are not metadata, even when they omit a password.
+        return True
+    if parsed.scheme and parsed.netloc:
+        if parsed.username is not None or parsed.password is not None:
+            return True
+        fragment_parameters = parsed.fragment.partition("?")[2] or parsed.fragment
+        for encoded_parameters in (parsed.query, fragment_parameters):
+            if any(
+                _secret_field_name(key) or key.lower() in _SENSITIVE_URL_PARAMETERS
+                for key, _ in parse_qsl(encoded_parameters)
+            ):
+                return True
+    return False
+
+
+def _validate_nonsecret_metadata(value: Any) -> None:
+    """Reject recognizable secret-bearing fields before any DB write or receipt.
+
+    This is defensive hygiene, not a replacement for operator review or access
+    controls: opaque values can still conceal secrets.
+    """
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            if not isinstance(key, str) or _secret_field_name(key):
+                raise ProjectRegistryError("CONTROL_PLANE_SECRETS_NOT_ALLOWED")
+            _validate_nonsecret_metadata(nested)
+    elif isinstance(value, list):
+        for nested in value:
+            _validate_nonsecret_metadata(nested)
+    elif isinstance(value, str) and _secret_string_value(value):
+        raise ProjectRegistryError("CONTROL_PLANE_SECRETS_NOT_ALLOWED")
 
 
 def _effect_receipt(
@@ -66,6 +218,7 @@ def register_project(
         "display_name": display_name,
         "metadata": metadata,
     }
+    _validate_nonsecret_metadata(subject)
 
     with psycopg.connect(
         database_url,
@@ -152,6 +305,7 @@ def register_database_target(
         "capabilities": capabilities,
         "metadata": metadata,
     }
+    _validate_nonsecret_metadata(subject)
 
     with psycopg.connect(
         database_url,

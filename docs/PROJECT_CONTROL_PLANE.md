@@ -10,6 +10,14 @@ binding associated with that project.
 
 V1 defines no credential fields. Database passwords, access tokens, private keys, and connection URIs must remain outside the control-plane data model; only non-secret references belong in its metadata.
 
+Operator registration rejects recognizable secret-bearing metadata keys (including nested keys),
+credentialed URLs, database connection URIs, bearer/basic authorization values, and PEM private
+keys before opening a database connection or appending an effect receipt. The same validation
+applies to target capabilities and resource references. This is a **defense-in-depth heuristic**,
+not a secret scanner or permission system: arbitrary opaque strings can still conceal credentials.
+Operators must review the non-secret content and keep actual database credentials in a separate
+secret store.
+
 ## Data model
 
 `sql_connectome.projects` records:

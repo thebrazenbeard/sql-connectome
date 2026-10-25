@@ -33,7 +33,7 @@ A host may provide either:
 - `DATABASE_URL`.
 
 If a base64 `PROJECT_CA_CERT` is also present, SQL Connectome writes the certificate to a
-process-private file, strips any injected `sslmode` / `sslrootcert` query parameters from the
+new randomly named, owner-only temporary file (mode `0600` on POSIX), strips any injected `sslmode` / `sslrootcert` query parameters from the
 database URI, and replaces them with:
 
 ```text
@@ -43,6 +43,14 @@ sslrootcert=<process-private CA path>
 
 This is the managed-host adapter boundary. Core database code continues to consume only
 `SQL_CONNECTOME_DATABASE_URL`.
+
+The generated CA file remains readable for PostgreSQL connections until normal process exit,
+when SQL Connectome removes it if the file identity is unchanged. An explicitly supplied
+`ca_path` must be absent in an existing directory: an existing file or symbolic link fails
+closed without truncating its target, and explicit paths remain caller-managed. Repeated
+configuration with the same explicit path therefore requires caller cleanup first. This
+source-level safeguard does not protect against a same-UID attacker who can mutate a
+process-owned temporary file, abnormal process termination, or hostile parent-directory races.
 
 If the CA value is invalid, SQL Connectome fails closed before starting the application.
 
