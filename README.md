@@ -29,6 +29,9 @@ every language into one monolithic grammar.
 
 See `docs/CONNECTOME_MODEL.md` for the semantic model.
 
+For Supabase-class platform parity and qualified BT2/Vera cutover gates, see
+[`docs/SUPABASE_REPLACEMENT_GATES.md`](docs/SUPABASE_REPLACEMENT_GATES.md).
+
 ### Governed dialect catalog
 
 The executable semantic core now binds dialect genomes, parser adapters, and rewrite rules through an
