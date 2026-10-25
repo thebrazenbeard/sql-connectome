@@ -83,8 +83,16 @@ idempotent and records `ALREADY_REGISTERED`; reusing a key for a different subje
 
 ## Receipt integrity
 
-Migration `0002_project_control_plane.sql` makes `sql_connectome.effect_receipts` append-only.
-UPDATE and DELETE are rejected by a database trigger.
+Migrations `0002_project_control_plane.sql` and `0003_effect_receipts_truncate_guard.sql`
+protect `sql_connectome.effect_receipts` against ordinary UPDATE, DELETE and TRUNCATE.
+UPDATE/DELETE are rejected by a row trigger; TRUNCATE is rejected by a statement trigger.
+The transactional TRUNCATE integration probe runs only when
+`SQL_CONNECTOME_TEST_DESTRUCTIVE_DDL=1` is explicitly set on a disposable test database.
+
+This is **not tamper-proof storage**. A privileged table owner or superuser can disable
+or remove triggers, modify the migration records, or alter the database outside these
+checks. Independently custodied append-only evidence and least-privilege role grants
+remain separate qualification requirements.
 
 Receipts prove what the control plane recorded. They do not prove a provider API effect occurred
 unless separate provider-side readback is included in the result evidence.
