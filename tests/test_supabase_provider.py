@@ -160,3 +160,16 @@ def test_direct_observation_constructor_cannot_bypass_value_guard() -> None:
             provider_status="ACTIVE_HEALTHY", postgres_engine="17",
             database_version=None, release_channel=None, database_host=None,
         )
+
+
+@pytest.mark.parametrize("key, payload", [
+    ("password=SENTINEL-SECRET-IN-KEY", "benign"),
+    ("extra=SENTINEL-SECRET-IN-KEY", "https://user:pass@evil.invalid"),
+])
+def test_rejection_error_does_not_echo_untrusted_key_or_value(key: str, payload: str) -> None:
+    data = project()
+    data[key] = payload
+    with pytest.raises(SupabaseObservationError) as error:
+        SupabaseProjectObservation.from_management_project(data)
+    assert "SENTINEL-SECRET-IN-KEY" not in str(error.value)
+    assert "evil.invalid" not in str(error.value)
