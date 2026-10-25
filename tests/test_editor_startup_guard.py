@@ -67,6 +67,18 @@ class EditorStartupSourceGuardTests(unittest.TestCase):
         self.assertTrue(any("font digest mismatch" in finding for finding in findings))
         self.assertTrue(any("unreviewed font asset" in finding for finding in findings))
 
+    def test_svg_git_windows_crlf_checkout_is_canonical_but_edits_are_not(self) -> None:
+        vetted = Path(__file__).resolve().parents[1] / "public/fonts/fa-solid-900.svg"
+        original = vetted.read_bytes()
+        self.assertIn(b"\n", original)
+        self.put_bytes(
+            "public/fonts/fa-solid-900.svg",
+            original.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"),
+        )
+        self.assertEqual(scan(self.root), [])
+        self.put_bytes("public/fonts/fa-solid-900.svg", original + b"\n<!-- inert mutation -->")
+        self.assertTrue(any("font digest mismatch" in finding for finding in scan(self.root)))
+
     def test_symlink_editor_file_is_rejected(self) -> None:
         self.put_text("target.txt", "inert")
         link = self.root / ".vscode" / "tasks.json"

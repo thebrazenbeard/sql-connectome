@@ -120,7 +120,13 @@ def scan(root: Path) -> list[str]:
                     if signature != _FONT_SIGNATURES[suffix]:
                         issues.append(f"{relative}: invalid font signature")
                 if asset in _PINNED_FONTS:
-                    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+                    content = path.read_bytes()
+                    # Git on Windows can checkout tracked SVGs as CRLF text.
+                    # Normalize that transport-only difference; binary font
+                    # signatures and digests remain byte-for-byte pinned.
+                    if suffix == ".svg":
+                        content = content.replace(b"\r\n", b"\n")
+                    digest = hashlib.sha256(content).hexdigest()
                     if digest != _PINNED_FONTS[asset]:
                         issues.append(f"{relative}: font digest mismatch")
     return issues
