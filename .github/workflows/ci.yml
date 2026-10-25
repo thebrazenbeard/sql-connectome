@@ -35,6 +35,35 @@ jobs:
       - name: Guard regression tests (preinstall)
         run: python -m unittest discover -s tests -p test_editor_startup_guard.py -v
 
+  portable-security-tests:
+    needs: editor-startup-source
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Guard editor startup source (preinstall)
+        run: python scripts/check_editor_startup_source.py
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Install development and test dependencies
+        run: python -m pip install -e '.[dev]'
+
+      - name: Portable security and recovery regressions
+        run: >-
+          python -m pytest -q
+          tests/test_editor_startup_guard.py
+          tests/test_runtime.py
+          tests/test_recovery.py
+          tests/test_connectivity.py
+          tests/test_project_registry_secrets.py
+          tests/test_lantern_cut_facade.py
+
   test:
     needs: editor-startup-source
     runs-on: ubuntu-latest
