@@ -56,7 +56,9 @@ def _reject_credential_like_values(value: Any, *, path: str = "project") -> None
             "://" in value
             or "@" in value
             or any(ord(char) < 32 or ord(char) == 127 for char in value)
-            or lowered.lstrip().startswith("bearer ")
+            or lowered.lstrip().startswith(("bearer ", "basic "))
+            or "authorization:" in lowered
+            or "proxy-authorization:" in lowered
             or any(f"{marker}=" in lowered for marker in _SECRET_MARKERS)
         ):
             raise SupabaseObservationError(
