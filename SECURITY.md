@@ -36,3 +36,11 @@ systems or credentials you do not own or have permission to use.
 Security fixes are subject to the same source, test, review, and exact-head verification discipline
 as other changes. A passing parser or transpiler test is not by itself evidence that an execution or
 authorization boundary remains safe.
+
+The pre-install editor startup source guard covers tracked `.vscode` and
+`.code-workspace` folder-open tasks, automatic task consent, symlinked editor
+surfaces, and unreviewed/changed source-bound font assets in `public/fonts`.
+All workflows executing checked-out source run the guard before installation
+or source commands. Its pass is source containment
+for one checkout, not endpoint integrity, previous-execution attestation, or a
+replacement for human review and branch protection.

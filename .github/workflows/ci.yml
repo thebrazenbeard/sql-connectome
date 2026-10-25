@@ -14,7 +14,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  editor-startup-source:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Guard editor startup source (preinstall)
+        run: python scripts/check_editor_startup_source.py
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Guard regression tests (preinstall)
+        run: python -m unittest discover -s tests -p test_editor_startup_guard.py -v
+
   test:
+    needs: editor-startup-source
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -41,6 +63,9 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Guard editor startup source (preinstall)
+        run: python scripts/check_editor_startup_source.py
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -78,11 +103,15 @@ jobs:
 
 
   container-smoke:
+    needs: editor-startup-source
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Guard editor startup source (preinstall)
+        run: python scripts/check_editor_startup_source.py
 
       - name: Build runtime image
         run: docker build --tag sql-connectome-ci .

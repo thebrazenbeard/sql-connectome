@@ -157,6 +157,22 @@ pytest
 ruff check .
 ```
 
+The CI source guard runs on Ubuntu and Windows **before** dependency installation,
+migrations, or container builds. Every workflow that executes checked-out source
+also runs it immediately after checkout. It rejects editor folder-open task
+execution, repository-provided automatic-task consent, editor symlinks, and
+unreviewed or changed font assets using exact source-bound SHA-256 pins (plus
+WOFF/WOFF2 signature checks). To repeat its inert checks:
+
+```bash
+python scripts/check_editor_startup_source.py
+python -m unittest discover -s tests -p test_editor_startup_guard.py -v
+```
+
+This verifies the checked-out source only. A reviewed font update must also
+update the pin list. Neither a guard pass nor a hash match establishes whether
+a previous editor session ran a task or whether a workstation is uncompromised.
+
 ## Authority boundary
 
 Source code, an installed adapter, a valid translation plan, successful validation, or a successful
