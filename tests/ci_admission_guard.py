@@ -22,6 +22,10 @@ def require_disposable_pg16_ci(environ: Mapping[str, str]) -> Path:
         or environ.get("GITHUB_ACTIONS") != "true"
         or environ.get("GITHUB_REPOSITORY") != "thebrazenbeard/sql-connectome"
         or not re.fullmatch(r"[0-9a-f]{64}", environ.get("POSTGRES_CONTAINER_ID", ""))
+        # Earlier workflow steps also issue SQL: bind their connection target
+        # to loopback at the job level. Reject alternate libpq overrides.
+        or environ.get("PGHOSTADDR") != "127.0.0.1"
+        or any(key.upper().startswith("PG") and key != "PGHOSTADDR" for key in environ)
     ):
         raise failure
 

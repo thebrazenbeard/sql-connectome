@@ -14,6 +14,7 @@ def _safe_ci_env(tmp_path):
         "GITHUB_ACTIONS": "true",
         "GITHUB_REPOSITORY": "thebrazenbeard/sql-connectome",
         "POSTGRES_CONTAINER_ID": "a" * 64,
+        "PGHOSTADDR": "127.0.0.1",
         "DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/bt2_sql_ci",
         "RUNNER_TEMP": str(tmp_path),
         "BT2_ADMISSION_CA_PATH": str(ca_path),
@@ -64,6 +65,7 @@ def test_disposable_ci_gate_rejects_unsafe_environment(tmp_path, key, bad_value)
         "GITHUB_ACTIONS",
         "GITHUB_REPOSITORY",
         "POSTGRES_CONTAINER_ID",
+        "PGHOSTADDR",
         "DATABASE_URL",
         "BT2_ADMISSION_CA_PATH",
     ],
@@ -78,5 +80,29 @@ def test_disposable_ci_gate_rejects_missing_fields(tmp_path, missing):
 def test_disposable_ci_gate_rejects_missing_ca_file(tmp_path):
     env = _safe_ci_env(tmp_path)
     (tmp_path / "pg16-admission.crt").unlink()
+    with pytest.raises(RuntimeError, match="ADMISSION_FIXTURE_REQUIRES_DISPOSABLE_PG16_CI"):
+        require_disposable_pg16_ci(env)
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        ("PGHOSTADDR", "203.0.113.17"),
+        ("PGHOSTADDR", "localhost"),
+        ("PGHOST", "db.example"),
+        ("PGPORT", "5434"),
+        ("PGDATABASE", "production"),
+        ("PGUSER", "operator"),
+        ("PGPASSWORD", "postgres"),
+        ("PGSERVICE", "production"),
+        ("PGSERVICEFILE", "/tmp/pg_service.conf"),
+        ("PGOPTIONS", "-c search_path=public"),
+        ("PGSSLMODE", "disable"),
+        ("PGSSLROOTCERT", "/tmp/alternate.crt"),
+    ],
+)
+def test_disposable_ci_gate_rejects_libpq_environment_overrides(tmp_path, key, value):
+    env = _safe_ci_env(tmp_path)
+    env[key] = value
     with pytest.raises(RuntimeError, match="ADMISSION_FIXTURE_REQUIRES_DISPOSABLE_PG16_CI"):
         require_disposable_pg16_ci(env)

@@ -48,11 +48,15 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bt2_sql_ci
       SQL_CONNECTOME_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bt2_sql_ci
-      PGPASSWORD: postgres
+      PGHOSTADDR: 127.0.0.1
       PYTHONDONTWRITEBYTECODE: "1"
       BT2_SQL_V4_EPHEMERAL_QUALIFICATION: "1"
 
     steps:
+      - name: Require isolated libpq routing before any SQL
+        run: |
+          python -c 'import os,sys; sys.exit(0 if os.environ.get("PGHOSTADDR") == "127.0.0.1" and all(not key.startswith("PG") or key == "PGHOSTADDR" for key in os.environ) else 1)'
+
       - name: Check out SQL Connectome PR
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
