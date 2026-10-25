@@ -48,6 +48,21 @@ The manifest records:
 Passwords are removed from the connection string passed in the process argument list and supplied
 through `PGPASSWORD` to the PostgreSQL client process.
 
+Without `--overwrite`, each completed temporary file is published with an atomic no-replace
+operation: Linux `renameat2(RENAME_NOREPLACE)`, Windows exclusive `os.rename`, or a conservative
+hard-link fallback on other POSIX platforms. This avoids Linux `protected_hardlinks` denying
+archives written by containerized `pg_dump` under another UID. Missing/unsupported no-replace
+primitives fail closed; an occupied destination is never overwritten. The archive and manifest
+are still not published as one atomic pair. If manifest publication fails after the archive
+was published, `BACKUP_PARTIAL_PUBLICATION` reports the possible orphan, which is not a verified
+backup without a matching manifest. A failure to remove a temporary file after both outputs
+were published is reported separately as `BACKUP_PUBLISHED_TEMP_CLEANUP_FAILED`.
+
+Choose a trusted backup destination directory not writable by other users. The backup path is
+resolved before publication, so existing symlinks in the requested path or its parents may
+redirect where the new backup is written. The per-path no-clobber guarantee does not itself
+establish destination-path trust, confidentiality, or power-loss durability.
+
 ## Portability boundary
 
 V1 uses a whole-database custom archive and intentionally restores with `--no-owner` and
