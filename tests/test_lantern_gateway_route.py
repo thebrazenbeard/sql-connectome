@@ -191,3 +191,44 @@ def test_gateway_rejects_forged_numeric_count(monkeypatch):
     _, call = _run(monkeypatch, snapshot)
     with pytest.raises(ValueError, match="LANTERN_GATEWAY_SHAPE_INVALID"):
         call()
+
+
+@pytest.mark.parametrize(
+    ("pg_text", "claimed_payload", "expected"),
+    [
+        ('{"value": 1}', {"value": True}, "LANTERN_GATEWAY_PAYLOAD_MISMATCH"),
+        ('{"value": 0}', {"value": False}, "LANTERN_GATEWAY_PAYLOAD_MISMATCH"),
+        (
+            '{"values": [{"value": 1}]}',
+            {"values": [{"value": True}]},
+            "LANTERN_GATEWAY_PAYLOAD_MISMATCH",
+        ),
+        (
+            '{"value": 2, "value": 1}',
+            {"value": 1},
+            "LANTERN_GATEWAY_PAYLOAD_INVALID",
+        ),
+        (
+            '{"value": NaN}',
+            {"value": None},
+            "LANTERN_GATEWAY_PAYLOAD_INVALID",
+        ),
+    ],
+)
+def test_gateway_requires_type_strict_and_unambiguous_json(
+    monkeypatch, pg_text, claimed_payload, expected,
+):
+    # Bind the claimed digest and exact cut members to the attacker's raw
+    # text. Even with those values in agreement the canonical payload must
+    # not silently acquire a different JSON type or duplicate-key meaning.
+    snapshot = _snapshot()
+    digest = hashlib.sha256(pg_text.encode("utf-8")).hexdigest()
+    snapshot["payload"][0].update({
+        "canonical_payload_pg_text": pg_text,
+        "canonical_payload": claimed_payload,
+        "canonical_digest": digest,
+    })
+    snapshot["cut"]["exact_members"][0][1] = digest
+    _, call = _run(monkeypatch, snapshot)
+    with pytest.raises(ValueError, match=expected):
+        call()
