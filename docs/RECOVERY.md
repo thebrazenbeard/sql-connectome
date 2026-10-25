@@ -48,6 +48,13 @@ The manifest records:
 Passwords are removed from the connection string passed in the process argument list and supplied
 through `PGPASSWORD` to the PostgreSQL client process.
 
+Without `--overwrite`, publication uses same-directory hard links to the completed temporary
+archive and manifest. Each destination creation fails if another writer claimed that pathname
+after the initial preflight; neither existing file is replaced. A filesystem that cannot create
+hard links fails closed. Publication of the two files is not a single atomic operation: if the
+manifest destination races after the archive is published, an orphan archive may remain. It is
+not a verified backup without a matching manifest and must be handled by the operator.
+
 ## Portability boundary
 
 V1 uses a whole-database custom archive and intentionally restores with `--no-owner` and
