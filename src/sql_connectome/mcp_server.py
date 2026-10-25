@@ -85,6 +85,11 @@ def _tool_error(exc: Exception) -> ToolError:
     return ToolError(str(exc) or type(exc).__name__)
 
 
+def _require_adhoc_postgresql(settings: Settings) -> None:
+    if not settings.enable_adhoc_postgresql:
+        raise ToolError("ADHOC_POSTGRESQL_DISABLED")
+
+
 def _build_auth(settings: Settings) -> tuple[StaticTokenVerifier, AuthSettings]:
     resource = settings.mcp_resource_url
     issuer = settings.mcp_issuer_url
@@ -316,6 +321,7 @@ def build_mcp_server(
         params: list[Any] | dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Ask PostgreSQL to EXPLAIN a single SELECT in a READ ONLY transaction; never ANALYZE."""
+        _require_adhoc_postgresql(resolved)
         statement = _bounded_sql(sql)
         try:
             semantic = parse_sql_text(statement, "postgresql")
@@ -331,6 +337,7 @@ def build_mcp_server(
         allow_lossy: bool = False,
     ) -> dict[str, Any]:
         """Translate to PostgreSQL then qualify the generated SQL by read-only EXPLAIN."""
+        _require_adhoc_postgresql(resolved)
         statement = _bounded_sql(sql)
         try:
             return qualify_translation_to_postgresql(
@@ -348,6 +355,7 @@ def build_mcp_server(
         params: list[Any] | dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Execute one SELECT in a PostgreSQL READ ONLY transaction with timeout and row cap."""
+        _require_adhoc_postgresql(resolved)
         statement = _bounded_sql(sql)
         try:
             return query_readonly(resolved, statement, params)

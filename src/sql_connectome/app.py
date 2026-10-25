@@ -48,6 +48,11 @@ app = FastAPI(title="SQL Connectome", version=__version__)
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 
 
+def _require_adhoc_postgresql(settings: Settings) -> None:
+    if not settings.enable_adhoc_postgresql:
+        raise HTTPException(status_code=403, detail="ADHOC_POSTGRESQL_DISABLED")
+
+
 @app.get("/healthz")
 def healthz() -> dict[str, str]:
     return {"status": "ok", "version": __version__}
@@ -185,6 +190,7 @@ def post_connectome_qualify_postgresql(
     request: PostgreSQLQualificationRequest,
     settings: SettingsDep,
 ) -> dict[str, object]:
+    _require_adhoc_postgresql(settings)
     try:
         return qualify_translation_to_postgresql(
             settings,
@@ -233,6 +239,7 @@ def post_connectome_validate_postgresql(
     request: QueryRequest,
     settings: SettingsDep,
 ) -> dict[str, object]:
+    _require_adhoc_postgresql(settings)
     try:
         semantic = parse_sql_text(request.sql, "postgresql")
         engine = validate_postgresql_readonly(settings, request.sql, request.params)
@@ -243,6 +250,7 @@ def post_connectome_validate_postgresql(
 
 @app.post("/v1/query-readonly", dependencies=[Depends(require_bearer)])
 def post_query_readonly(request: QueryRequest, settings: SettingsDep) -> dict:
+    _require_adhoc_postgresql(settings)
     try:
         return query_readonly(settings, request.sql, request.params)
     except SQLRejected as exc:

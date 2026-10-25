@@ -151,13 +151,66 @@ def test_static_token_verifier_accepts_only_exact_token() -> None:
     asyncio.run(scenario())
 
 
+def test_static_bearer_cannot_run_adhoc_postgresql_mcp_tools_by_default(monkeypatch) -> None:
+    from sql_connectome import mcp_server as mcp_module
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Ad-hoc PostgreSQL tool reached the database")
+
+    for function_name in (
+        "query_readonly",
+        "validate_postgresql_readonly",
+        "qualify_translation_to_postgresql",
+    ):
+        monkeypatch.setattr(mcp_module, function_name, forbidden)
+
+    async def scenario() -> None:
+        server = build_mcp_server(make_settings(enable_adhoc_postgresql=False), require_auth=False)
+        async with Client(server) as client:
+            for name, arguments in (
+                ("query_postgresql_readonly", {"sql": "SELECT * FROM private.secrets"}),
+                ("validate_postgresql", {"sql": "SELECT * FROM private.secrets"}),
+                (
+                    "qualify_postgresql_translation",
+                    {"sql": "SELECT * FROM private.secrets", "source_dialect": "postgresql"},
+                ),
+            ):
+                result = await client.call_tool(name, arguments)
+                assert result.is_error is True
+                assert "ADHOC_POSTGRESQL_DISABLED" in str(result.content)
+
+    asyncio.run(scenario())
+
+
+def test_explicit_operator_opt_in_allows_mcp_adhoc_postgresql(monkeypatch) -> None:
+    from sql_connectome import mcp_server as mcp_module
+
+    monkeypatch.setattr(
+        mcp_module,
+        "query_readonly",
+        lambda settings, sql, params=None: {"schema": "TEST_READ", "rows": [{"one": 1}]},
+    )
+
+    async def scenario() -> None:
+        server = build_mcp_server(make_settings(enable_adhoc_postgresql=True), require_auth=False)
+        async with Client(server) as client:
+            result = await client.call_tool("query_postgresql_readonly", {"sql": "SELECT 1"})
+            assert result.is_error is False
+            assert result.structured_content is not None
+            assert result.structured_content["rows"] == [{"one": 1}]
+
+    asyncio.run(scenario())
+
+
 @pytest.mark.skipif(
     not os.getenv("SQL_CONNECTOME_DATABASE_URL"),
     reason="SQL_CONNECTOME_DATABASE_URL not set",
 )
 def test_database_mcp_tool_roundtrip() -> None:
     async def scenario() -> None:
-        server = build_mcp_server(make_settings(), require_auth=False)
+        server = build_mcp_server(
+            make_settings(enable_adhoc_postgresql=True), require_auth=False
+        )
         async with Client(server) as client:
             result = await client.call_tool(
                 "query_postgresql_readonly",

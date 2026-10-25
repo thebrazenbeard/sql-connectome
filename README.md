@@ -96,7 +96,10 @@ The first execution substrate remains the provider-neutral PostgreSQL control pl
 
 - FastAPI control service with bearer authentication;
 - runtime identity and canonical receipts;
-- bounded read-only SQL execution inside PostgreSQL read-only transactions;
+- bounded read-only SQL execution inside PostgreSQL read-only transactions,
+  now gated off by default for caller-supplied REST/MCP SQL (set
+  `SQL_CONNECTOME_ENABLE_ADHOC_POSTGRESQL=true` only for a separately qualified
+  private operator role; this does not establish end-user tenant/RLS isolation);
 - schema inventory;
 - Lantern current-cut adapter using one `REPEATABLE READ READ ONLY` transaction,
   with BT2 V4 PostgreSQL `jsonb::text` SHA-256 payload-digest rechecks before
