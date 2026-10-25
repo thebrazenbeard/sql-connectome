@@ -48,6 +48,80 @@ def test_project_ca_upgrades_connection_to_verify_full(
     assert ca_path.stat().st_mode & 0o777 == 0o600
 
 
+def test_project_ca_rejects_symlink_without_clobbering_target(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sentinel = tmp_path / "sentinel.txt"
+    sentinel.write_bytes(b"original unrelated content")
+    proposed = tmp_path / "project-ca.pem"
+    try:
+        proposed.symlink_to(sentinel)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlink unavailable")
+    original_url = "postgresql://user:secret@db.example.test/app?sslmode=require"
+    monkeypatch.setenv("SQL_CONNECTOME_DATABASE_URL", original_url)
+    monkeypatch.setenv("PROJECT_CA_CERT", base64.b64encode(b"inert-ca").decode())
+
+    with pytest.raises(RuntimeConfigurationError, match="PROJECT_CA_PATH_UNSAFE"):
+        configure_database_environment(ca_path=proposed)
+
+    assert sentinel.read_bytes() == b"original unrelated content"
+    assert os.environ["SQL_CONNECTOME_DATABASE_URL"] == original_url
+
+
+def test_project_ca_rejects_existing_regular_path_without_truncation(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    proposed = tmp_path / "project-ca.pem"
+    proposed.write_bytes(b"existing content")
+    monkeypatch.setenv("SQL_CONNECTOME_DATABASE_URL", "postgresql://db.example.test/app")
+    monkeypatch.setenv("PROJECT_CA_CERT", base64.b64encode(b"inert-ca").decode())
+
+    with pytest.raises(RuntimeConfigurationError, match="PROJECT_CA_PATH_UNSAFE"):
+        configure_database_environment(ca_path=proposed)
+
+    assert proposed.read_bytes() == b"existing content"
+
+
+def test_project_ca_rejects_symlinked_parent(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    actual = tmp_path / "actual"
+    actual.mkdir()
+    alias = tmp_path / "alias"
+    try:
+        alias.symlink_to(actual, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlink unavailable")
+    monkeypatch.setenv("SQL_CONNECTOME_DATABASE_URL", "postgresql://db.example.test/app")
+    monkeypatch.setenv("PROJECT_CA_CERT", base64.b64encode(b"inert-ca").decode())
+
+    with pytest.raises(RuntimeConfigurationError, match="PROJECT_CA_PATH_UNSAFE"):
+        configure_database_environment(ca_path=alias / "ca.pem")
+    assert not (actual / "ca.pem").exists()
+
+
+def test_generated_project_ca_is_private_and_cleaned_up(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from sql_connectome.runtime import _cleanup_owned_ca_files
+
+    monkeypatch.setenv("SQL_CONNECTOME_DATABASE_URL", "postgresql://db.example.test/app")
+    monkeypatch.setenv("PROJECT_CA_CERT", base64.b64encode(b"inert-ca").decode())
+    secure_url = configure_database_environment()
+    generated_path = Path(parse_qs(urlsplit(secure_url).query)["sslrootcert"][0])
+    try:
+        assert generated_path.name.startswith("sql-connectome-ca-")
+        assert generated_path.read_bytes() == b"inert-ca"
+        assert generated_path.stat().st_mode & 0o777 == 0o600
+    finally:
+        _cleanup_owned_ca_files()
+    assert not generated_path.exists()
+
+
 def test_invalid_project_ca_fails_closed(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
