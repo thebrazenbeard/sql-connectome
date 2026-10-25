@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -22,6 +23,9 @@ class Settings(BaseSettings):
     # The private static bearer is not a tenant principal. Explicit operator opt-in
     # is required before it can submit live PostgreSQL SQL for execution/planning.
     enable_adhoc_postgresql: bool = False
+    # The least-privilege gateway is deliberately opt-in until its PostgreSQL
+    # role grants, runtime endpoint, and independent consumer are qualified.
+    lantern_route: Literal["legacy_v4", "gateway_v1"] = "legacy_v4"
     mcp_host: str = "127.0.0.1"
     mcp_port: int = 8001
     mcp_resource_url: str | None = None
