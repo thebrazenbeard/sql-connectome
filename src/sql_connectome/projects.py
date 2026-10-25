@@ -160,7 +160,7 @@ def _validate_nonsecret_metadata(value: Any) -> None:
             if not isinstance(key, str) or _secret_field_name(key):
                 raise ProjectRegistryError("CONTROL_PLANE_SECRETS_NOT_ALLOWED")
             _validate_nonsecret_metadata(nested)
-    elif isinstance(value, list):
+    elif isinstance(value, (list, tuple)):
         for nested in value:
             _validate_nonsecret_metadata(nested)
     elif isinstance(value, str) and _secret_string_value(value):
