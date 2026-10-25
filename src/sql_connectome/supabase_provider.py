@@ -34,6 +34,12 @@ _SECRET_ASSIGNMENT_PATTERNS = tuple(
 def _reject_secret_bearing_keys(value: Any, *, path: str = "project") -> None:
     if isinstance(value, Mapping):
         for raw_key, nested in value.items():
+            # Management API field identifiers are ASCII; fail closed on
+            # non-ASCII/confusable key spellings instead of guessing aliases.
+            if type(raw_key) is not str or not raw_key.isascii():
+                raise SupabaseObservationError(
+                    "secret-bearing field is not admissible in provider observation"
+                )
             # Normalize punctuation aliases (api-key, x-api-key, access-token)
             # before checking for secret-bearing names.
             key = "".join(ch for ch in str(raw_key).casefold() if ch.isalnum())

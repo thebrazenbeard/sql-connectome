@@ -247,6 +247,18 @@ def test_observation_rejects_unrecognized_secret_key_aliases(alias: str) -> None
     assert "SENTINEL_VALUE" not in str(error.value)
 
 
+@pytest.mark.parametrize("bad_key", [
+    "\\u0430pi-key", "\\uff41\\uff50\\uff49-key", "extra-\\u00e9",
+])
+def test_observation_rejects_non_ascii_metadata_field_names(bad_key: str) -> None:
+    decoded = bad_key.encode("ascii").decode("unicode_escape")
+    data = project()
+    data["extended"] = {decoded: "SENTINEL_VALUE"}
+    with pytest.raises(SupabaseObservationError, match="secret-bearing") as error:
+        SupabaseProjectObservation.from_management_project(data)
+    assert "SENTINEL_VALUE" not in str(error.value)
+
+
 @pytest.mark.parametrize("role", ["", " ", "OWNER", "primary", "READ_ONLY"])
 def test_registration_proposal_rejects_out_of_schema_target_roles(role: str) -> None:
     obs = SupabaseProjectObservation.from_management_project(project())
