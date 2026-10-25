@@ -241,7 +241,7 @@ def _same_gateway_json_type(left: Any, right: Any) -> bool:
         )
     if type(left) is list:
         return len(left) == len(right) and all(
-            _same_gateway_json_type(a, b) for a, b in zip(left, right)
+            _same_gateway_json_type(a, b) for a, b in zip(left, right, strict=True)
         )
     return left == right
 
