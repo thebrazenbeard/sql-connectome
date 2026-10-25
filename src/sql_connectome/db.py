@@ -239,6 +239,13 @@ def lantern_current_cut(
                            canonical_digest,
                            source_digest,
                            canonical_payload,
+                           encode(
+                               public.digest(
+                                   convert_to(canonical_payload::text, 'UTF8'), 'sha256'
+                               ),
+                               'hex'
+                           )
+                             AS verified_canonical_digest,
                            created_at,
                            receipt_id::text,
                            profile_digest,
@@ -270,6 +277,11 @@ def lantern_current_cut(
         raise ValueError("LANTERN_PAYLOAD_MEMBERSHIP_MISMATCH")
 
     for row in payload:
+        # Match BT2 V4's producer: sha256(convert_to(jsonb::text, 'UTF8')).
+        # Do not use our Python JSON canonicalizer; its serialization differs
+        # from PostgreSQL jsonb::text.
+        if row.get("verified_canonical_digest") != row["canonical_digest"]:
+            raise ValueError("LANTERN_CANONICAL_PAYLOAD_DIGEST_MISMATCH")
         if (
             row["profile_digest"] != cut["profile_digest"]
             or row["policy_digest"] != cut["policy_digest"]
@@ -290,7 +302,10 @@ def lantern_current_cut(
         "schema": "SQL_CONNECTOME_LANTERN_CURRENT_CUT_V1",
         "runtime": identity,
         "cut": dict(cut),
-        "payload": payload,
+        "payload": [
+            {key: value for key, value in row.items() if key != "verified_canonical_digest"}
+            for row in payload
+        ],
         "receipt": make_receipt("LANTERN_CURRENT_CUT", subject),
     }
 

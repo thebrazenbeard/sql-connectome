@@ -90,7 +90,9 @@ The first execution substrate remains the provider-neutral PostgreSQL control pl
 - runtime identity and canonical receipts;
 - bounded read-only SQL execution inside PostgreSQL read-only transactions;
 - schema inventory;
-- Lantern current-cut adapter using one `REPEATABLE READ READ ONLY` transaction;
+- Lantern current-cut adapter using one `REPEATABLE READ READ ONLY` transaction,
+  with BT2 V4 PostgreSQL `jsonb::text` SHA-256 payload-digest rechecks before
+  emitting a cut receipt (this does not independently authenticate the database);
 - checksum-bound migration ledger;
 - local PostgreSQL Docker development;
 - integration CI against PostgreSQL 17;
