@@ -6,7 +6,11 @@ import os
 import re
 import stat
 import subprocess
+import sys
+from contextlib import suppress
+from ctypes import CDLL, c_char_p, c_int, c_uint, get_errno
 from datetime import UTC, datetime
+from errno import ENOSYS
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
@@ -242,6 +246,63 @@ def _manifest_path_for(archive_path: Path) -> Path:
     return archive_path.with_name(f"{archive_path.name}.manifest.json")
 
 
+def _publish_no_clobber(source: Path, destination: Path) -> None:
+    """Publish a completed file without ever replacing an occupied pathname.
+
+    Linux protected_hardlinks can deny linking a readable file created by a
+    different UID (for example pg_dump inside Docker). renameat2 avoids that
+    ownership restriction and RENAME_NOREPLACE enforces the atomic name claim.
+    """
+    if os.name == "nt":
+        # Windows os.rename refuses an occupied destination, unlike POSIX rename.
+        os.rename(source, destination)
+    elif sys.platform.startswith("linux"):
+        library = CDLL(None, use_errno=True)
+        renameat2 = getattr(library, "renameat2", None)
+        if renameat2 is None:
+            raise OSError(ENOSYS, "atomic no-replace rename unavailable", str(destination))
+        renameat2.argtypes = [c_int, c_char_p, c_int, c_char_p, c_uint]
+        renameat2.restype = c_int
+        at_fdcwd = -100
+        rename_noreplace = 1
+        if renameat2(
+            at_fdcwd, os.fsencode(source), at_fdcwd, os.fsencode(destination),
+            rename_noreplace,
+        ) != 0:
+            code = get_errno()
+            raise OSError(code, os.strerror(code), str(destination))
+    else:
+        # Conservative fallback on other POSIX systems. If unavailable, fail
+        # closed rather than falling back to a racy exists()+rename sequence.
+        os.link(source, destination)
+
+
+def _reject_backup_path_links(path: Path) -> None:
+    """Reject observable link/reparse components in a backup output pathname.
+
+    This is a preflight check, not a race-proof filesystem capability boundary.
+    Callers must use a directory unmodifiable by untrusted processes.
+    """
+    for component in (*reversed(path.parents), path):
+        try:
+            info = component.lstat()
+        except FileNotFoundError:
+            # A missing component is permitted; mkdir creates output parents.
+            continue
+        except OSError as exc:
+            raise RecoveryError("BACKUP_PATH_INSPECTION_FAILED") from exc
+
+        if (
+            stat.S_ISLNK(info.st_mode)
+            or bool(
+                getattr(info, "st_file_attributes", 0)
+                & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+            )
+            or (os.name == "nt" and component.is_junction())
+        ):
+            raise RecoveryError("BACKUP_PATH_LINK_FORBIDDEN")
+
+
 def _validate_manifest_dict(manifest: dict[str, Any]) -> None:
     if manifest.get("schema") != BACKUP_SCHEMA:
         raise RecoveryError("BACKUP_MANIFEST_SCHEMA_UNSUPPORTED")
@@ -261,13 +322,20 @@ def create_backup(
     overwrite: bool = False,
     lock_wait_timeout: str = "10s",
 ) -> dict[str, Any]:
-    archive = archive_path.resolve()
+    # Preserve the literal destination for link checks; resolve() would silently
+    # follow an existing leaf, dangling link, or linked parent before inspection.
+    archive = Path(os.path.abspath(os.fspath(archive_path)))
     manifest_path = _manifest_path_for(archive)
+
+    _reject_backup_path_links(archive)
+    _reject_backup_path_links(manifest_path)
 
     if not overwrite and (archive.exists() or manifest_path.exists()):
         raise RecoveryError("BACKUP_TARGET_EXISTS")
 
     archive.parent.mkdir(parents=True, exist_ok=True)
+    _reject_backup_path_links(archive)
+    _reject_backup_path_links(manifest_path)
     temp_archive = archive.with_name(f".{archive.name}.tmp-{uuid4().hex}")
     temp_manifest = manifest_path.with_name(f".{manifest_path.name}.tmp-{uuid4().hex}")
 
@@ -333,12 +401,44 @@ def create_backup(
         manifest = {**body, "manifest_digest": canonical_digest(body)}
         temp_manifest.write_text(f"{canonical_json(manifest)}\n", encoding="utf-8")
 
-        os.replace(temp_archive, archive)
-        os.replace(temp_manifest, manifest_path)
+        if overwrite:
+            os.replace(temp_archive, archive)
+            os.replace(temp_manifest, manifest_path)
+        else:
+            # An exists() preflight does not reserve either name while pg_dump
+            # runs. Use an atomic no-replace operation for each completed file;
+            # Linux must not depend on hard-link permission for Docker pg_dump.
+            # If the second name races, retain the already-published archive:
+            # deleting it could itself race an unrelated new owner. An orphan
+            # is not a qualified backup without its matching manifest.
+            archive_published = False
+            try:
+                _publish_no_clobber(temp_archive, archive)
+                archive_published = True
+                _publish_no_clobber(temp_manifest, manifest_path)
+            except FileExistsError as exc:
+                error = (
+                    "BACKUP_PARTIAL_PUBLICATION" if archive_published else "BACKUP_TARGET_EXISTS"
+                )
+                raise RecoveryError(error) from exc
+            except OSError as exc:
+                error = (
+                    "BACKUP_PARTIAL_PUBLICATION"
+                    if archive_published else "BACKUP_NO_CLOBBER_PUBLICATION_UNAVAILABLE"
+                )
+                raise RecoveryError(error) from exc
+            try:
+                temp_archive.unlink(missing_ok=True)
+                temp_manifest.unlink(missing_ok=True)
+            except OSError as exc:
+                raise RecoveryError("BACKUP_PUBLISHED_TEMP_CLEANUP_FAILED") from exc
         return manifest
     except Exception:
-        temp_archive.unlink(missing_ok=True)
-        temp_manifest.unlink(missing_ok=True)
+        # Cleanup problems must not obscure a failed no-clobber publication.
+        with suppress(OSError):
+            temp_archive.unlink(missing_ok=True)
+        with suppress(OSError):
+            temp_manifest.unlink(missing_ok=True)
         raise
 
 

@@ -48,6 +48,35 @@ The manifest records:
 Passwords are removed from the connection string passed in the process argument list and supplied
 through `PGPASSWORD` to the PostgreSQL client process.
 
+Without `--overwrite`, each completed temporary file is published with an atomic no-replace
+operation: Linux `renameat2(RENAME_NOREPLACE)`, Windows exclusive `os.rename`, or a conservative
+hard-link fallback on other POSIX platforms. This avoids Linux `protected_hardlinks` denying
+archives written by containerized `pg_dump` under another UID. Missing/unsupported no-replace
+primitives fail closed; an occupied destination is never overwritten. The archive and manifest
+are still not published as one atomic pair. If manifest publication fails after the archive
+was published, `BACKUP_PARTIAL_PUBLICATION` reports the possible orphan, which is not a verified
+backup without a matching manifest. A failure to remove a temporary file after both outputs
+were published is reported separately as `BACKUP_PUBLISHED_TEMP_CLEANUP_FAILED`.
+
+Choose a trusted backup destination directory not writable by other users. The backup path is
+resolved before publication, so existing symlinks in the requested path or its parents may
+redirect where the new backup is written. The per-path no-clobber guarantee does not itself
+establish destination-path trust, confidentiality, or power-loss durability.
+
+Backup output paths are normalized without following filesystem links. Before backup tools run,
+the destination archive, its neighboring manifest, and their existing ancestors are inspected;
+observable symbolic links and Windows junction/reparse components are rejected with
+`BACKUP_PATH_LINK_FORBIDDEN`. This also applies with `--overwrite`. Nonexistent ordinary parent
+directories may still be created. A caller should use the real physical directory pathname,
+not an alias through a filesystem link.
+
+**Trust boundary:** these checks detect links present during preflight but are **not** an atomic
+anti-race guarantee. Another process able to rename or replace an output parent between inspection,
+`pg_dump`, and final publication may still redirect the backup. Run backups only into a directory
+tree controlled by the backup operator, with untrusted users unable to modify its components.
+Complete race resistance would require a separately reviewed descriptor/handle-relative publication
+design on each supported platform; do not interpret this preflight as that guarantee.
+
 ## Portability boundary
 
 V1 uses a whole-database custom archive and intentionally restores with `--no-owner` and
