@@ -85,6 +85,11 @@ The current semantic-core slice includes:
 Parsing and transpilation do **not** establish cross-engine behavioral equivalence. The API reports
 behavioral equivalence as `NOT_ESTABLISHED` until stronger schema/type/engine validation exists.
 
+The optional provider-neutral DB-API/ADBC `ConnectionIdentity` receipt is **HOST_ASSERTED**:
+its provider, endpoint, catalog, and session fields are constructor inputs, not independent
+server attestation. Its digest cannot prove which physical database was reached; deployment
+or currentness decisions require a separately verified endpoint/provider identity.
+
 ### PostgreSQL execution/governance substrate
 
 The first execution substrate remains the provider-neutral PostgreSQL control plane:
