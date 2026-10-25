@@ -23,7 +23,9 @@ pytestmark = pytest.mark.skipif(
 def _assert_v4_lantern_cut(data):
     assert data["schema"] == "SQL_CONNECTOME_LANTERN_CURRENT_CUT_V1"
     assert data["runtime"]["identity_digest"]
-    assert data["runtime"]["migration_head"]["version"] == "0002"
+    # The ephemeral qualification applies all SQL Connectome migrations,
+    # including 0003's append-only effect-receipt TRUNCATE guard.
+    assert data["runtime"]["migration_head"]["version"] == "0003"
     cut = data["cut"]
     payload = data["payload"]
     assert cut["facade_id"] == "BT2_MATERIAL_CUT_V1"

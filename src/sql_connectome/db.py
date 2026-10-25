@@ -1,15 +1,60 @@
 from __future__ import annotations
 
+import hashlib
+import json
+import math
+from decimal import Decimal
 from typing import Any
 
 import psycopg
 from psycopg import Connection
-from psycopg.errors import UndefinedFunction, UndefinedTable
+from psycopg.errors import InvalidSchemaName, UndefinedFunction, UndefinedTable
 from psycopg.rows import dict_row
 
 from .config import Settings
 from .receipts import canonical_digest, make_receipt
 from .sql_guard import validate_readonly_sql
+
+
+def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Reject object keys that a PostgreSQL jsonb::text producer cannot emit."""
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON object key")
+        result[key] = value
+    return result
+
+
+def _reject_json_constant(value: str) -> None:
+    raise ValueError(f"non-JSON numeric constant: {value}")
+
+
+def _strict_json_equal(left: Any, right: Any) -> bool:
+    """Compare decoded JSON without Python's bool/int numerical equivalence."""
+    if type(left) is Decimal:
+        # Psycopg's default JSONB loader uses binary64 for fractional numbers.
+        # Require the PostgreSQL text's decimal to survive the loader's
+        # shortest-round-trip representation; otherwise fail closed instead of
+        # trusting a precision-collided numeric value.
+        if type(right) is not float or not math.isfinite(right):
+            return False
+        if left.is_zero() and left.is_signed() != (math.copysign(1.0, right) < 0):
+            return False
+        return left == Decimal(str(right))
+    if type(left) is not type(right):
+        return False
+    if isinstance(left, dict):
+        return left.keys() == right.keys() and all(
+            _strict_json_equal(value, right[key]) for key, value in left.items()
+        )
+    if isinstance(left, list):
+        return len(left) == len(right) and all(
+            _strict_json_equal(a, b) for a, b in zip(left, right, strict=True)
+        )
+    if isinstance(left, float) and not math.isfinite(left):
+        return False
+    return left == right
 
 
 def connect(settings: Settings) -> Connection[dict[str, Any]]:
@@ -212,6 +257,9 @@ def lantern_current_cut(
     settings: Settings,
     project_scope: str = "PROJECT_LANTERN",
 ) -> dict[str, Any]:
+    route = settings.lantern_route
+    if route == "gateway_v1" and project_scope != "PROJECT_LANTERN":
+        raise ValueError("LANTERN_GATEWAY_SCOPE_NOT_ADMITTED")
     try:
         with connect(settings) as conn:
             with conn.transaction():
@@ -221,45 +269,96 @@ def lantern_current_cut(
                     (str(settings.statement_timeout_ms),),
                 )
                 identity = _runtime_identity(conn)
-                cuts = conn.execute(
-                    "SELECT * FROM bt2.material_cut_v1(%s)",
-                    (project_scope,),
-                ).fetchall()
-                if len(cuts) != 1:
-                    raise ValueError("LANTERN_CUT_NOT_SINGULAR")
-                cut = cuts[0]
-                if cut.get("facade_id") != "BT2_MATERIAL_CUT_V1":
-                    raise ValueError("LANTERN_CUT_FACADE_MISMATCH")
-                payload = conn.execute(
-                    """
-                    SELECT material_id::text,
-                           project_scope,
-                           schema_version,
-                           semantic_key,
-                           canonical_digest,
-                           source_digest,
-                           canonical_payload,
-                           encode(
-                               public.digest(
-                                   convert_to(canonical_payload::text, 'UTF8'), 'sha256'
-                               ),
-                               'hex'
-                           )
-                             AS verified_canonical_digest,
-                           created_at,
-                           receipt_id::text,
-                           profile_digest,
-                           policy_digest
-                    FROM bt2.runtime_visible_materials_v1
-                    WHERE project_scope = %s
-                    ORDER BY material_id
-                    """,
-                    (project_scope,),
-                ).fetchall()
-    except (UndefinedFunction, UndefinedTable) as exc:
+                if route == "gateway_v1":
+                    # The consumer has EXECUTE only on the API; it never needs
+                    # internal bt2 schema USAGE or a role switch/fallback.
+                    rows = conn.execute(
+                        "SELECT lantern_read.current_cut_v1() AS snapshot"
+                    ).fetchall()
+                    if len(rows) != 1 or not isinstance(rows[0].get("snapshot"), dict):
+                        raise ValueError("LANTERN_GATEWAY_SHAPE_INVALID")
+                    snapshot = rows[0]["snapshot"]
+                    if (
+                        snapshot.get("schema") != "BT2_LANTERN_READ_GATEWAY_V1"
+                        or snapshot.get("project_scope") != project_scope
+                        or not isinstance(snapshot.get("cut"), dict)
+                        or not isinstance(snapshot.get("payload"), list)
+                    ):
+                        raise ValueError("LANTERN_GATEWAY_SHAPE_INVALID")
+                    cut = snapshot["cut"]
+                    payload = snapshot["payload"]
+                    if len(payload) > 10_000:
+                        raise ValueError("LANTERN_GATEWAY_PAYLOAD_TOO_LARGE")
+                    for row in payload:
+                        if not isinstance(row, dict):
+                            raise ValueError("LANTERN_GATEWAY_SHAPE_INVALID")
+                        pg_text = row.get("canonical_payload_pg_text")
+                        if not isinstance(pg_text, str):
+                            raise ValueError("LANTERN_GATEWAY_SHAPE_INVALID")
+                        try:
+                            pg_payload = json.loads(
+                                pg_text,
+                                object_pairs_hook=_unique_json_object,
+                                parse_float=Decimal,
+                                parse_constant=_reject_json_constant,
+                            )
+                        except ValueError as exc:
+                            raise ValueError("LANTERN_GATEWAY_PAYLOAD_INVALID") from exc
+                        if not _strict_json_equal(pg_payload, row.get("canonical_payload")):
+                            raise ValueError("LANTERN_GATEWAY_PAYLOAD_MISMATCH")
+                        # PostgreSQL's jsonb::text is the V4 producer's hash
+                        # basis; Python JSON serialization is not equivalent.
+                        row["verified_canonical_digest"] = hashlib.sha256(
+                            pg_text.encode("utf-8")
+                        ).hexdigest()
+                else:
+                    cuts = conn.execute(
+                        "SELECT * FROM bt2.material_cut_v1(%s)",
+                        (project_scope,),
+                    ).fetchall()
+                    if len(cuts) != 1:
+                        raise ValueError("LANTERN_CUT_NOT_SINGULAR")
+                    cut = cuts[0]
+                    if cut.get("facade_id") != "BT2_MATERIAL_CUT_V1":
+                        raise ValueError("LANTERN_CUT_FACADE_MISMATCH")
+                    payload = conn.execute(
+                        """
+                        SELECT material_id::text,
+                               project_scope,
+                               schema_version,
+                               semantic_key,
+                               canonical_digest,
+                               source_digest,
+                               canonical_payload,
+                               encode(
+                                   public.digest(
+                                       convert_to(canonical_payload::text, 'UTF8'), 'sha256'
+                                   ),
+                                   'hex'
+                               )
+                                 AS verified_canonical_digest,
+                               created_at,
+                               receipt_id::text,
+                               profile_digest,
+                               policy_digest
+                        FROM bt2.runtime_visible_materials_v1
+                        WHERE project_scope = %s
+                        ORDER BY material_id
+                        """,
+                        (project_scope,),
+                    ).fetchall()
+    except (InvalidSchemaName, UndefinedFunction, UndefinedTable) as exc:
         raise RuntimeError("LANTERN_CONTRACT_NOT_INSTALLED") from exc
 
+    if cut.get("facade_id") != "BT2_MATERIAL_CUT_V1":
+        raise ValueError("LANTERN_CUT_FACADE_MISMATCH")
+    if route == "gateway_v1" and (
+        type(cut.get("material_count")) is not int or cut["material_count"] < 0
+    ):
+        raise ValueError("LANTERN_GATEWAY_SHAPE_INVALID")
     expected_count = int(cut["material_count"])
+    if route == "gateway_v1" and expected_count == 0:
+        raise ValueError("LANTERN_GATEWAY_EMPTY_CUT")
     if len(payload) != expected_count:
         raise ValueError("LANTERN_PAYLOAD_COUNT_MISMATCH")
 
@@ -285,6 +384,7 @@ def lantern_current_cut(
         if (
             row["profile_digest"] != cut["profile_digest"]
             or row["policy_digest"] != cut["policy_digest"]
+            or row["project_scope"] != project_scope
         ):
             raise ValueError("LANTERN_PAYLOAD_BINDING_MISMATCH")
 
@@ -298,12 +398,19 @@ def lantern_current_cut(
         "material_count": expected_count,
         "members_digest": canonical_digest(actual_members),
     }
+    if route == "gateway_v1":
+        subject["route"] = "gateway_v1"
+        subject["gateway_schema"] = "BT2_LANTERN_READ_GATEWAY_V1"
     return {
         "schema": "SQL_CONNECTOME_LANTERN_CURRENT_CUT_V1",
         "runtime": identity,
         "cut": dict(cut),
         "payload": [
-            {key: value for key, value in row.items() if key != "verified_canonical_digest"}
+            {
+                key: value
+                for key, value in row.items()
+                if key not in ("verified_canonical_digest", "canonical_payload_pg_text")
+            }
             for row in payload
         ],
         "receipt": make_receipt("LANTERN_CURRENT_CUT", subject),
