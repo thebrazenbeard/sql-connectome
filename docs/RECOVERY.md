@@ -48,12 +48,15 @@ The manifest records:
 Passwords are removed from the connection string passed in the process argument list and supplied
 through `PGPASSWORD` to the PostgreSQL client process.
 
-Without `--overwrite`, publication uses same-directory hard links to the completed temporary
-archive and manifest. Each destination creation fails if another writer claimed that pathname
-after the initial preflight; neither existing file is replaced. A filesystem that cannot create
-hard links fails closed. Publication of the two files is not a single atomic operation: if the
-manifest destination races after the archive is published, an orphan archive may remain. It is
-not a verified backup without a matching manifest and must be handled by the operator.
+Without `--overwrite`, each completed temporary file is published with an atomic no-replace
+operation: Linux `renameat2(RENAME_NOREPLACE)`, Windows exclusive `os.rename`, or a conservative
+hard-link fallback on other POSIX platforms. This avoids Linux `protected_hardlinks` denying
+archives written by containerized `pg_dump` under another UID. Missing/unsupported no-replace
+primitives fail closed; an occupied destination is never overwritten. The archive and manifest
+are still not published as one atomic pair. If manifest publication fails after the archive
+was published, `BACKUP_PARTIAL_PUBLICATION` reports the possible orphan, which is not a verified
+backup without a matching manifest. A failure to remove a temporary file after both outputs
+were published is reported separately as `BACKUP_PUBLISHED_TEMP_CLEANUP_FAILED`.
 
 Choose a trusted backup destination directory not writable by other users. The backup path is
 resolved before publication, so existing symlinks in the requested path or its parents may
