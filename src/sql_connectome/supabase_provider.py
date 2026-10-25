@@ -29,8 +29,7 @@ def _reject_secret_bearing_keys(value: Any, *, path: str = "project") -> None:
             key = str(raw_key).lower()
             if any(marker in key for marker in _SECRET_MARKERS):
                 raise SupabaseObservationError(
-                    "secret-bearing field is not admissible in provider observation: "
-                    f"{path}.{raw_key}"
+                    "secret-bearing field is not admissible in provider observation"
                 )
             _reject_secret_bearing_keys(nested, path=f"{path}.{raw_key}")
     elif isinstance(value, (list, tuple)):
@@ -61,7 +60,7 @@ def _reject_credential_like_values(value: Any, *, path: str = "project") -> None
             or any(f"{marker}=" in lowered for marker in _SECRET_MARKERS)
         ):
             raise SupabaseObservationError(
-                f"credential-like value is not admissible in provider observation: {path}"
+                "credential-like value is not admissible in provider observation"
             )
 
 
