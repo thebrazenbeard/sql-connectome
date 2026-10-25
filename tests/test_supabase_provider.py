@@ -189,3 +189,16 @@ def test_registration_proposal_rejects_nonstring_operator_inputs() -> None:
     observation = SupabaseProjectObservation.from_management_project(project())
     with pytest.raises(SupabaseObservationError, match="registration fields must be text"):
         observation.registration_proposal(project_key=b"opaque-credentials")
+
+
+@pytest.mark.parametrize("secret_text", [
+    "Basic dXNlcjpwYXNz",
+    "Authorization: Bearer secret",
+    "Proxy-Authorization: Basic dXNlcjpwYXNz",
+])
+def test_observation_rejects_header_like_credentials_before_proposal(secret_text: str) -> None:
+    data = project()
+    data["name"] = secret_text
+    with pytest.raises(SupabaseObservationError, match="credential-like") as error:
+        SupabaseProjectObservation.from_management_project(data)
+    assert secret_text not in str(error.value)
