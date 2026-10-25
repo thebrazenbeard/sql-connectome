@@ -6,7 +6,7 @@ SQL Connectome may describe a Supabase project as one concrete PostgreSQL provid
 
 This first slice is intentionally **observation-only**.
 
-Security: the adapter rejects secret-bearing field names and credential-like URL, userinfo, bearer, token-assignment, and control-character values before recording an observation or producing a registration proposal. This is structural rejection, **not proof that arbitrary text is secret-free**; operators must provide already-redacted Management API observations. Rejection errors identify only the field path, never echo the submitted credential. The adapter does not fetch Supabase APIs, validate physical database identity, provision credentials, or change a live provider.
+Security: the adapter rejects secret-bearing field names and credential-like URL, userinfo, bearer, token-assignment, and control-character values before recording an observation or producing a registration proposal. This is structural rejection, **not proof that arbitrary text is secret-free**; operators must provide already-redacted Management API observations. Rejection errors use fixed messages and never interpolate untrusted field names or submitted values. Required/optional observation fields and operator proposal fields are type-checked even for direct dataclass construction. The adapter does not fetch Supabase APIs, validate physical database identity, provision credentials, or change a live provider.
 
 ```text
 Supabase Management project observation
