@@ -13,7 +13,10 @@
 
 - bearer authentication on every `/v1/*` route;
 - no owner/database credential returned by any API;
-- raw query endpoint accepts one SELECT statement only;
+- caller-submitted live PostgreSQL SELECT/EXPLAIN/translation qualification is
+  disabled by default for both REST and MCP; private operators must explicitly
+  set `SQL_CONNECTOME_ENABLE_ADHOC_POSTGRESQL=true` to re-enable these surfaces;
+- when explicitly enabled, the raw query endpoint accepts one SELECT statement only;
 - database executes reads in a READ ONLY transaction;
 - bounded statement timeout;
 - bounded result row count;
@@ -36,6 +39,12 @@
 ## Important residual risks
 
 A SQL SELECT can invoke database functions. Planning may also evaluate some expressions, so PostgreSQL `EXPLAIN` is not treated as a zero-risk sandbox. Therefore durable deployments MUST use a dedicated database login whose PostgreSQL privileges are themselves read-only and whose executable-function/extension reachability is reviewed. Application parsing and non-ANALYZE EXPLAIN are defense in depth, not the final write boundary.
+
+The operator opt-in does **not** establish tenant isolation or authorize a public
+client API. One static bearer still maps to one shared database login; `read_schemas`
+only filters inventory output and never constrains arbitrary SELECT relation access.
+RLS needs independently verified end-user identity, a per-request database principal
+or trusted claim binding, restrictive role grants, and real denied cross-tenant tests.
 
 SQLite and DuckDB plan inspection do not execute the planned SELECT, but parsing, binding, planning, engine functions, and extension surfaces remain attack surfaces. SQLite therefore also denies non-SELECT compile-time actions and disables extension loading.
 
