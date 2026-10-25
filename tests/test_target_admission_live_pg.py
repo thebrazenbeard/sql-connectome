@@ -130,6 +130,53 @@ def test_real_postgresql16_admission_pass_is_bounded_and_redacted(admission_fixt
     assert "disposable-ci-service" not in serialized
 
 
+def test_bt2_admission_pass_does_not_qualify_radar_auth_rls_or_realtime(admission_fixture):
+    """A genuine BT2 PASS must not masquerade as a Chat Bus/Radar service cutover.
+
+    The isolated PG16 fixture deliberately has no Supabase-specific application
+    roles, Radar RLS policy or Realtime publication. All probes are read-only.
+    """
+    _, restricted_dsn, _, expected = admission_fixture
+    result = admit_postgres_target(restricted_dsn, restricted_dsn, expected)
+    assert result["status"] == "PASS", result["code"]
+
+    with psycopg.connect(restricted_dsn, autocommit=True, row_factory=dict_row) as conn:
+        with conn.transaction():
+            conn.execute("SET TRANSACTION READ ONLY")
+            actual = conn.execute(
+                """
+                SELECT EXISTS (
+                    SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname = 'radar'
+                ) AS radar_schema_present,
+                EXISTS (
+                    SELECT 1 FROM pg_catalog.pg_roles
+                    WHERE rolname IN ('anon', 'authenticated', 'service_role')
+                ) AS supabase_app_role_present,
+                EXISTS (
+                    SELECT 1 FROM pg_catalog.pg_policy p
+                    JOIN pg_catalog.pg_class c ON c.oid = p.polrelid
+                    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+                    WHERE n.nspname = 'radar'
+                ) AS radar_rls_policy_present,
+                EXISTS (
+                    SELECT 1 FROM pg_catalog.pg_publication
+                    WHERE pubname = 'supabase_realtime'
+                ) AS supabase_realtime_present
+                """
+            ).fetchone()
+
+    assert actual == {
+        "radar_schema_present": False,
+        "supabase_app_role_present": False,
+        "radar_rls_policy_present": False,
+        "supabase_realtime_present": False,
+    }
+    assert result["evidence_ceiling"] == "OPERATOR_READONLY_TARGET_ADMISSION"
+    assert result["cutover_authorized"] is False
+    assert result["database_grants_qualified"] is False
+    assert result["facade_payload_qualified"] is False
+
+
 def test_real_postgresql16_denials_and_catalog_shadowing(admission_fixture):
     admin_dsn, restricted_dsn, _, expected = admission_fixture
     actual = admit_postgres_target(restricted_dsn, restricted_dsn, expected)

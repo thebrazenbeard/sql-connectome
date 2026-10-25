@@ -34,6 +34,12 @@ class ConnectionIdentity:
     capabilities: tuple[str, ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
+        facts = dict(sorted(self.session_facts))
+        # Digest-bearing identity must be injective over every claimed fact.
+        # Silently coalescing duplicate keys can disguise a contradictory
+        # session (e.g. role=reader AND role=writer) as a single-role session.
+        if len(facts) != len(self.session_facts):
+            raise ProtectedEffectError("duplicate session fact keys are not allowed")
         return {
             "schema": "SQL_CONNECTOME_CONNECTION_IDENTITY_V1",
             "provider": self.provider,
@@ -44,7 +50,7 @@ class ConnectionIdentity:
             "transport_version": self.transport_version,
             "endpoint_identity": self.endpoint_identity,
             "catalog": self.catalog,
-            "session_facts": dict(sorted(self.session_facts)),
+            "session_facts": facts,
             "capabilities": list(self.capabilities),
         }
 

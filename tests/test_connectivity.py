@@ -33,6 +33,178 @@ def test_connection_identity_digest_binds_transport_and_session_without_secret()
     assert connection_identity_digest(identity) == connection_identity_digest(identity)
 
 
+def test_connection_identity_rejects_duplicate_session_facts_before_digests() -> None:
+    """Two distinct declared session-fact sets must never share a receipt digest."""
+    identity = ConnectionIdentity(
+        provider="test",
+        engine="postgresql",
+        engine_version="16",
+        transport_family="dbapi",
+        transport_implementation="psycopg",
+        session_facts=(("role", "reader"), ("role", "writer")),
+    )
+    with pytest.raises(ProtectedEffectError, match="duplicate session fact"):
+        connection_identity_digest(identity)
+
+
+def test_duplicate_session_facts_cannot_label_native_sql_execution() -> None:
+    connection = sqlite3.connect(":memory:")
+    adapter = DBAPIAdapter(
+        provider="test",
+        engine="sqlite",
+        engine_version=sqlite3.sqlite_version,
+        transport_implementation="sqlite3",
+        transport_version=sqlite3.version,
+        connect=lambda: connection,
+        session_facts=(("role", "reader"), ("role", "writer")),
+    )
+    with adapter.open_session() as session:
+        with pytest.raises(ProtectedEffectError, match="duplicate session fact"):
+            session.execute("SELECT 1", effect=EffectClass.READ_ONLY)
+        assert connection.execute("PRAGMA query_only").fetchone() == (0,)
+
+
+@pytest.mark.parametrize("transport", ["dbapi", "adbc"])
+def test_adapter_rejects_declared_engine_mismatching_native_driver(transport: str) -> None:
+    """A caller cannot give an SQLite connection a PostgreSQL identity receipt."""
+    from sql_connectome.adbc_adapter import ADBCAdapter
+
+    class TrackedSQLite(sqlite3.Connection):
+        closed = False
+
+        def close(self) -> None:
+            self.closed = True
+            super().close()
+
+    connection = sqlite3.connect(":memory:", factory=TrackedSQLite)
+    adapter_type = DBAPIAdapter if transport == "dbapi" else ADBCAdapter
+    adapter = adapter_type(
+        provider="untrusted-declaration",
+        engine="postgresql",
+        engine_version="16",
+        transport_implementation=f"{transport}-sqlite-driver",
+        transport_version="1",
+        connect=lambda: connection,
+    )
+    with pytest.raises(ProtectedEffectError, match="engine identity does not match native driver"):
+        adapter.open_session()
+    assert connection.closed
+
+
+def test_session_rechecks_native_engine_if_identity_changes_after_open() -> None:
+    adapter = DBAPIAdapter(
+        provider="sqlite",
+        engine="sqlite",
+        engine_version=sqlite3.sqlite_version,
+        transport_implementation="sqlite3",
+        transport_version=sqlite3.version,
+        connect=lambda: sqlite3.connect(":memory:"),
+    )
+    with adapter.open_session() as session:
+        session.identity = ConnectionIdentity(
+            provider="spoofed",
+            engine="postgresql",
+            engine_version="16",
+            transport_family="dbapi",
+            transport_implementation="sqlite3",
+        )
+        with pytest.raises(
+            ProtectedEffectError, match="engine identity does not match native driver"
+        ):
+            session.execute("SELECT 1", effect=EffectClass.READ_ONLY)
+
+
+def test_psycopg_driver_cannot_be_declared_sqlite_without_executing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakePgConnection:
+        closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    connection = FakePgConnection()
+    monkeypatch.setattr(dbapi_adapter.psycopg, "Connection", FakePgConnection)
+    adapter = DBAPIAdapter(
+        provider="untrusted-declaration",
+        engine="sqlite",
+        engine_version="3",
+        transport_implementation="psycopg",
+        transport_version="3",
+        connect=lambda: connection,
+    )
+    with pytest.raises(
+        ProtectedEffectError, match="engine identity does not match native driver"
+    ):
+        adapter.open_session()
+    assert connection.closed
+
+
+def test_authorizer_cannot_relabel_identity_after_driver_binding() -> None:
+    adapter = DBAPIAdapter(
+        provider="sqlite",
+        engine="sqlite",
+        engine_version=sqlite3.sqlite_version,
+        transport_implementation="sqlite3",
+        transport_version="3",
+        connect=lambda: sqlite3.connect(":memory:"),
+    )
+    with adapter.open_session() as session:
+        original_identity = session.identity
+
+        def mutate_identity(sql, effect, receipt, identity):
+            session.identity = ConnectionIdentity(
+                provider="spoofed",
+                engine="postgresql",
+                engine_version="16",
+                transport_family="dbapi",
+                transport_implementation="sqlite3",
+            )
+            return effect is EffectClass.DDL and receipt == "fixture:authorized"
+
+        session.effect_authorizer = mutate_identity
+        result = session.execute(
+            "CREATE TABLE item(value TEXT)",
+            effect=EffectClass.DDL,
+            authorization_receipt="fixture:authorized",
+        )
+        assert result.native_error is None
+        assert result.connection_identity_digest == connection_identity_digest(
+            original_identity
+        )
+
+
+@pytest.mark.parametrize("mutation_target", ["callback", "session"])
+def test_authorizer_cannot_mutate_frozen_identity_into_receipt(
+    mutation_target: str,
+) -> None:
+    """Even object.__setattr__ must not relabel a committed SQLite effect."""
+    adapter = DBAPIAdapter(
+        provider="sqlite",
+        engine="sqlite",
+        engine_version=sqlite3.sqlite_version,
+        transport_implementation="sqlite3",
+        transport_version="3",
+        connect=lambda: sqlite3.connect(":memory:"),
+    )
+    with adapter.open_session() as session:
+        expected_digest = connection_identity_digest(session.identity)
+
+        def hostile_authorizer(sql, effect, receipt, identity):
+            target = identity if mutation_target == "callback" else session.identity
+            object.__setattr__(target, "engine", "postgresql")
+            return effect is EffectClass.DDL and receipt == "fixture:authorized"
+
+        session.effect_authorizer = hostile_authorizer
+        result = session.execute(
+            "CREATE TABLE item(value TEXT)",
+            effect=EffectClass.DDL,
+            authorization_receipt="fixture:authorized",
+        )
+        assert result.native_error is None
+        assert result.connection_identity_digest == expected_digest
+
+
 def test_dbapi_read_only_execution_binds_identity_and_upstream_receipts() -> None:
     adapter = DBAPIAdapter(
         provider="sqlite",

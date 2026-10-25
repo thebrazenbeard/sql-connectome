@@ -1,16 +1,23 @@
 from functools import lru_cache
 
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="SQL_CONNECTOME_", env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_prefix="SQL_CONNECTOME_",
+        env_file=".env",
+        extra="ignore",
+        validate_assignment=True,
+    )
 
     database_url: str
     api_token: SecretStr
-    statement_timeout_ms: int = 5000
-    max_rows: int = 500
+    # PostgreSQL treats statement_timeout=0 as unlimited. Fail closed on
+    # operator typos, including malformed env values and post-init assignments.
+    statement_timeout_ms: int = Field(default=5000, ge=1, le=60_000)
+    max_rows: int = Field(default=500, ge=1, le=10_000)
     read_schemas: str = "bt2,public,sql_connectome"
     # The private static bearer is not a tenant principal. Explicit operator opt-in
     # is required before it can submit live PostgreSQL SQL for execution/planning.
