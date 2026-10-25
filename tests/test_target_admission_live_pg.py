@@ -10,10 +10,10 @@ import json
 import os
 import secrets
 from dataclasses import replace
-from pathlib import Path
 
 import psycopg
 import pytest
+from ci_admission_guard import require_disposable_pg16_ci
 from psycopg import sql
 from psycopg.conninfo import make_conninfo
 from psycopg.rows import dict_row
@@ -24,16 +24,14 @@ from sql_connectome.target_admission import (
 )
 
 pytestmark = pytest.mark.skipif(
-    os.getenv("BT2_SQL_V4_EPHEMERAL_QUALIFICATION") != "1"
-    or not os.getenv("BT2_ADMISSION_CA_PATH"),
+    os.getenv("BT2_SQL_V4_EPHEMERAL_QUALIFICATION") != "1",
     reason="requires disposable PostgreSQL 16, pinned BT2 V4 and CI TLS",
 )
 
 
 @pytest.fixture(scope="module")
 def admission_fixture() -> tuple[str, str, str, TargetAdmissionExpectation]:
-    ca_path = Path(os.environ["BT2_ADMISSION_CA_PATH"])
-    assert ca_path.is_file()
+    ca_path = require_disposable_pg16_ci(os.environ)
     admin_dsn = make_conninfo(
         os.environ["DATABASE_URL"],
         host="localhost",
@@ -44,6 +42,17 @@ def admission_fixture() -> tuple[str, str, str, TargetAdmissionExpectation]:
     password = secrets.token_urlsafe(30)
 
     with psycopg.connect(admin_dsn, autocommit=True, row_factory=dict_row) as admin:
+        # Read-only server identity check before any fixture DDL or grants.
+        version_row = admin.execute("SHOW server_version_num").fetchone()
+        server_version = int(version_row["server_version_num"])
+        if not 160000 <= server_version < 170000:
+            raise RuntimeError("ADMISSION_FIXTURE_REQUIRES_POSTGRESQL_16")
+        identity = admin.execute(
+            "SELECT current_database() AS dbname, current_user AS username, "
+            "inet_server_port() AS port"
+        ).fetchone()
+        if identity != {"dbname": "bt2_sql_ci", "username": "postgres", "port": 5432}:
+            raise RuntimeError("ADMISSION_FIXTURE_WRONG_POSTGRESQL_SERVICE")
         admin.execute(
             sql.SQL("CREATE ROLE {} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD {}").format(
                 sql.Identifier(login), sql.Literal(password)
