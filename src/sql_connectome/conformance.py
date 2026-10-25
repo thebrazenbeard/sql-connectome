@@ -68,6 +68,11 @@ class ExecutionObservation:
     available: bool = True
 
     def as_dict(self) -> dict[str, Any]:
+        facts = dict(sorted(self.session_facts))
+        # Every supplied fact participates in the observation identity. A
+        # repeated key would silently disappear from the digest otherwise.
+        if len(facts) != len(self.session_facts):
+            raise ValueError("duplicate session fact keys in execution observation")
         return {
             "schema": "SQL_CONNECTOME_EXECUTION_OBSERVATION_V1",
             "runtime": self.runtime.as_dict(),
@@ -75,7 +80,7 @@ class ExecutionObservation:
             "sql_digest": self.sql_digest,
             "rows": [list(row) for row in self.rows] if self.rows is not None else None,
             "native_error": self.native_error.as_dict() if self.native_error else None,
-            "session_facts": dict(sorted(self.session_facts)),
+            "session_facts": facts,
             "available": self.available,
         }
 
