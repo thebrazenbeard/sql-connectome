@@ -102,6 +102,16 @@ The first execution substrate remains the provider-neutral PostgreSQL control pl
 
 - FastAPI control service with bearer authentication;
 - runtime identity and canonical receipts;
+- `READ_QUERY` receipts bind the authorized statement, bound parameters, visible
+  column names and returned rows to a versioned type-aware SHA-256 digest
+  (`SQL_CONNECTOME_TYPED_PAYLOAD_V1_SHA256`). The digest covers only rows
+  actually returned under the row cap; `truncated` separately records when
+  more rows existed. Unknown PostgreSQL codec/result types fail closed with
+  `UNSUPPORTED_RECEIPT_PAYLOAD_TYPE`, rather than claiming a digest over a
+  potentially lossy string representation. These commitments are **not**
+  confidentiality controls: low-entropy parameters and result values can be
+  guessed from an unkeyed digest. Keep entire receipts within the authorized
+  query-response audience and do not publish them in public telemetry;
 - bounded read-only SQL execution inside PostgreSQL read-only transactions,
   now gated off by default for caller-supplied REST/MCP SQL (set
   `SQL_CONNECTOME_ENABLE_ADHOC_POSTGRESQL=true` only for a separately qualified
