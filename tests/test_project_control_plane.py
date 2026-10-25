@@ -145,6 +145,44 @@ def test_effect_receipts_are_append_only() -> None:
             )
 
 
+
+@pytest.mark.skipif(
+    os.getenv("SQL_CONNECTOME_TEST_DESTRUCTIVE_DDL") != "1",
+    reason="TRUNCATE probe requires an explicitly disposable PostgreSQL test database",
+)
+@pytest.mark.parametrize(
+    "command",
+    [
+        "TRUNCATE TABLE sql_connectome.effect_receipts",
+        "TRUNCATE TABLE sql_connectome.effect_receipts RESTART IDENTITY CASCADE",
+    ],
+)
+def test_effect_receipts_truncate_is_rejected_without_data_loss(command: str) -> None:
+    assert DSN
+    registered = register_project(
+        DSN,
+        project_key="truncate-guard-project",
+        display_name="Truncate Guard Project",
+    )
+    receipt_id = registered["receipt"]["receipt_id"]
+
+    with psycopg.connect(DSN) as conn:
+        # Always roll back the attempted DDL, including if the guard is absent.
+        conn.execute("SAVEPOINT before_truncate_probe")
+        try:
+            with pytest.raises(psycopg.errors.RaiseException, match="ARE_APPEND_ONLY"):
+                conn.execute(command)
+        finally:
+            conn.execute("ROLLBACK TO SAVEPOINT before_truncate_probe")
+            conn.execute("RELEASE SAVEPOINT before_truncate_probe")
+
+        found = conn.execute(
+            "SELECT EXISTS (SELECT 1 FROM sql_connectome.effect_receipts WHERE receipt_id = %s)",
+            (receipt_id,),
+        ).fetchone()[0]
+        assert found is True
+
+
 def test_project_detail_missing_fails_closed() -> None:
     with pytest.raises(ProjectRegistryError, match="PROJECT_NOT_FOUND"):
         project_detail(settings(), "definitely-missing")

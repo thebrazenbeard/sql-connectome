@@ -89,6 +89,8 @@ jobs:
       SQL_CONNECTOME_RECOVERY_TARGET_URL: postgresql://postgres:postgres@localhost:5432/sql_connectome_restore
       SQL_CONNECTOME_PG_DUMP_BIN: .github/bin/pg_dump17
       SQL_CONNECTOME_PG_RESTORE_BIN: .github/bin/pg_restore17
+      # Only this disposable PostgreSQL service permits transactional TRUNCATE probes.
+      SQL_CONNECTOME_TEST_DESTRUCTIVE_DDL: "1"
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
