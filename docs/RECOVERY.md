@@ -79,6 +79,19 @@ Before restore, V1 verifies:
 5. pg_restore major is not older than the backup tool major;
 6. target PostgreSQL major is not older than the source PostgreSQL major.
 
+Immediately before invoking `pg_restore`, V1 copies a regular-file archive to
+a fresh process-private temporary directory. The copy is bounded by the
+manifest's declared size (plus an EOF probe) and the **staged copy's** size and
+SHA-256 are verified. The source descriptor is opened nonblocking and verified
+to be a regular file, so a substituted named pipe cannot stall the pre-restore
+copy on POSIX. `pg_restore` consumes only that staged pathname, which is removed
+after the subprocess exits. Replacing the original archive
+after its first verification therefore cannot silently change the bytes passed
+to restore. This requires temporary free disk space approximately equal to the
+archive size. It is not protection from a malicious process with write access
+to the private staging directory or from a target writer racing the blank-state
+preflight. The target must be independently quiesced for production recovery.
+
 Restore runs with:
 
 - `--single-transaction`;
@@ -88,6 +101,8 @@ Restore runs with:
 
 After restore, SQL Connectome recomputes the user-catalog digest and migration digest/count. A PASS
 receipt is emitted only when those cross-bind to the backup manifest.
+This is structural and migration qualification, not an exhaustive row-content
+equivalence proof or a permission/role restoration guarantee.
 
 ## What V1 qualification proves
 
