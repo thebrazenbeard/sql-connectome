@@ -105,6 +105,13 @@ class SupabaseProjectObservation:
     database_host: str | None
 
     def __post_init__(self) -> None:
+        required = (self.ref, self.name, self.region, self.provider_status, self.postgres_engine)
+        optional = (self.database_version, self.release_channel, self.database_host)
+        if any(not isinstance(value, str) or not value.strip() for value in required):
+            raise SupabaseObservationError("required observation fields must be non-empty text")
+        if any(value is not None and (not isinstance(value, str) or not value.strip())
+               for value in optional):
+            raise SupabaseObservationError("optional observation fields must be text or null")
         _reject_credential_like_values(
             (self.ref, self.name, self.region, self.provider_status,
              self.postgres_engine, self.database_version,
@@ -149,6 +156,9 @@ class SupabaseProjectObservation:
         target_role: str = "PRIMARY",
         database_name: str = "postgres",
     ) -> dict[str, Any]:
+        if any(not isinstance(value, str) for value in
+               (project_key, target_key, target_role, database_name)):
+            raise SupabaseObservationError("registration fields must be text")
         _reject_credential_like_values(
             (project_key, target_key, target_role, database_name),
             path="registration_proposal",
