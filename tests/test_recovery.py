@@ -1,5 +1,6 @@
 import json
 import os
+from contextlib import nullcontext
 from pathlib import Path
 from subprocess import CompletedProcess
 
@@ -73,6 +74,64 @@ def test_backup_verification_detects_manifest_tampering(tmp_path: Path) -> None:
 
     with pytest.raises(RecoveryError, match="BACKUP_MANIFEST_DIGEST_MISMATCH"):
         load_and_verify_backup(archive)
+
+
+@pytest.mark.parametrize("late_target", [None, "archive", "manifest"])
+def test_backup_without_overwrite_preserves_target_created_during_dump(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, late_target: str | None,
+) -> None:
+    """The preflight exists() check is not an exclusive publication claim."""
+    archive = tmp_path / "backup.dump"
+    manifest_path = archive.with_name(f"{archive.name}.manifest.json")
+
+    class FakeConnection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_exc):
+            return False
+
+        def transaction(self):
+            return nullcontext()
+
+        def execute(self, _query):
+            return self
+
+        def fetchone(self):
+            return {"snapshot": "synthetic-snapshot"}
+
+    monkeypatch.setattr(recovery.psycopg, "connect", lambda *_a, **_kw: FakeConnection())
+    monkeypatch.setattr(recovery, "_tool_version", lambda _bin: "pg_dump (PostgreSQL) 17.0")
+    monkeypatch.setattr(
+        recovery, "_runtime_identity",
+        lambda _conn: {"server_version_num": "170000", "identity_digest": "source"},
+    )
+    monkeypatch.setattr(
+        recovery, "_catalog_state",
+        lambda _conn: {"catalog_digest": "catalog", "counts": {}},
+    )
+    monkeypatch.setattr(
+        recovery, "_migration_state",
+        lambda _conn: {"migration_digest": "migrations", "applied_count": 0},
+    )
+
+    def fake_dump(_binary, args, _dsn):
+        temp_archive = Path(next(arg.removeprefix("--file=") for arg in args
+                                 if arg.startswith("--file=")))
+        temp_archive.write_bytes(b"synthetic-verified-dump")
+        if late_target is not None:
+            (archive if late_target == "archive" else manifest_path).write_bytes(b"other-owner")
+        return CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr(recovery, "_run_postgres_tool", fake_dump)
+    if late_target is None:
+        manifest = recovery.create_backup("postgresql://unused", archive)
+        assert load_and_verify_backup(archive) == manifest
+    else:
+        with pytest.raises(RecoveryError, match="BACKUP_TARGET_EXISTS"):
+            recovery.create_backup("postgresql://unused", archive)
+        late_path = archive if late_target == "archive" else manifest_path
+        assert late_path.read_bytes() == b"other-owner"
 
 
 def test_restore_requires_trusted_source_before_touching_files(tmp_path: Path) -> None:
