@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import pytest
 
 from sql_connectome.connectivity import ConnectionIdentity
@@ -58,3 +60,18 @@ def test_attestation_digest_binds_mechanism_and_evidence() -> None:
     first = attest_session_identity(before, identity(), mechanism="probe", evidence_refs=("p:1",))
     other = attest_session_identity(before, identity(), mechanism="probe", evidence_refs=("p:2",))
     assert first.digest() != other.digest()
+
+
+def test_claimed_continuity_must_bind_prior_identity_to_observed_identity() -> None:
+    before = identity()
+    real = attest_session_identity(before, before, mechanism="adapter-reobserve")
+    # A serialized/foreign receipt can claim CONTINUOUS while carrying a prior
+    # digest from a different session. Validation must reject this mismatch.
+    mismatched = replace(
+        real,
+        prior_identity_digest=attest_session_identity(
+            identity(catalog="other"), before, mechanism="adapter-reobserve"
+        ).prior_identity_digest,
+    )
+    with pytest.raises(ValueError, match="prior identity|continuity"):
+        validate_session_attestation(mismatched, before)
