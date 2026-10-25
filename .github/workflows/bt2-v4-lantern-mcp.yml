@@ -6,6 +6,10 @@ on:
       - 'src/sql_connectome/db.py'
       - 'src/sql_connectome/mcp_server.py'
       - 'tests/test_bt2_v4_live_mcp.py'
+      - 'tests/test_target_admission_live_pg.py'
+      - 'tests/test_target_admission_ci_guard.py'
+      - 'tests/ci_admission_guard.py'
+      - 'src/sql_connectome/target_admission.py'
       - '.github/workflows/bt2-v4-lantern-mcp.yml'
   push:
     branches: [main]
@@ -13,6 +17,10 @@ on:
       - 'src/sql_connectome/db.py'
       - 'src/sql_connectome/mcp_server.py'
       - 'tests/test_bt2_v4_live_mcp.py'
+      - 'tests/test_target_admission_live_pg.py'
+      - 'tests/test_target_admission_ci_guard.py'
+      - 'tests/ci_admission_guard.py'
+      - 'src/sql_connectome/target_admission.py'
       - '.github/workflows/bt2-v4-lantern-mcp.yml'
   workflow_dispatch:
 
@@ -40,11 +48,15 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bt2_sql_ci
       SQL_CONNECTOME_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bt2_sql_ci
-      PGPASSWORD: postgres
+      PGHOSTADDR: 127.0.0.1
       PYTHONDONTWRITEBYTECODE: "1"
       BT2_SQL_V4_EPHEMERAL_QUALIFICATION: "1"
 
     steps:
+      - name: Require isolated libpq routing before any SQL
+        run: |
+          python -c 'import os,sys; sys.exit(0 if os.environ.get("PGHOSTADDR") == "127.0.0.1" and all(not key.startswith("PG") or key == "PGHOSTADDR" for key in os.environ) else 1)'
+
       - name: Check out SQL Connectome PR
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -71,6 +83,8 @@ jobs:
         run: |
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c 'SELECT version();'
           docker inspect '${{ job.services.postgres.id }}' --format '{{.Id}} {{.Image}} {{.Config.Image}} {{.State.Running}}'
+          test "$(docker inspect '${{ job.services.postgres.id }}' --format '{{.Config.Image}}')" = 'postgres:16'
+          test "$(docker inspect '${{ job.services.postgres.id }}' --format '{{.State.Running}}')" = 'true'
           echo "POSTGRES_CONTAINER_ID=${{ job.services.postgres.id }}" >> "$GITHUB_ENV"
 
       - name: Verify pinned BT2 source package
@@ -94,8 +108,36 @@ jobs:
           python scripts/apply_migrations.py
           python scripts/apply_migrations.py
 
+      - name: Enable test-only PostgreSQL 16 TLS and verify hostname
+        run: |
+          umask 077
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+            -keyout "$RUNNER_TEMP/pg16-admission.key" \
+            -out "$RUNNER_TEMP/pg16-admission.crt" \
+            -subj '/CN=localhost' -addext 'subjectAltName=DNS:localhost'
+          docker cp "$RUNNER_TEMP/pg16-admission.key" "$POSTGRES_CONTAINER_ID:/tmp/pg16-admission.key"
+          docker cp "$RUNNER_TEMP/pg16-admission.crt" "$POSTGRES_CONTAINER_ID:/tmp/pg16-admission.crt"
+          docker exec -u root "$POSTGRES_CONTAINER_ID" sh -c \
+            'install -o postgres -g postgres -m 0600 /tmp/pg16-admission.key /var/lib/postgresql/data/pg16-admission.key && rm -- /tmp/pg16-admission.key'
+          rm -- "$RUNNER_TEMP/pg16-admission.key"
+          docker exec -u root "$POSTGRES_CONTAINER_ID" sh -c \
+            'install -o postgres -g postgres -m 0644 /tmp/pg16-admission.crt /var/lib/postgresql/data/pg16-admission.crt'
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c \
+            "ALTER SYSTEM SET ssl_cert_file = '/var/lib/postgresql/data/pg16-admission.crt'"
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c \
+            "ALTER SYSTEM SET ssl_key_file = '/var/lib/postgresql/data/pg16-admission.key'"
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "ALTER SYSTEM SET ssl = on"
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c 'SELECT pg_reload_conf()'
+          admission_verify_dsn="postgresql://postgres:postgres@localhost:5432/bt2_sql_ci?sslmode=verify-full&sslrootcert=$RUNNER_TEMP/pg16-admission.crt"
+          test "$(psql "$admission_verify_dsn" -v ON_ERROR_STOP=1 -At \
+            -c 'SELECT ssl FROM pg_stat_ssl WHERE pid = pg_backend_pid()')" = 't'
+          echo "BT2_ADMISSION_CA_PATH=$RUNNER_TEMP/pg16-admission.crt" >> "$GITHUB_ENV"
+
       - name: Read governed Lantern cut through real MCP client twice
         run: python -m pytest -q tests/test_bt2_v4_live_mcp.py
+
+      - name: Qualify operator-only target admission against real PostgreSQL 16
+        run: python -m pytest -q tests/test_target_admission_ci_guard.py tests/test_target_admission_live_pg.py
 
       - name: Print immutable BT2 reconstruction evidence
         if: always()

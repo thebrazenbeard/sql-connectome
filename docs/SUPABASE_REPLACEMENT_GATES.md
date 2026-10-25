@@ -33,7 +33,9 @@ upgrade review before admission.
    identity, TLS-verified endpoint, and a physical PostgreSQL identity when
    accessible; if not measurable, mark physical identity `UNKNOWN`. The existing
    SQL Connectome `_runtime_identity` digest is **logical metadata**, not a
-   physical-cluster attestation.
+   physical-cluster attestation. `POSTGRES_TARGET_ADMISSION.md` describes an
+   operator-only read-only preflight with independently pinned expected identity;
+   its bounded PASS remains below runtime/consumer cutover qualification.
 2. Reconstruct source-controlled SQL Connectome and BT2 schemas from a blank
    target; verify migration checksums, role grants, function search path, and
    denied cross-schema access. Credentials remain outside registry metadata.

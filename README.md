@@ -143,6 +143,13 @@ The first platform-lifecycle slice adds provider-neutral projects and database t
 Registration is deliberately separate from provider provisioning. See
 `docs/PROJECT_CONTROL_PLANE.md`.
 
+An operator-only, read-only PostgreSQL target admission check is available at
+`scripts/admit_postgres_target.py`. It cross-checks a registered PRIMARY against
+TLS/role/database, migration/facade, and independently pinned cluster identity,
+while returning redacted `PASS | FAIL | UNKNOWN` evidence. **PASS does not deploy,
+provision, attest provider ownership, or authorize a cutover.** See
+`docs/POSTGRES_TARGET_ADMISSION.md`.
+
 ## Local development
 
 ```bash
