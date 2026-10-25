@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
+from decimal import Decimal
 from typing import Any
 
 import psycopg
@@ -12,6 +14,47 @@ from psycopg.rows import dict_row
 from .config import Settings
 from .receipts import canonical_digest, make_receipt
 from .sql_guard import validate_readonly_sql
+
+
+def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Reject object keys that a PostgreSQL jsonb::text producer cannot emit."""
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON object key")
+        result[key] = value
+    return result
+
+
+def _reject_json_constant(value: str) -> None:
+    raise ValueError(f"non-JSON numeric constant: {value}")
+
+
+def _strict_json_equal(left: Any, right: Any) -> bool:
+    """Compare decoded JSON without Python's bool/int numerical equivalence."""
+    if type(left) is Decimal:
+        # Psycopg's default JSONB loader uses binary64 for fractional numbers.
+        # Require the PostgreSQL text's decimal to survive the loader's
+        # shortest-round-trip representation; otherwise fail closed instead of
+        # trusting a precision-collided numeric value.
+        if type(right) is not float or not math.isfinite(right):
+            return False
+        if left.is_zero() and left.is_signed() != (math.copysign(1.0, right) < 0):
+            return False
+        return left == Decimal(str(right))
+    if type(left) is not type(right):
+        return False
+    if isinstance(left, dict):
+        return left.keys() == right.keys() and all(
+            _strict_json_equal(value, right[key]) for key, value in left.items()
+        )
+    if isinstance(left, list):
+        return len(left) == len(right) and all(
+            _strict_json_equal(a, b) for a, b in zip(left, right, strict=True)
+        )
+    if isinstance(left, float) and not math.isfinite(left):
+        return False
+    return left == right
 
 
 def connect(settings: Settings) -> Connection[dict[str, Any]]:
@@ -253,10 +296,15 @@ def lantern_current_cut(
                         if not isinstance(pg_text, str):
                             raise ValueError("LANTERN_GATEWAY_SHAPE_INVALID")
                         try:
-                            pg_payload = json.loads(pg_text)
+                            pg_payload = json.loads(
+                                pg_text,
+                                object_pairs_hook=_unique_json_object,
+                                parse_float=Decimal,
+                                parse_constant=_reject_json_constant,
+                            )
                         except ValueError as exc:
                             raise ValueError("LANTERN_GATEWAY_PAYLOAD_INVALID") from exc
-                        if pg_payload != row.get("canonical_payload"):
+                        if not _strict_json_equal(pg_payload, row.get("canonical_payload")):
                             raise ValueError("LANTERN_GATEWAY_PAYLOAD_MISMATCH")
                         # PostgreSQL's jsonb::text is the V4 producer's hash
                         # basis; Python JSON serialization is not equivalent.

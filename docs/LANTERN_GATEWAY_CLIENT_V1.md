@@ -24,6 +24,11 @@ not be promoted as a production consumer credential.
    The client independently reparses this text, compares it to the returned
    JSON payload, then calculates SHA-256 over its UTF-8 bytes. The helper text
    is stripped before returning payload to callers.
+   The decoder rejects duplicate JSON keys, Boolean/integer confusion,
+   mismatched signed zero, and decimals that cannot survive the default
+   binary64 JSONB loader's shortest-decimal round trip. This is a bounded
+   precision-loss check, **not arbitrary-precision numeric fidelity**; a
+   lossless typed-number output contract remains a separate qualification gate.
 5. The client checks exact row count, ordered four-field members, scope,
    profile/policy binding and each canonical digest. The receipt binds the
    `gateway_v1` route and explicit gateway schema. Any mismatch aborts; there is

@@ -185,6 +185,90 @@ def test_gateway_rejects_matching_forged_member_digest(monkeypatch):
         call()
 
 
+@pytest.mark.parametrize(
+    ("wire_text", "returned_payload", "expected_error"),
+    [
+        (
+            '{"semantic_role":"inert","subject_key":"test","flag":1}',
+            {"semantic_role": "inert", "subject_key": "test", "flag": True},
+            "LANTERN_GATEWAY_PAYLOAD_MISMATCH",
+        ),
+        (
+            '{"semantic_role":"inert","subject_key":"test","nested":[{"flag":0}]}',
+            {"semantic_role": "inert", "subject_key": "test", "nested": [{"flag": False}]},
+            "LANTERN_GATEWAY_PAYLOAD_MISMATCH",
+        ),
+        (
+            '{"semantic_role":"inert","subject_key":"test","magnitude":9007199254740993.0}',
+            {"semantic_role": "inert", "subject_key": "test", "magnitude": 9007199254740992.0},
+            "LANTERN_GATEWAY_PAYLOAD_MISMATCH",
+        ),
+        (
+            '{"semantic_role":"inert","subject_key":"test","signed_zero":-0.0}',
+            {"semantic_role": "inert", "subject_key": "test", "signed_zero": 0.0},
+            "LANTERN_GATEWAY_PAYLOAD_MISMATCH",
+        ),
+        (
+            '{"semantic_role":"inert","subject_key":"test","tiny":1e-324}',
+            {"semantic_role": "inert", "subject_key": "test", "tiny": 0.0},
+            "LANTERN_GATEWAY_PAYLOAD_MISMATCH",
+        ),
+        (
+            '{"semantic_role":"inert","semantic_role":"inert","subject_key":"test"}',
+            {"semantic_role": "inert", "subject_key": "test"},
+            "LANTERN_GATEWAY_PAYLOAD_INVALID",
+        ),
+        (
+            '{"semantic_role":"inert","subject_key":"test","nested":{"flag":1,"flag":1}}',
+            {"semantic_role": "inert", "subject_key": "test", "nested": {"flag": 1}},
+            "LANTERN_GATEWAY_PAYLOAD_INVALID",
+        ),
+        (
+            '{"semantic_role":"inert","subject_key":"test","flag":NaN}',
+            {"semantic_role": "inert", "subject_key": "test", "flag": float("nan")},
+            "LANTERN_GATEWAY_PAYLOAD_INVALID",
+        ),
+    ],
+)
+def test_gateway_rejects_typed_or_duplicate_canonical_payload(
+    monkeypatch, wire_text, returned_payload, expected_error
+):
+    # Match every digest/member field to the forged wire text. Only the
+    # independently decoded JSON value or impossible duplicate key is wrong.
+    snapshot = _snapshot()
+    digest = hashlib.sha256(wire_text.encode("utf-8")).hexdigest()
+    snapshot["payload"][0]["canonical_payload_pg_text"] = wire_text
+    snapshot["payload"][0]["canonical_payload"] = returned_payload
+    snapshot["payload"][0]["canonical_digest"] = digest
+    snapshot["cut"]["exact_members"][0][1] = digest
+    _, call = _run(monkeypatch, snapshot)
+    with pytest.raises(ValueError, match=expected_error):
+        call()
+
+
+def test_gateway_accepts_typed_nested_json(monkeypatch):
+    wire_text = (
+        '{"semantic_role":"inert","subject_key":"test",'
+        '"nested":[{"flag":true,"count":1,"ratio":0.1,"negative_zero":-0.0,"nothing":null}]}'
+    )
+    snapshot = _snapshot()
+    digest = hashlib.sha256(wire_text.encode("utf-8")).hexdigest()
+    snapshot["payload"][0]["canonical_payload_pg_text"] = wire_text
+    snapshot["payload"][0]["canonical_payload"] = {
+        "semantic_role": "inert",
+        "subject_key": "test",
+        "nested": [
+            {"flag": True, "count": 1, "ratio": 0.1, "negative_zero": -0.0, "nothing": None}
+        ],
+    }
+    snapshot["payload"][0]["canonical_digest"] = digest
+    snapshot["cut"]["exact_members"][0][1] = digest
+    _, call = _run(monkeypatch, snapshot)
+    assert call()["payload"][0]["canonical_payload"] == snapshot["payload"][0][
+        "canonical_payload"
+    ]
+
+
 def test_gateway_rejects_forged_numeric_count(monkeypatch):
     snapshot = _snapshot()
     snapshot["cut"]["material_count"] = "1"
