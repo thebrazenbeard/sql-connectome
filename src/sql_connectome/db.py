@@ -66,7 +66,9 @@ def connect(settings: Settings) -> Connection[dict[str, Any]]:
     )
 
 
-def _runtime_identity(conn: Connection[dict[str, Any]]) -> dict[str, Any]:
+def _runtime_identity(
+    conn: Connection[dict[str, Any]], *, include_migration_metadata: bool = True
+) -> dict[str, Any]:
     row = conn.execute(
         """
         SELECT current_database() AS database_name,
@@ -77,21 +79,22 @@ def _runtime_identity(conn: Connection[dict[str, Any]]) -> dict[str, Any]:
     ).fetchone()
     assert row is not None
 
-    ledger = conn.execute(
-        "SELECT to_regclass('sql_connectome.schema_migrations')::text AS ledger"
-    ).fetchone()
     migration_head = None
-    if ledger and ledger["ledger"]:
-        head = conn.execute(
-            """
-            SELECT version, checksum
-            FROM sql_connectome.schema_migrations
-            ORDER BY applied_at DESC, version DESC
-            LIMIT 1
-            """
+    if include_migration_metadata:
+        ledger = conn.execute(
+            "SELECT to_regclass('sql_connectome.schema_migrations')::text AS ledger"
         ).fetchone()
-        if head:
-            migration_head = {"version": head["version"], "checksum": head["checksum"]}
+        if ledger and ledger["ledger"]:
+            head = conn.execute(
+                """
+                SELECT version, checksum
+                FROM sql_connectome.schema_migrations
+                ORDER BY applied_at DESC, version DESC
+                LIMIT 1
+                """
+            ).fetchone()
+            if head:
+                migration_head = {"version": head["version"], "checksum": head["checksum"]}
 
     subject = {
         "database_name": row["database_name"],
@@ -268,7 +271,11 @@ def lantern_current_cut(
                     "SELECT set_config('statement_timeout', %s, true)",
                     (str(settings.statement_timeout_ms),),
                 )
-                identity = _runtime_identity(conn)
+                identity = (
+                    _runtime_identity(conn, include_migration_metadata=False)
+                    if route == "gateway_v1"
+                    else _runtime_identity(conn)
+                )
                 if route == "gateway_v1":
                     # The consumer has EXECUTE only on the API; it never needs
                     # internal bt2 schema USAGE or a role switch/fallback.

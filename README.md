@@ -111,9 +111,11 @@ The first execution substrate remains the provider-neutral PostgreSQL control pl
   with BT2 V4 PostgreSQL `jsonb::text` SHA-256 payload-digest rechecks before
   emitting a cut receipt (this does not independently authenticate the database);
 - opt-in `SQL_CONNECTOME_LANTERN_ROUTE=gateway_v1` client contract for a separate
-  `lantern_read.current_cut_v1()` EXECUTE-only reader (still a **source-only
-  candidate**; no least-privilege database role, installed gateway, transport,
-  or consumer cutover is established by this branch). The default `legacy_v4`
+  `lantern_read.current_cut_v1()` EXECUTE-only reader. The dedicated
+  `bt2-gateway-reader-mcp.yml` workflow tests the pinned BT2 gateway candidate,
+  separate reader LOGIN, TLS hostname verification, and real MCP cut in
+  **disposable PostgreSQL 16/17 only**; its checks are not evidence of an
+  installed gateway or production transport/cutover. The default `legacy_v4`
   direct `bt2` route remains unchanged;
 - checksum-bound migration ledger;
 - local PostgreSQL Docker development;
