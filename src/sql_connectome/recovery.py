@@ -333,8 +333,25 @@ def create_backup(
         manifest = {**body, "manifest_digest": canonical_digest(body)}
         temp_manifest.write_text(f"{canonical_json(manifest)}\n", encoding="utf-8")
 
-        os.replace(temp_archive, archive)
-        os.replace(temp_manifest, manifest_path)
+        if overwrite:
+            os.replace(temp_archive, archive)
+            os.replace(temp_manifest, manifest_path)
+        else:
+            # An exists() preflight does not reserve either name while pg_dump
+            # runs. Hard-linking same-directory completed files publishes each
+            # atomically and refuses to replace a destination created later.
+            # If the second name races, retain the already-published archive:
+            # deleting it could itself race an unrelated new owner. An orphan
+            # is not a qualified backup without its matching manifest.
+            try:
+                os.link(temp_archive, archive)
+                os.link(temp_manifest, manifest_path)
+            except FileExistsError as exc:
+                raise RecoveryError("BACKUP_TARGET_EXISTS") from exc
+            except OSError as exc:
+                raise RecoveryError("BACKUP_NO_CLOBBER_PUBLICATION_UNAVAILABLE") from exc
+            temp_archive.unlink()
+            temp_manifest.unlink()
         return manifest
     except Exception:
         temp_archive.unlink(missing_ok=True)
