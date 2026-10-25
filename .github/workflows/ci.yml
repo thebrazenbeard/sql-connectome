@@ -91,6 +91,9 @@ jobs:
       SQL_CONNECTOME_PG_RESTORE_BIN: .github/bin/pg_restore17
       # Only this disposable PostgreSQL service permits transactional TRUNCATE probes.
       SQL_CONNECTOME_TEST_DESTRUCTIVE_DDL: "1"
+      # Only this disposable PostgreSQL 17 service may create the isolated
+      # tenant-RLS fixture role/schema. This does not enable a runtime API.
+      SQL_CONNECTOME_TENANT_RLS_CI_EPHEMERAL: "1"
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
