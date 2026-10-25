@@ -1,3 +1,5 @@
+import pytest
+
 from sql_connectome.conformance import (
     ComparisonMode,
     ComparisonPolicy,
@@ -45,6 +47,42 @@ def test_observation_digest_binds_runtime_and_session() -> None:
         session_facts=(("catalog", "other"),),
     )
     assert execution_observation_digest(first) != execution_observation_digest(second)
+
+
+def test_observation_rejects_duplicate_session_fact_keys_before_digest() -> None:
+    runtime = EngineRuntimeIdentity("sqlite", "sqlite-conformance-v1")
+    valid = ExecutionObservation(
+        runtime, "case", "sql", rows=((1,),), session_facts=(("role", "writer"),)
+    )
+    # Dictionary folding previously discarded the contradictory first claim,
+    # making this ambiguous observation digest-identical to `valid`.
+    ambiguous = ExecutionObservation(
+        runtime,
+        "case",
+        "sql",
+        rows=((1,),),
+        session_facts=(("role", "reader"), ("role", "writer")),
+    )
+    with pytest.raises(ValueError, match="duplicate session fact"):
+        execution_observation_digest(ambiguous)
+    with pytest.raises(ValueError, match="duplicate session fact"):
+        compare_observations(ambiguous, valid, ComparisonPolicy(ComparisonMode.ORDERED))
+
+
+def test_observation_rejects_even_equal_duplicate_facts_but_preserves_unique_ordering() -> None:
+    runtime = EngineRuntimeIdentity("sqlite", "sqlite-conformance-v1")
+    ambiguous = ExecutionObservation(
+        runtime, "case", "sql", session_facts=(("role", "reader"), ("role", "reader"))
+    )
+    with pytest.raises(ValueError, match="duplicate session fact"):
+        ambiguous.as_dict()
+    unique_a = ExecutionObservation(
+        runtime, "case", "sql", session_facts=(("role", "reader"), ("catalog", "main"))
+    )
+    unique_b = ExecutionObservation(
+        runtime, "case", "sql", session_facts=(("catalog", "main"), ("role", "reader"))
+    )
+    assert execution_observation_digest(unique_a) == execution_observation_digest(unique_b)
 
 
 def test_bag_comparison_preserves_multiplicity() -> None:
