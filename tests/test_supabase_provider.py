@@ -210,7 +210,9 @@ def test_observation_rejects_header_like_credentials_before_proposal(secret_text
     "access_token : SENTINEL_PRIVATE_VALUE",
     "harmless" + chr(0x85) + "text",
 ])
-def test_management_observation_rejects_spaced_secret_assignments_and_c1_controls(unsafe: str) -> None:
+def test_management_observation_rejects_spaced_secret_assignments_and_c1_controls(
+    unsafe: str,
+) -> None:
     data = project()
     data["name"] = unsafe
     with pytest.raises(SupabaseObservationError, match="credential-like") as error:
