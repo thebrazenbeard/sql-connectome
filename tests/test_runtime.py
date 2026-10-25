@@ -45,7 +45,10 @@ def test_project_ca_upgrades_connection_to_verify_full(
     assert query["sslrootcert"] == [str(ca_path)]
     assert query["application_name"] == ["test"]
     assert ca_path.read_bytes() == ca_bytes
-    assert ca_path.stat().st_mode & 0o777 == 0o600
+    # Windows reports synthetic POSIX modes; native DACL verification remains
+    # a separate qualification, not evidence from st_mode.
+    if os.name == "posix":
+        assert ca_path.stat().st_mode & 0o777 == 0o600
 
 
 def test_project_ca_rejects_symlink_without_clobbering_target(
@@ -116,7 +119,8 @@ def test_generated_project_ca_is_private_and_cleaned_up(
     try:
         assert generated_path.name.startswith("sql-connectome-ca-")
         assert generated_path.read_bytes() == b"inert-ca"
-        assert generated_path.stat().st_mode & 0o777 == 0o600
+        if os.name == "posix":
+            assert generated_path.stat().st_mode & 0o777 == 0o600
     finally:
         _cleanup_owned_ca_files()
     assert not generated_path.exists()
