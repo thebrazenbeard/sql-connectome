@@ -51,6 +51,9 @@ class _Rows:
     def fetchall(self):
         return self.rows
 
+    def fetchone(self):
+        return self.rows[0] if self.rows else None
+
 
 class _GatewayConnection:
     def __init__(self, snapshot):
@@ -78,7 +81,9 @@ class _GatewayConnection:
 def _run(monkeypatch, snapshot, *, scope="PROJECT_LANTERN"):
     conn = _GatewayConnection(snapshot)
     monkeypatch.setattr(db, "connect", lambda _settings: conn)
-    monkeypatch.setattr(db, "_runtime_identity", lambda _conn: {"identity_digest": "db-id"})
+    monkeypatch.setattr(
+        db, "_runtime_identity", lambda _conn, **_kwargs: {"identity_digest": "db-id"}
+    )
     settings = Settings(
         database_url="postgresql://example.invalid/test",
         api_token="test-token",
@@ -118,6 +123,34 @@ def test_gateway_uses_only_versioned_api_and_binds_receipt(monkeypatch):
     assert result["receipt"]["subject"]["gateway_schema"] == "BT2_LANTERN_READ_GATEWAY_V1"
     assert sum("lantern_read.current_cut_v1()" in q for q, _ in conn.queries) == 1
     assert all("bt2." not in q for q, _ in conn.queries)
+
+
+def test_restricted_gateway_reader_never_probes_sql_migration_catalog(monkeypatch):
+    # A gateway-only identity can read PostgreSQL's own version/session values
+    # and the versioned function, but has no sql_connectome schema privileges.
+    # No metadata fallback or implicit grant is permitted for this read path.
+    class RestrictedConnection(_GatewayConnection):
+        def execute(self, query, params=None):
+            if "sql_connectome" in query:
+                raise AssertionError("restricted reader probed SQL migration catalog")
+            if "current_database() AS database_name" in query:
+                return _Rows([{
+                    "database_name": "bt2_ci",
+                    "database_user": "bt2_lantern_gateway_reader_v1",
+                    "server_version_num": "170000",
+                    "server_version": "17.0",
+                }])
+            return super().execute(query, params)
+
+    monkeypatch.setattr(db, "connect", lambda _settings: RestrictedConnection(_snapshot()))
+    settings = Settings(
+        database_url="postgresql://example.invalid/test",
+        api_token="test-token",
+        lantern_route="gateway_v1",
+    )
+    cut = db.lantern_current_cut(settings)
+    assert cut["runtime"]["database_user"] == "bt2_lantern_gateway_reader_v1"
+    assert cut["runtime"]["migration_head"] is None
 
 
 def test_gateway_rejects_other_scope_without_opening_connection(monkeypatch):
