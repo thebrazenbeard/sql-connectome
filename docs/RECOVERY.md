@@ -55,6 +55,11 @@ hard links fails closed. Publication of the two files is not a single atomic ope
 manifest destination races after the archive is published, an orphan archive may remain. It is
 not a verified backup without a matching manifest and must be handled by the operator.
 
+Choose a trusted backup destination directory not writable by other users. The backup path is
+resolved before publication, so existing symlinks in the requested path or its parents may
+redirect where the new backup is written. The per-path no-clobber guarantee does not itself
+establish destination-path trust, confidentiality, or power-loss durability.
+
 ## Portability boundary
 
 V1 uses a whole-database custom archive and intentionally restores with `--no-owner` and
