@@ -23,11 +23,11 @@ The current MCP tool set exposes:
 - dialect inventory, bounded dialect comparison, and evidence-based dialect probing;
 - semantic parsing, expression-registry/contract inspection, canonical type/coercion graph inspection, and schema binding;
 - translation planning and guarded transpilation;
-- PostgreSQL read-only EXPLAIN validation;
+- PostgreSQL read-only EXPLAIN validation (disabled without explicit private-operator opt-in);
 - hardened in-memory DuckDB EXPLAIN validation against caller-supplied schema context;
 - hardened in-memory SQLite EXPLAIN QUERY PLAN validation against caller-supplied schema context;
-- end-to-end translation-to-PostgreSQL qualification with V2 semantic/engine receipt cross-binding;
-- bounded PostgreSQL SELECT execution;
+- end-to-end translation-to-PostgreSQL qualification with V2 semantic/engine receipt cross-binding (opt-in);
+- bounded PostgreSQL SELECT execution (opt-in);
 - migration-state inspection;
 - Lantern current-cut reads.
 
@@ -62,6 +62,12 @@ Network deployment fails closed unless all three are configured:
 The current source includes a constant-time static-token verifier only as a private/bootstrap
 resource-server mechanism. It advertises the configured resource and required scope through MCP
 authorization metadata.
+
+The static service bearer alone cannot invoke caller-supplied PostgreSQL SQL:
+`SQL_CONNECTOME_ENABLE_ADHOC_POSTGRESQL` defaults to `false`. An operator may
+explicitly opt in for a private deployment after reviewing database role grants,
+RLS and function execution exposure. The opt-in does not provide tenant identity;
+these three tools still reject with `ADHOC_POSTGRESQL_DISABLED` unless enabled.
 
 A durable public deployment should replace static-token verification with a real OAuth 2.1
 authorization server, JWT verification, or RFC 7662 token introspection. The SQL Connectome tool

@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from sql_connectome.app import app
@@ -15,6 +16,59 @@ def _authenticated_client(monkeypatch) -> tuple[TestClient, dict[str, str]]:
     monkeypatch.setenv("SQL_CONNECTOME_API_TOKEN", "semantic-test-token")
     get_settings.cache_clear()
     return TestClient(app), {"Authorization": "Bearer semantic-test-token"}
+
+
+@pytest.mark.parametrize(
+    ("path", "payload", "function_name"),
+    [
+        ("/v1/query-readonly", {"sql": "SELECT * FROM private.secrets"}, "query_readonly"),
+        (
+            "/v1/connectome/validate/postgresql",
+            {"sql": "SELECT * FROM private.secrets"},
+            "validate_postgresql_readonly",
+        ),
+        (
+            "/v1/connectome/qualify/postgresql",
+            {"sql": "SELECT * FROM private.secrets", "source_dialect": "postgresql"},
+            "qualify_translation_to_postgresql",
+        ),
+    ],
+)
+def test_static_bearer_does_not_authorize_adhoc_postgresql_by_default(
+    monkeypatch, path, payload, function_name
+) -> None:
+    from sql_connectome import app as app_module
+
+    client, headers = _authenticated_client(monkeypatch)
+    monkeypatch.delenv("SQL_CONNECTOME_ENABLE_ADHOC_POSTGRESQL", raising=False)
+    get_settings.cache_clear()
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Ad-hoc SQL reached the database without an explicit opt-in")
+
+    monkeypatch.setattr(app_module, function_name, forbidden)
+    response = client.post(path, headers=headers, json=payload)
+    assert response.status_code == 403
+    assert response.json()["detail"] == "ADHOC_POSTGRESQL_DISABLED"
+
+
+def test_operator_opt_in_allows_legacy_adhoc_postgresql_route(monkeypatch) -> None:
+    from sql_connectome import app as app_module
+
+    client, headers = _authenticated_client(monkeypatch)
+    monkeypatch.setenv("SQL_CONNECTOME_ENABLE_ADHOC_POSTGRESQL", "true")
+    get_settings.cache_clear()
+    monkeypatch.setattr(
+        app_module,
+        "query_readonly",
+        lambda settings, sql, params=None: {"schema": "TEST_READ", "rows": [{"one": 1}]},
+    )
+
+    response = client.post(
+        "/v1/query-readonly", headers=headers, json={"sql": "SELECT 1"}
+    )
+    assert response.status_code == 200
+    assert response.json()["rows"] == [{"one": 1}]
 
 
 def test_connectome_dialect_inventory_requires_auth(monkeypatch) -> None:
@@ -118,6 +172,8 @@ def test_connectome_postgresql_qualification_endpoint(monkeypatch) -> None:
         "qualify_translation_to_postgresql",
         fake_qualification,
     )
+    monkeypatch.setenv("SQL_CONNECTOME_ENABLE_ADHOC_POSTGRESQL", "true")
+    get_settings.cache_clear()
     client, headers = _authenticated_client(monkeypatch)
     response = client.post(
         "/v1/connectome/qualify/postgresql",
