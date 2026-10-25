@@ -4,8 +4,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from .connectivity import ConnectionIdentity
-from .dbapi_adapter import DBAPISession
+from .connectivity import ConnectionIdentity, ProtectedEffectError
+from .dbapi_adapter import DBAPISession, _require_native_engine_binding
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,4 +43,9 @@ class ADBCAdapter:
             session_facts=self.session_facts,
             capabilities=self.capabilities,
         )
+        try:
+            _require_native_engine_binding(connection, identity)
+        except ProtectedEffectError:
+            connection.close()
+            raise
         return DBAPISession(connection, identity)

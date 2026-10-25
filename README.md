@@ -89,6 +89,12 @@ The optional provider-neutral DB-API/ADBC `ConnectionIdentity` receipt is **HOST
 its provider, endpoint, catalog, and session fields are constructor inputs, not independent
 server attestation. Its digest cannot prove which physical database was reached; deployment
 or currentness decisions require a separately verified endpoint/provider identity.
+The adapter refuses a declared `postgresql` engine over a native SQLite connection (and the
+reverse), both at session creation and immediately before SQL execution. This checks a
+recognized driver family, **not** the reported engine version, remote endpoint, database
+identity, or provider ownership. An execution also pins the checked connection/identity
+pair for the returned receipt across injected authorization callbacks. Unknown drivers
+remain unqualified for execution.
 
 ### PostgreSQL execution/governance substrate
 
