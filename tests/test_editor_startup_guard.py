@@ -3,11 +3,17 @@
 These tests never execute task commands or font assets.
 """
 
+import importlib.util
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from scripts.check_editor_startup_source import scan
+_GUARD_PATH = Path(__file__).resolve().parents[1] / "scripts/check_editor_startup_source.py"
+_SPEC = importlib.util.spec_from_file_location("check_editor_startup_source", _GUARD_PATH)
+assert _SPEC is not None and _SPEC.loader is not None
+_MODULE = importlib.util.module_from_spec(_SPEC)
+_SPEC.loader.exec_module(_MODULE)
+scan = _MODULE.scan
 
 
 class EditorStartupSourceGuardTests(unittest.TestCase):
