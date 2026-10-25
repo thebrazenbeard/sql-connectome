@@ -110,6 +110,11 @@ The first execution substrate remains the provider-neutral PostgreSQL control pl
 - Lantern current-cut adapter using one `REPEATABLE READ READ ONLY` transaction,
   with BT2 V4 PostgreSQL `jsonb::text` SHA-256 payload-digest rechecks before
   emitting a cut receipt (this does not independently authenticate the database);
+- opt-in `SQL_CONNECTOME_LANTERN_ROUTE=gateway_v1` client contract for a separate
+  `lantern_read.current_cut_v1()` EXECUTE-only reader (still a **source-only
+  candidate**; no least-privilege database role, installed gateway, transport,
+  or consumer cutover is established by this branch). The default `legacy_v4`
+  direct `bt2` route remains unchanged;
 - checksum-bound migration ledger;
 - local PostgreSQL Docker development;
 - integration CI against PostgreSQL 17;
