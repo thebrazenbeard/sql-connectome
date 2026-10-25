@@ -17,6 +17,9 @@ _SECRET_MARKERS = (
     "authorization",
     "credential",
     "database_password",
+    "client_secret",
+    "private_key",
+    "jwt",
     "password",
     "secret",
     "service_role",
@@ -31,8 +34,19 @@ _SECRET_ASSIGNMENT_PATTERNS = tuple(
 def _reject_secret_bearing_keys(value: Any, *, path: str = "project") -> None:
     if isinstance(value, Mapping):
         for raw_key, nested in value.items():
-            key = str(raw_key).lower()
-            if any(marker in key for marker in _SECRET_MARKERS):
+            # Management API field identifiers are ASCII; fail closed on
+            # non-ASCII/confusable key spellings instead of guessing aliases.
+            if type(raw_key) is not str or not raw_key.isascii():
+                raise SupabaseObservationError(
+                    "secret-bearing field is not admissible in provider observation"
+                )
+            # Normalize punctuation aliases (api-key, x-api-key, access-token)
+            # before checking for secret-bearing names.
+            key = "".join(ch for ch in str(raw_key).casefold() if ch.isalnum())
+            if any(
+                "".join(ch for ch in marker if ch.isalnum()) in key
+                for marker in _SECRET_MARKERS
+            ):
                 raise SupabaseObservationError(
                     "secret-bearing field is not admissible in provider observation"
                 )
@@ -171,6 +185,9 @@ class SupabaseProjectObservation:
             (project_key, target_key, target_role, database_name),
             path="registration_proposal",
         )
+        # Match database_targets.target_role CHECK in migration 0002.
+        if target_role not in {"PRIMARY", "REPLICA", "ANALYTICS", "ARCHIVE"}:
+            raise SupabaseObservationError("target_role is not an admitted database role")
         if not project_key.strip():
             raise SupabaseObservationError("project_key is required")
         if not target_key.strip():

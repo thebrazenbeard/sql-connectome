@@ -77,3 +77,6 @@ Potential future provider effects include project create/pause/restore, branch l
 SQL Connectome's provider-independent `pg_dump` / blank-target `pg_restore` qualification remains the portable recovery baseline. Supabase daily backups and PITR may add provider-local recovery evidence, but they do not replace the portable archive contract.
 
 Supabase Auth, Storage, Realtime, Edge Functions, and provider branching are useful platform capabilities. They are not PostgreSQL semantic identity and are not implied by registering a database target.
+
+Release-boundary validation: credential-bearing field-name aliases with hyphens or separators (for example api-key, access-token, private-key and jwt) are conservatively rejected. Registration proposals require target_role in the SQL migration's PRIMARY/REPLICA/ANALYTICS/ARCHIVE set. These checks are syntactic; they are not database authorization or credential detection guarantees.
+Field-name policy: Management API observation object keys must be ASCII text. Non-ASCII or non-text keys are rejected conservatively rather than attempting potentially ambiguous Unicode confusable normalization. This restriction applies to field identifiers, not ordinary observation text values.
