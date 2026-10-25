@@ -80,9 +80,41 @@ def test_target_rejects_secret_bearing_fields_before_writing(
 @pytest.mark.parametrize(
     "metadata",
     [
+        {"details": ({"service_role_key": "plaintext-secret"},)},
+        {"nested": [({"accessToken": "plaintext-secret"},)]},
+    ],
+)
+def test_project_rejects_secret_inside_json_serializable_tuple_before_writing(
+    metadata: dict[str, object],
+) -> None:
+    with pytest.raises(projects.ProjectRegistryError, match="CONTROL_PLANE_SECRETS_NOT_ALLOWED"):
+        projects.register_project(
+            "unused-no-connection",
+            project_key="test-project",
+            display_name="Test",
+            metadata=metadata,
+        )
+
+
+def test_target_rejects_secret_inside_json_serializable_tuple_before_writing() -> None:
+    with pytest.raises(projects.ProjectRegistryError, match="CONTROL_PLANE_SECRETS_NOT_ALLOWED"):
+        projects.register_database_target(
+            "unused-no-connection",
+            project_key="test-project",
+            target_key="primary",
+            provider_kind="external-postgresql",
+            database_name="app",
+            capabilities={"nested": ({"password": "plaintext-secret"},)},
+        )
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    [
         {"purpose": "qualification", "token_count": 3},
         {"api_version": "v1", "resource": "pg-project-id", "region": "us-east-1"},
         {"nested": [None, {"read": True, "write": False}, 42]},
+        {"nested": ("public", {"read": True})},
         {"documentation": "https://example.test/docs?version=1"},
         {"secretary_name": "Jane"},
     ],
