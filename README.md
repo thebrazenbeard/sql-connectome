@@ -113,7 +113,14 @@ The first execution substrate remains the provider-neutral PostgreSQL control pl
 PostgreSQL is the first execution/governance adapter, not the definition or semantic ceiling of SQL
 Connectome.
 
-Recovery is intentionally provider-independent. See `docs/RECOVERY.md`.
+Recovery is intentionally provider-independent, but backup/restore are explicit
+operator actions, not a managed backup service. Without `--overwrite`, backup
+publication refuses to replace an archive or manifest claimed by another process;
+the two filenames are **not** published as one atomic pair. Backup-path link and
+Windows junction checks are preflight safeguards, not protection from a hostile
+writer racing parent-directory changes. Use an operator-controlled destination.
+Restore requires a trusted source and a separately quiesced blank target; a
+checksum-valid archive does not authenticate its producer. See `docs/RECOVERY.md`.
 
 Differential engine evidence is fixture-bounded and does not establish universal behavioral equivalence. See `docs/DIFFERENTIAL_CONFORMANCE.md`.
 
@@ -125,8 +132,14 @@ dialect probing/parsing, expression semantic/contract inspection, translation pl
 type/coercion graph inspection, PostgreSQL validation/qualification, schema/runtime inspection,
 bounded read-only queries, migration-state inspection, and Lantern current-cut reads.
 
-No protected write tool is exposed. Network deployment fails closed unless MCP resource-server
-authentication is configured. See `docs/MCP_CHATGPT.md` and `docs/HOSTING.md`.
+No protected write tool is exposed. Caller-supplied live PostgreSQL execution and
+planning are disabled by default even when their read-oriented tools are listed.
+Network deployment fails closed unless MCP resource-server authentication is
+configured. The included static-token verifier is for private development, not
+production OAuth identity or tenant/RLS isolation. The source-controlled server
+and container entrypoints do not establish that a live endpoint is deployed,
+selected, or qualified for a particular BT2/Vera consumer. See
+`docs/MCP_CHATGPT.md` and `docs/HOSTING.md`.
 
 ### Project/database control plane
 
@@ -142,6 +155,9 @@ The first platform-lifecycle slice adds provider-neutral projects and database t
 
 Registration is deliberately separate from provider provisioning. See
 `docs/PROJECT_CONTROL_PLANE.md`.
+SQL Connectome does not itself host PostgreSQL or yet implement a complete
+Supabase-class Auth, Realtime, Storage, Functions, and dashboard stack; the
+current scope and cutover gates are in `docs/SUPABASE_REPLACEMENT_GATES.md`.
 
 An operator-only, read-only PostgreSQL target admission check is available at
 `scripts/admit_postgres_target.py`. It cross-checks a registered PRIMARY against
