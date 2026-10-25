@@ -235,3 +235,26 @@ def test_registration_proposal_rejects_unsafe_operator_values(unsafe: str) -> No
     obs = SupabaseProjectObservation.from_management_project(project())
     with pytest.raises(SupabaseObservationError, match="credential-like"):
         obs.registration_proposal(project_key=unsafe)
+
+@pytest.mark.parametrize("alias", [
+    "api-key", "x-api-key", "access-token", "private-key", "jwt", "client-secret",
+])
+def test_observation_rejects_unrecognized_secret_key_aliases(alias: str) -> None:
+    data = project()
+    data["extended"] = {alias: "SENTINEL_VALUE"}
+    with pytest.raises(SupabaseObservationError, match="secret-bearing") as error:
+        SupabaseProjectObservation.from_management_project(data)
+    assert "SENTINEL_VALUE" not in str(error.value)
+
+
+@pytest.mark.parametrize("role", ["", " ", "OWNER", "primary", "READ_ONLY"])
+def test_registration_proposal_rejects_out_of_schema_target_roles(role: str) -> None:
+    obs = SupabaseProjectObservation.from_management_project(project())
+    with pytest.raises(SupabaseObservationError, match="target_role"):
+        obs.registration_proposal(project_key="vera", target_role=role)
+
+
+@pytest.mark.parametrize("role", ["PRIMARY", "REPLICA", "ANALYTICS", "ARCHIVE"])
+def test_registration_proposal_allows_only_schema_target_roles(role: str) -> None:
+    obs = SupabaseProjectObservation.from_management_project(project())
+    assert obs.registration_proposal(project_key="vera", target_role=role)["target_role"] == role
