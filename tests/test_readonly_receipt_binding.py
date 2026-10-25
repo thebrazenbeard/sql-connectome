@@ -114,6 +114,44 @@ def test_typed_digest_rejects_lossy_and_nondeterministic_custom_codecs():
             typed_payload_digest({"rows": [{"value": value}]})
 
 
+def test_typed_digest_rejects_polymorphic_scalar_and_container_codecs():
+    # Previously `isinstance(int)` followed by `str(item)` silently aliased
+    # distinct extension values whenever their subclasses hid the payload.
+    class OpaqueInt(int):
+        def __str__(self):
+            return "opaque"
+
+    class OpaqueStr(str):
+        def encode(self, *_args, **_kwargs):
+            return b"opaque"
+
+    class OpaqueDecimal(Decimal):
+        def __str__(self):
+            return "opaque"
+
+    class OpaqueMap(dict):
+        def __getitem__(self, _key):
+            return "opaque"
+
+    class OpaqueList(list):
+        def __iter__(self):
+            return iter(("opaque",))
+
+    values = (
+        OpaqueInt(1),
+        OpaqueInt(2),
+        OpaqueStr("private-a"),
+        OpaqueStr("private-b"),
+        OpaqueDecimal("1.0"),
+        OpaqueDecimal("2.0"),
+        OpaqueMap({"key": "private-a"}),
+        OpaqueList(["private-a"]),
+    )
+    for value in values:
+        with pytest.raises(TypeError, match="^UNSUPPORTED_RECEIPT_PAYLOAD_TYPE$"):
+            typed_payload_digest({"rows": [{"value": value}]})
+
+
 def test_typed_digest_canonical_known_postgresql_scalars():
     values = [
         date(2026, 10, 25),

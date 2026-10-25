@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Mapping
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from ipaddress import (
@@ -47,37 +46,45 @@ def typed_payload_digest(value: Any) -> str:
         digest.update(raw)
 
     def visit(item: Any) -> None:
+        # Only exact built-in/known PostgreSQL codec types may supply the
+        # canonical bytes. Subclasses can override str(), repr(), encode(),
+        # iteration or mapping access and silently alias different values.
+        kind = type(item)
         if item is None:
             digest.update(b"n")
-        elif isinstance(item, bool):
+        elif kind is bool:
             digest.update(b"t" if item else b"f")
-        elif isinstance(item, int):
+        elif kind is int:
             scalar(b"i", str(item).encode("ascii"))
-        elif isinstance(item, float):
+        elif kind is float:
             scalar(b"r", repr(item).encode("ascii"))
-        elif isinstance(item, str):
+        elif kind is str:
             scalar(b"s", item.encode("utf-8"))
-        elif isinstance(item, (bytes, bytearray, memoryview)):
+        elif kind in (bytes, bytearray, memoryview):
             scalar(b"b", memoryview(item))
-        elif isinstance(item, Decimal):
+        elif kind is Decimal:
             scalar(b"d", str(item).encode("ascii"))
-        elif isinstance(item, UUID):
+        elif kind is UUID:
             scalar(b"u", item.bytes)
-        elif isinstance(item, datetime):
+        elif kind is datetime:
             scalar(b"z", item.isoformat(timespec="microseconds").encode("utf-8"))
-        elif isinstance(item, date):
+        elif kind is date:
             scalar(b"D", item.isoformat().encode("ascii"))
-        elif isinstance(item, time):
+        elif kind is time:
             scalar(b"T", item.isoformat(timespec="microseconds").encode("utf-8"))
-        elif isinstance(item, timedelta):
+        elif kind is timedelta:
             scalar(b"L", f"{item.days}:{item.seconds}:{item.microseconds}".encode("ascii"))
-        elif isinstance(
-            item,
-            (IPv4Address, IPv4Interface, IPv4Network, IPv6Address, IPv6Interface, IPv6Network),
+        elif kind in (
+            IPv4Address,
+            IPv4Interface,
+            IPv4Network,
+            IPv6Address,
+            IPv6Interface,
+            IPv6Network,
         ):
-            scalar(b"p", type(item).__name__.encode("ascii"))
+            scalar(b"p", kind.__name__.encode("ascii"))
             scalar(b"v", str(item).encode("ascii"))
-        elif isinstance(item, Range):
+        elif kind is Range:
             digest.update(b"R")
             visit(item.isempty)
             if not item.isempty:
@@ -85,24 +92,24 @@ def typed_payload_digest(value: Any) -> str:
                 visit(item.lower)
                 visit(item.upper)
             digest.update(b"r")
-        elif isinstance(item, Multirange):
+        elif kind is Multirange:
             digest.update(b"M")
             for member in item:
                 visit(member)
             digest.update(b"m")
-        elif isinstance(item, Mapping):
+        elif kind is dict:
             digest.update(b"{")
-            if not all(isinstance(key, str) for key in item):
+            if not all(type(key) is str for key in item):
                 raise TypeError("Receipt payload mapping keys must be strings")
             for key in sorted(item):
                 visit(key)
                 visit(item[key])
             digest.update(b"}")
-        elif isinstance(item, (list, tuple)):
-            digest.update(b"[" if isinstance(item, list) else b"(")
+        elif kind in (list, tuple):
+            digest.update(b"[" if kind is list else b"(")
             for member in item:
                 visit(member)
-            digest.update(b"]" if isinstance(item, list) else b")")
+            digest.update(b"]" if kind is list else b")")
         else:
             # Unknown PostgreSQL codecs are not attestable with str(): it can
             # discard distinct internal values or include process addresses.
