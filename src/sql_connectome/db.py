@@ -210,6 +210,42 @@ def validate_postgresql_readonly(
     }
 
 
+def _strict_gateway_json(raw: str) -> Any:
+    """Decode gateway JSON without aliases that jsonb::text cannot produce."""
+
+    def unique_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        value: dict[str, Any] = {}
+        for key, item in pairs:
+            if key in value:
+                raise ValueError("duplicate gateway JSON key")
+            value[key] = item
+        return value
+
+    def reject_nonfinite(_value: str) -> None:
+        raise ValueError("nonstandard gateway JSON constant")
+
+    return json.loads(
+        raw,
+        object_pairs_hook=unique_pairs,
+        parse_constant=reject_nonfinite,
+    )
+
+
+def _same_gateway_json_type(left: Any, right: Any) -> bool:
+    """Python regards True==1, but JSON booleans and numbers are distinct."""
+    if type(left) is not type(right):
+        return False
+    if type(left) is dict:
+        return left.keys() == right.keys() and all(
+            _same_gateway_json_type(left[key], right[key]) for key in left
+        )
+    if type(left) is list:
+        return len(left) == len(right) and all(
+            _same_gateway_json_type(a, b) for a, b in zip(left, right)
+        )
+    return left == right
+
+
 def lantern_current_cut(
     settings: Settings,
     project_scope: str = "PROJECT_LANTERN",
@@ -253,10 +289,10 @@ def lantern_current_cut(
                         if not isinstance(pg_text, str):
                             raise ValueError("LANTERN_GATEWAY_SHAPE_INVALID")
                         try:
-                            pg_payload = json.loads(pg_text)
+                            pg_payload = _strict_gateway_json(pg_text)
                         except ValueError as exc:
                             raise ValueError("LANTERN_GATEWAY_PAYLOAD_INVALID") from exc
-                        if pg_payload != row.get("canonical_payload"):
+                        if not _same_gateway_json_type(pg_payload, row.get("canonical_payload")):
                             raise ValueError("LANTERN_GATEWAY_PAYLOAD_MISMATCH")
                         # PostgreSQL's jsonb::text is the V4 producer's hash
                         # basis; Python JSON serialization is not equivalent.
