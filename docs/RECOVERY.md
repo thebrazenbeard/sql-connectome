@@ -63,6 +63,20 @@ resolved before publication, so existing symlinks in the requested path or its p
 redirect where the new backup is written. The per-path no-clobber guarantee does not itself
 establish destination-path trust, confidentiality, or power-loss durability.
 
+Backup output paths are normalized without following filesystem links. Before backup tools run,
+the destination archive, its neighboring manifest, and their existing ancestors are inspected;
+observable symbolic links and Windows junction/reparse components are rejected with
+`BACKUP_PATH_LINK_FORBIDDEN`. This also applies with `--overwrite`. Nonexistent ordinary parent
+directories may still be created. A caller should use the real physical directory pathname,
+not an alias through a filesystem link.
+
+**Trust boundary:** these checks detect links present during preflight but are **not** an atomic
+anti-race guarantee. Another process able to rename or replace an output parent between inspection,
+`pg_dump`, and final publication may still redirect the backup. Run backups only into a directory
+tree controlled by the backup operator, with untrusted users unable to modify its components.
+Complete race resistance would require a separately reviewed descriptor/handle-relative publication
+design on each supported platform; do not interpret this preflight as that guarantee.
+
 ## Portability boundary
 
 V1 uses a whole-database custom archive and intentionally restores with `--no-owner` and

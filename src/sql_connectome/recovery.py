@@ -277,6 +277,32 @@ def _publish_no_clobber(source: Path, destination: Path) -> None:
         os.link(source, destination)
 
 
+def _reject_backup_path_links(path: Path) -> None:
+    """Reject observable link/reparse components in a backup output pathname.
+
+    This is a preflight check, not a race-proof filesystem capability boundary.
+    Callers must use a directory unmodifiable by untrusted processes.
+    """
+    for component in (*reversed(path.parents), path):
+        try:
+            info = component.lstat()
+        except FileNotFoundError:
+            # A missing component is permitted; mkdir creates output parents.
+            continue
+        except OSError as exc:
+            raise RecoveryError("BACKUP_PATH_INSPECTION_FAILED") from exc
+
+        if (
+            stat.S_ISLNK(info.st_mode)
+            or bool(
+                getattr(info, "st_file_attributes", 0)
+                & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+            )
+            or (os.name == "nt" and component.is_junction())
+        ):
+            raise RecoveryError("BACKUP_PATH_LINK_FORBIDDEN")
+
+
 def _validate_manifest_dict(manifest: dict[str, Any]) -> None:
     if manifest.get("schema") != BACKUP_SCHEMA:
         raise RecoveryError("BACKUP_MANIFEST_SCHEMA_UNSUPPORTED")
@@ -296,13 +322,20 @@ def create_backup(
     overwrite: bool = False,
     lock_wait_timeout: str = "10s",
 ) -> dict[str, Any]:
-    archive = archive_path.resolve()
+    # Preserve the literal destination for link checks; resolve() would silently
+    # follow an existing leaf, dangling link, or linked parent before inspection.
+    archive = Path(os.path.abspath(os.fspath(archive_path)))
     manifest_path = _manifest_path_for(archive)
+
+    _reject_backup_path_links(archive)
+    _reject_backup_path_links(manifest_path)
 
     if not overwrite and (archive.exists() or manifest_path.exists()):
         raise RecoveryError("BACKUP_TARGET_EXISTS")
 
     archive.parent.mkdir(parents=True, exist_ok=True)
+    _reject_backup_path_links(archive)
+    _reject_backup_path_links(manifest_path)
     temp_archive = archive.with_name(f".{archive.name}.tmp-{uuid4().hex}")
     temp_manifest = manifest_path.with_name(f".{manifest_path.name}.tmp-{uuid4().hex}")
 
