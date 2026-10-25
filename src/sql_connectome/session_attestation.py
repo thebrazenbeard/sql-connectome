@@ -81,5 +81,7 @@ def validate_session_attestation(
         raise ValueError("attestation does not bind execution identity")
     if attestation.continuity is not ContinuityState.CONTINUOUS:
         raise ValueError("session identity continuity is not established")
+    if attestation.prior_identity_digest != expected:
+        raise ValueError("attestation prior identity does not establish continuity")
     if canonical_digest(dict(attestation.observed_identity)) != expected:
         raise ValueError("attested identity snapshot digest mismatch")
