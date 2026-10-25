@@ -202,3 +202,34 @@ def test_observation_rejects_header_like_credentials_before_proposal(secret_text
     with pytest.raises(SupabaseObservationError, match="credential-like") as error:
         SupabaseProjectObservation.from_management_project(data)
     assert secret_text not in str(error.value)
+
+
+@pytest.mark.parametrize("unsafe", [
+    "token = SENTINEL_PRIVATE_VALUE",
+    "password : SENTINEL_PRIVATE_VALUE",
+    "access_token : SENTINEL_PRIVATE_VALUE",
+    "harmless" + chr(0x85) + "text",
+])
+def test_management_observation_rejects_spaced_secret_assignments_and_c1_controls(unsafe: str) -> None:
+    data = project()
+    data["name"] = unsafe
+    with pytest.raises(SupabaseObservationError, match="credential-like") as error:
+        SupabaseProjectObservation.from_management_project(data)
+    assert "SENTINEL_PRIVATE_VALUE" not in str(error.value)
+
+
+@pytest.mark.parametrize("unsafe", ["token = SENTINEL_PRIVATE_VALUE", "id" + chr(0x85) + "name"])
+def test_direct_observation_rejects_unsafe_text(unsafe: str) -> None:
+    with pytest.raises(SupabaseObservationError, match="credential-like"):
+        SupabaseProjectObservation(
+            ref="valid-ref", name=unsafe, region="us-east-2",
+            provider_status="ACTIVE_HEALTHY", postgres_engine="17",
+            database_version=None, release_channel=None, database_host=None,
+        )
+
+
+@pytest.mark.parametrize("unsafe", ["password : SENTINEL_PRIVATE_VALUE", "ops" + chr(0x85) + "key"])
+def test_registration_proposal_rejects_unsafe_operator_values(unsafe: str) -> None:
+    obs = SupabaseProjectObservation.from_management_project(project())
+    with pytest.raises(SupabaseObservationError, match="credential-like"):
+        obs.registration_proposal(project_key=unsafe)

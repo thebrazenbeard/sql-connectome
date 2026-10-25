@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+import re
 from typing import Any
 
 
@@ -20,6 +21,10 @@ _SECRET_MARKERS = (
     "secret",
     "service_role",
     "token",
+)
+
+_SECRET_ASSIGNMENT_PATTERNS = tuple(
+    re.compile(re.escape(marker) + r"\s*[:=]\s*\S") for marker in _SECRET_MARKERS
 )
 
 
@@ -55,11 +60,12 @@ def _reject_credential_like_values(value: Any, *, path: str = "project") -> None
         if (
             "://" in value
             or "@" in value
-            or any(ord(char) < 32 or ord(char) == 127 for char in value)
+            or any(ord(char) < 32 or 127 <= ord(char) <= 159 for char in value)
             or lowered.lstrip().startswith(("bearer ", "basic "))
             or "authorization:" in lowered
             or "proxy-authorization:" in lowered
             or any(f"{marker}=" in lowered for marker in _SECRET_MARKERS)
+            or any(pattern.search(lowered) for pattern in _SECRET_ASSIGNMENT_PATTERNS)
         ):
             raise SupabaseObservationError(
                 "credential-like value is not admissible in provider observation"
