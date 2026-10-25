@@ -58,10 +58,10 @@ was published, `BACKUP_PARTIAL_PUBLICATION` reports the possible orphan, which i
 backup without a matching manifest. A failure to remove a temporary file after both outputs
 were published is reported separately as `BACKUP_PUBLISHED_TEMP_CLEANUP_FAILED`.
 
-Choose a trusted backup destination directory not writable by other users. The backup path is
-resolved before publication, so existing symlinks in the requested path or its parents may
-redirect where the new backup is written. The per-path no-clobber guarantee does not itself
-establish destination-path trust, confidentiality, or power-loss durability.
+Choose a trusted backup destination directory not writable by other users. The per-path
+no-clobber guarantee does not itself establish destination-path trust, confidentiality,
+or power-loss durability. Observable links are rejected as described below, but
+a hostile process that can swap parent directories after inspection remains out of scope.
 
 Backup output paths are normalized without following filesystem links. Before backup tools run,
 the destination archive, its neighboring manifest, and their existing ancestors are inspected;
