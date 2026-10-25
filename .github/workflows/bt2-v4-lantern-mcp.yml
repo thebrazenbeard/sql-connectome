@@ -6,6 +6,8 @@ on:
       - 'src/sql_connectome/db.py'
       - 'src/sql_connectome/mcp_server.py'
       - 'tests/test_bt2_v4_live_mcp.py'
+      - 'tests/test_target_admission_live_pg.py'
+      - 'src/sql_connectome/target_admission.py'
       - '.github/workflows/bt2-v4-lantern-mcp.yml'
   push:
     branches: [main]
@@ -13,6 +15,8 @@ on:
       - 'src/sql_connectome/db.py'
       - 'src/sql_connectome/mcp_server.py'
       - 'tests/test_bt2_v4_live_mcp.py'
+      - 'tests/test_target_admission_live_pg.py'
+      - 'src/sql_connectome/target_admission.py'
       - '.github/workflows/bt2-v4-lantern-mcp.yml'
   workflow_dispatch:
 
@@ -94,8 +98,34 @@ jobs:
           python scripts/apply_migrations.py
           python scripts/apply_migrations.py
 
+      - name: Enable test-only PostgreSQL 16 TLS and verify hostname
+        run: |
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+            -keyout "$RUNNER_TEMP/pg16-admission.key" \
+            -out "$RUNNER_TEMP/pg16-admission.crt" \
+            -subj '/CN=localhost' -addext 'subjectAltName=DNS:localhost'
+          docker cp "$RUNNER_TEMP/pg16-admission.key" "$POSTGRES_CONTAINER_ID:/tmp/pg16-admission.key"
+          docker cp "$RUNNER_TEMP/pg16-admission.crt" "$POSTGRES_CONTAINER_ID:/tmp/pg16-admission.crt"
+          docker exec -u root "$POSTGRES_CONTAINER_ID" sh -c \
+            'install -o postgres -g postgres -m 0600 /tmp/pg16-admission.key /var/lib/postgresql/data/pg16-admission.key'
+          docker exec -u root "$POSTGRES_CONTAINER_ID" sh -c \
+            'install -o postgres -g postgres -m 0644 /tmp/pg16-admission.crt /var/lib/postgresql/data/pg16-admission.crt'
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c \
+            "ALTER SYSTEM SET ssl_cert_file = '/var/lib/postgresql/data/pg16-admission.crt'"
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c \
+            "ALTER SYSTEM SET ssl_key_file = '/var/lib/postgresql/data/pg16-admission.key'"
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "ALTER SYSTEM SET ssl = on"
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c 'SELECT pg_reload_conf()'
+          admission_verify_dsn="postgresql://postgres:postgres@localhost:5432/bt2_sql_ci?sslmode=verify-full&sslrootcert=$RUNNER_TEMP/pg16-admission.crt"
+          test "$(psql "$admission_verify_dsn" -v ON_ERROR_STOP=1 -At \
+            -c 'SELECT ssl FROM pg_stat_ssl WHERE pid = pg_backend_pid()')" = 't'
+          echo "BT2_ADMISSION_CA_PATH=$RUNNER_TEMP/pg16-admission.crt" >> "$GITHUB_ENV"
+
       - name: Read governed Lantern cut through real MCP client twice
         run: python -m pytest -q tests/test_bt2_v4_live_mcp.py
+
+      - name: Qualify operator-only target admission against real PostgreSQL 16
+        run: python -m pytest -q tests/test_target_admission_live_pg.py
 
       - name: Print immutable BT2 reconstruction evidence
         if: always()
