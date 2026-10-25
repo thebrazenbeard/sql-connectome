@@ -33,6 +33,37 @@ def test_connection_identity_digest_binds_transport_and_session_without_secret()
     assert connection_identity_digest(identity) == connection_identity_digest(identity)
 
 
+def test_connection_identity_rejects_duplicate_session_facts_before_digests() -> None:
+    """Two distinct declared session-fact sets must never share a receipt digest."""
+    identity = ConnectionIdentity(
+        provider="test",
+        engine="postgresql",
+        engine_version="16",
+        transport_family="dbapi",
+        transport_implementation="psycopg",
+        session_facts=(("role", "reader"), ("role", "writer")),
+    )
+    with pytest.raises(ProtectedEffectError, match="duplicate session fact"):
+        connection_identity_digest(identity)
+
+
+def test_duplicate_session_facts_cannot_label_native_sql_execution() -> None:
+    connection = sqlite3.connect(":memory:")
+    adapter = DBAPIAdapter(
+        provider="test",
+        engine="sqlite",
+        engine_version=sqlite3.sqlite_version,
+        transport_implementation="sqlite3",
+        transport_version=sqlite3.version,
+        connect=lambda: connection,
+        session_facts=(("role", "reader"), ("role", "writer")),
+    )
+    with adapter.open_session() as session:
+        with pytest.raises(ProtectedEffectError, match="duplicate session fact"):
+            session.execute("SELECT 1", effect=EffectClass.READ_ONLY)
+        assert connection.execute("PRAGMA query_only").fetchone() == (0,)
+
+
 @pytest.mark.parametrize("transport", ["dbapi", "adbc"])
 def test_adapter_rejects_declared_engine_mismatching_native_driver(transport: str) -> None:
     """A caller cannot give an SQLite connection a PostgreSQL identity receipt."""
