@@ -50,6 +50,9 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Guard editor startup source (preinstall)
+        run: python scripts/check_editor_startup_source.py
+
       - name: Check out pinned BT2 V4 source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
