@@ -173,3 +173,19 @@ def test_rejection_error_does_not_echo_untrusted_key_or_value(key: str, payload:
         SupabaseProjectObservation.from_management_project(data)
     assert "SENTINEL-SECRET-IN-KEY" not in str(error.value)
     assert "evil.invalid" not in str(error.value)
+
+
+@pytest.mark.parametrize("bad_field", [None, b"opaque-credentials", 42])
+def test_direct_constructor_rejects_untyped_required_fields(bad_field: object) -> None:
+    with pytest.raises(SupabaseObservationError, match="required observation fields"):
+        SupabaseProjectObservation(
+            ref=bad_field, name="Example", region="us-east-2",
+            provider_status="ACTIVE_HEALTHY", postgres_engine="17",
+            database_version=None, release_channel=None, database_host=None,
+        )
+
+
+def test_registration_proposal_rejects_nonstring_operator_inputs() -> None:
+    observation = SupabaseProjectObservation.from_management_project(project())
+    with pytest.raises(SupabaseObservationError, match="registration fields must be text"):
+        observation.registration_proposal(project_key=b"opaque-credentials")
