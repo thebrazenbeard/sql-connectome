@@ -110,6 +110,11 @@ The first execution substrate remains the provider-neutral PostgreSQL control pl
 - provider-independent custom-format backup + blank-target restore qualification with
   checksum-bound manifests and readback.
 
+Operator query limits are validated at startup and on settings assignment:
+`SQL_CONNECTOME_STATEMENT_TIMEOUT_MS` is 1–60,000 (default 5,000) and
+`SQL_CONNECTOME_MAX_ROWS` is 1–10,000 (default 500). Invalid values fail closed;
+PostgreSQL's `statement_timeout=0` unlimited mode is not accepted.
+
 PostgreSQL is the first execution/governance adapter, not the definition or semantic ceiling of SQL
 Connectome.
 

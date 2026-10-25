@@ -20,6 +20,8 @@
 - database executes reads in a READ ONLY transaction;
 - bounded statement timeout;
 - bounded result row count;
+- configuration validation rejects nonpositive, malformed, or excessive query bounds
+  (1–60,000 ms and 1–10,000 rows); settings mutation is validated too;
 - SQL text is capped at 50,000 characters and SQLGlot parsing at 10,000 AST nodes;
 - schema inventory allowlist;
 - provider-neutral runtime identity digest;
