@@ -18,6 +18,12 @@ def forbid_database_connection(monkeypatch: pytest.MonkeyPatch) -> None:
     [
         {"password": "plaintext-secret"},
         {"clientSecret": "plaintext-secret"},
+        {"secret_key": "plaintext-secret"},
+        {"client_secret_key": "plaintext-secret"},
+        {"app_token": "plaintext-secret"},
+        {"my_token": "plaintext-secret"},
+        {"clientSecretKey": "plaintext-secret"},
+        {"password_hash": "plaintext-secret"},
         {"nested": [{"authentication": {"access_token": "plaintext-secret"}}]},
         {"authorizationHeader": "plaintext-secret"},
         {"tlsPassword": "plaintext-secret"},

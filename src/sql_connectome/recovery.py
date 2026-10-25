@@ -4,9 +4,11 @@ import hashlib
 import json
 import os
 import re
+import stat
 import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 from uuid import uuid4
 
@@ -373,6 +375,55 @@ def load_and_verify_backup(
     return manifest
 
 
+def _stage_verified_restore_archive(
+    archive: Path, manifest: dict[str, Any], private_directory: Path,
+) -> Path:
+    """Copy to a private path and bind the bytes consumed by pg_restore to the manifest.
+
+    A later replacement of the caller-controlled pathname cannot change this
+    staged input. This does not protect against an attacker able to mutate files
+    inside the process-owned temporary directory.
+    """
+    expected_size = manifest["backup_size_bytes"]
+    if type(expected_size) is not int or expected_size <= 0:
+        raise RecoveryError("RESTORE_STAGED_ARCHIVE_SIZE_INVALID")
+
+    staged = private_directory / "verified-archive.dump"
+    # On POSIX a swapped FIFO would block in Path.open before fstat. O_NONBLOCK
+    # lets us reject it without waiting for a writer; O_NOFOLLOW rejects a
+    # freshly substituted symlink where the platform exposes that flag.
+    flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(archive, flags)
+    try:
+        with os.fdopen(descriptor, "rb") as source:
+            descriptor = -1  # fdopen owns/always closes the descriptor now.
+            if not stat.S_ISREG(os.fstat(source.fileno()).st_mode):
+                raise RecoveryError("RESTORE_STAGED_ARCHIVE_NOT_REGULAR")
+            with staged.open("xb") as destination:
+                copied = 0
+                while copied < expected_size:
+                    chunk = source.read(min(1024 * 1024, expected_size - copied))
+                    if not chunk:
+                        break
+                    destination.write(chunk)
+                    copied += len(chunk)
+                # An append or source swap after preflight must not be copied
+                # without limit, even when another process grows the file.
+                if copied != expected_size or source.read(1):
+                    raise RecoveryError("RESTORE_STAGED_ARCHIVE_SIZE_MISMATCH")
+                destination.flush()
+                os.fsync(destination.fileno())
+    finally:
+        if descriptor != -1:
+            os.close(descriptor)
+
+    if staged.stat().st_size != manifest["backup_size_bytes"]:
+        raise RecoveryError("RESTORE_STAGED_ARCHIVE_SIZE_MISMATCH")
+    if _sha256_file(staged) != manifest["backup_sha256"]:
+        raise RecoveryError("RESTORE_STAGED_ARCHIVE_DIGEST_MISMATCH")
+    return staged
+
+
 def restore_backup(
     target_database_url: str,
     archive_path: Path,
@@ -407,17 +458,23 @@ def restore_backup(
         if target_major < source_major:
             raise RecoveryError("RECOVERY_TARGET_SERVER_OLDER_THAN_SOURCE")
 
-    restore = _run_postgres_tool(
-        pg_restore_bin,
-        [
-            "--exit-on-error",
-            "--single-transaction",
-            "--no-owner",
-            "--no-privileges",
-            str(archive),
-        ],
-        target_database_url,
-    )
+    # Keep the subprocess away from the caller-owned pathname. The temporary
+    # directory survives until pg_restore exits and is then cleaned up.
+    with TemporaryDirectory(prefix="sql-connectome-restore-") as temporary:
+        staged_archive = _stage_verified_restore_archive(
+            archive, manifest, Path(temporary),
+        )
+        restore = _run_postgres_tool(
+            pg_restore_bin,
+            [
+                "--exit-on-error",
+                "--single-transaction",
+                "--no-owner",
+                "--no-privileges",
+                str(staged_archive),
+            ],
+            target_database_url,
+        )
 
     with psycopg.connect(
         target_database_url,

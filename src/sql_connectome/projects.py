@@ -82,12 +82,24 @@ def _secret_field_name(name: str) -> bool:
     compact = "".join(parts)
     if compact in _SECRET_FIELD_NAMES:
         return True
+    if "secret" in parts or compact.endswith(("secretkey", "token")):
+        return True
     if any(compact.endswith(name) for name in ("password", "passwd", "passphrase", "secret")):
         return True
     if "privatekey" in compact:
         return True
     if any(
-        part in {"pwd", "credential", "credentials", "authorization", "cookie"}
+        part in {
+            "password",
+            "passwd",
+            "passphrase",
+            "privatekey",
+            "pwd",
+            "credential",
+            "credentials",
+            "authorization",
+            "cookie",
+        }
         for part in parts
     ):
         return True
