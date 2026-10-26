@@ -12,7 +12,12 @@ from psycopg.errors import InvalidSchemaName, UndefinedFunction, UndefinedTable
 from psycopg.rows import dict_row
 
 from .config import Settings
-from .receipts import canonical_digest, make_receipt
+from .receipts import (
+    TYPED_PAYLOAD_DIGEST_FORMAT,
+    canonical_digest,
+    make_receipt,
+    typed_payload_digest,
+)
 from .sql_guard import validate_readonly_sql
 
 
@@ -165,6 +170,7 @@ def query_readonly(
     params: list[Any] | dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     statement = validate_readonly_sql(sql)
+    bound_params = params or ()
     with connect(settings) as conn:
         with conn.transaction():
             conn.execute("SET TRANSACTION READ ONLY")
@@ -173,7 +179,7 @@ def query_readonly(
                 (str(settings.statement_timeout_ms),),
             )
             identity = _runtime_identity(conn)
-            cursor = conn.execute(statement, params or ())
+            cursor = conn.execute(statement, bound_params)
             if cursor.description is None:
                 raise ValueError("READ_QUERY_RETURNED_NO_RESULT")
             rows = cursor.fetchmany(settings.max_rows + 1)
@@ -182,16 +188,22 @@ def query_readonly(
     if truncated:
         rows = rows[: settings.max_rows]
 
+    columns = [column.name for column in cursor.description or ()]
     subject = {
         "runtime_identity_digest": identity["identity_digest"],
         "sql_digest": canonical_digest(statement),
+        "payload_digest_format": TYPED_PAYLOAD_DIGEST_FORMAT,
+        # A row count alone cannot attest the returned data. Keep raw result
+        # values and bound parameters out of the receipt while binding both.
+        "params_digest": typed_payload_digest(bound_params),
+        "result_digest": typed_payload_digest({"columns": columns, "rows": rows}),
         "row_count": len(rows),
         "truncated": truncated,
     }
     return {
         "schema": "SQL_CONNECTOME_READ_RESULT_V1",
         "runtime": identity,
-        "columns": [column.name for column in cursor.description or ()],
+        "columns": columns,
         "rows": rows,
         "truncated": truncated,
         "receipt": make_receipt("READ_QUERY", subject),
