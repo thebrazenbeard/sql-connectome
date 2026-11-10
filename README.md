@@ -2,9 +2,20 @@
 
 # SQL Connectome
 
-SQL Connectome is a semantic network for understanding, comparing, translating, validating,
-routing, and safely executing SQL-family languages without pretending that every dialect has the
-same grammar or semantics.
+SQL Connectome is a Python library and optional REST/MCP service for inspecting SQL dialects,
+planning cross-dialect translations, validating queries, and operating a governed PostgreSQL
+control plane. It models dialect differences explicitly instead of treating SQL variants as
+interchangeable. Version 0.1.0 is an evolving implementation with deliberately bounded
+translation and execution guarantees—not a universal SQL compatibility or database-hosting product.
+
+### What you can use
+
+| Surface | Available behavior | Important boundary |
+| --- | --- | --- |
+| Python semantic library | Catalog, parse/probe, comparison, type/contract inspection, translation planning and transpilation | Parsing or translation does not prove equivalent behavior |
+| REST API | Authenticated semantic inventory, planning, inspection and qualified PostgreSQL operations | A static bearer is not a tenant identity |
+| MCP server | Streamable HTTP tools over the semantic and read-oriented control surfaces | Deployment needs configured resource-server authentication; ad-hoc live SQL is off by default |
+| PostgreSQL control plane | Bounded read-only queries, schema/migration inspection, backup/restore utilities, target admission evidence | No automatic provisioning, tenant isolation, or protected-write grant |
 
 The project is built around three separations:
 
@@ -29,8 +40,10 @@ every language into one monolithic grammar.
 
 See `docs/CONNECTOME_MODEL.md` for the semantic model.
 
-For Supabase-class platform parity and qualified BT2/Vera cutover gates, see
+Optional platform-replacement evaluation and its evidence gates are documented in
 [`docs/SUPABASE_REPLACEMENT_GATES.md`](docs/SUPABASE_REPLACEMENT_GATES.md).
+These are integration-specific qualification requirements, not prerequisites for using the
+standalone semantic library.
 
 ### Governed dialect catalog
 
@@ -142,7 +155,7 @@ checksum-valid archive does not authenticate its producer. See `docs/RECOVERY.md
 
 Differential engine evidence is fixture-bounded and does not establish universal behavioral equivalence. See `docs/DIFFERENTIAL_CONFORMANCE.md`.
 
-### MCP / ChatGPT surface
+### MCP integration surface
 
 The source-controlled MCP v2 server exposes the semantic plane and governed PostgreSQL read
 substrate over Streamable HTTP. Its current tool surface includes dialect inventory/comparison,
@@ -186,6 +199,11 @@ provision, attest provider ownership, or authorize a cutover.** See
 
 ## Local development
 
+These commands exercise the repository's bundled **development-only** PostgreSQL container
+and credentials; they are not production deployment or security guidance. Replace the database
+credentials and API secret, restrict network exposure, and qualify roles/TLS/authentication
+separately for any shared environment.
+
 ```bash
 cp .env.example .env
 docker compose up -d db
@@ -198,7 +216,8 @@ python scripts/apply_migrations.py
 uvicorn sql_connectome.app:app --reload
 ```
 
-The authenticated MCP server is a separate entrypoint:
+The MCP server has a separate entrypoint; configure its resource-server authentication
+and advertised issuer/resource URLs before exposing it on a network:
 
 ```bash
 sql-connectome-mcp
@@ -235,3 +254,4 @@ database read does not grant write authority.
 Provider provisioning, credential changes, durable migrations, restore, destructive operations,
 plugin installation, and protected writes remain separate effects requiring explicit authority and
 post-effect verification.
+
